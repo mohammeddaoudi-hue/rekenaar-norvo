@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Richtprijs-AI</title>
+<meta name="description" content="Richtprijs-AI, ontwerp E: één kolom als AI-rapport met bron-chips bij elk cijfer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+:root{--g1:#fffdf8;--g2:#f4f1e8;--g3:#ebe6da;--g4:#dcd5c6;--g5:#c9c1b0;--g6:#aaa294;--g7:#8a8378;--g8:#6a645b;--g9:#56514a;--g10:#211f1a;
+--merk:#1e5b3a;--merk-zacht:#e2eee5;--op-merk:#fff;--ai:#85560a;--ai-zacht:#f5e9cf;--fout:#a3271b;--donker:#0c2b1b;--donker-tekst:#fffdf8;
+--schaduw:0 4px 16px rgba(33,31,26,.12);--kop:'Archivo',sans-serif;--lees:'IBM Plex Sans',sans-serif}
+@media (prefers-color-scheme:dark){:root{--g1:#111a15;--g2:#0a110e;--g3:#1a2720;--g4:#27352d;--g5:#36463c;--g6:#5d6a61;--g7:#7c877f;--g8:#939d93;--g9:#c3cbc2;--g10:#eef2ec;
+--merk:#4ec27e;--merk-zacht:#143524;--op-merk:#06140c;--ai:#e8bd62;--ai-zacht:#3a2e10;--fout:#ff8f82;--donker:#eef2ec;--donker-tekst:#111a15;--schaduw:0 4px 16px rgba(0,0,0,.4);color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--g1);color:var(--g9);font:400 14px/20px var(--lees);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;color:var(--g10);font-weight:600}
+p,dl,dd,figure{margin:0}
+a{color:var(--merk)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--merk);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sprite{display:none}
+.ico{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+.kolom{max-width:760px;margin:0 auto;padding-inline:16px}
+@media (min-width:700px){.kolom{padding-inline:24px}}
+@media (max-width:699px){.pc{display:none!important}}
+
+/* knoppen en chips */
+.knop{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 12px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);color:var(--g10);font-weight:600;cursor:pointer;white-space:nowrap;text-decoration:none}
+.knop:hover{border-color:var(--g5)}
+.knop--primair{background:var(--merk);border-color:var(--merk);color:var(--op-merk)}
+.knop--primair:hover{border-color:var(--merk)}
+.knop--tekst{border:0;background:none;padding:0 4px;color:var(--g9);height:24px;font-weight:400}
+.knop--tekst:hover{color:var(--g10)}
+.knop--ico{width:36px;padding:0}
+.knop--ghost{border-color:transparent;background:none}
+.knop--ghost:hover{background:var(--g2);border-color:transparent}
+.knop[disabled]{color:var(--g6);cursor:default}
+.knop[disabled]:hover{border-color:var(--g4)}
+.chip{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-size:12px;line-height:16px;font-weight:600;background:var(--g3);color:var(--g9);white-space:nowrap;vertical-align:middle}
+.chip--ok{background:var(--merk-zacht);color:var(--merk)}
+.chip--ai{background:var(--ai-zacht);color:var(--ai)}
+.chip--ctx{height:24px;padding:0 8px;gap:6px;font-weight:400;font-size:13px;background:var(--g2)}
+.chip--ctx .knop{height:16px;width:16px;border:0;background:none;padding:0;color:var(--g7)}
+
+/* bovenbalk */
+.top{height:48px;border-bottom:1px solid var(--g4);background:var(--g1)}
+.top .kolom{display:flex;align-items:center;gap:8px;height:48px}
+.top .merk{font-weight:600;color:var(--g10);text-decoration:none;margin-right:auto}
+.top .lbl{display:none}
+@media (min-width:700px){.top .lbl{display:inline}.top .knop--ico{width:auto;padding:0 12px}}
+
+/* vraag */
+.vraag{padding-block:24px 16px}
+@media (min-width:700px){.vraag{padding-block:32px 24px}}
+.vraag .adres{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--g10)}
+.vraag .adres .ico{color:var(--g7)}
+.vraag .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;line-height:18px;color:var(--g8);margin-top:4px}
+.vraag h1{font:600 24px/28px var(--kop);letter-spacing:-.01em;margin-top:8px;text-wrap:balance}
+@media (min-width:700px){.vraag h1{font-size:28px;line-height:32px}}
+.vraag .klus{font-size:16px;line-height:24px;color:var(--g9);margin-top:8px}
+.vraag .meer{display:none;margin-top:4px}
+@media (max-width:699px){.vraag .klus:not(.open){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.vraag .meer{display:inline-flex}}
+
+/* trail */
+.trail{border-top:1px solid var(--g4);padding-block:8px}
+.trail summary{list-style:none;display:grid;grid-template-columns:24px 1fr auto;align-items:center;column-gap:8px;row-gap:8px;min-height:32px;padding:4px 0;font-weight:600;color:var(--g10);cursor:pointer}
+.trail summary::-webkit-details-marker{display:none}
+.trail summary .ok{color:var(--merk)}
+.trail summary .bezig-ico{color:var(--merk);animation:rot 1s linear infinite}
+.trail summary .chev{color:var(--g7)}
+.trail[open] summary .chev{transform:rotate(180deg)}
+.trail .stapchips{grid-column:2/-1;display:flex;gap:8px;flex-wrap:wrap}
+.trail[open] .stapchips{display:none}
+.trail .rij{display:grid;grid-template-columns:24px 1fr auto;gap:0 8px;padding:8px 0;align-items:start}
+.trail .rij .ico{margin-top:2px}
+.trail .ok .ico{color:var(--merk)}
+.trail .wacht .ico,.trail .over .ico{color:var(--g7)}
+.trail .bezig .ico{color:var(--merk);animation:rot 1s linear infinite}
+.trail .lbl{color:var(--g10)}
+.trail .wacht .lbl{color:var(--g8)}
+.trail .det{font-size:13px;line-height:18px;color:var(--g8)}
+.trail .duur{font-size:13px;line-height:18px;color:var(--g8);font-weight:400}
+.trail .posten{grid-column:2/-1;font-size:13px;line-height:18px;color:var(--g9);margin-top:4px}
+.trail .posten div{padding:2px 0}
+.trail .posten a{display:inline-block;padding:2px 0}
+.bezig .shim{background:linear-gradient(90deg,var(--g10) 0 40%,var(--g7) 50%,var(--g10) 60% 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 2s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+@keyframes shim{from{background-position:100% 0}to{background-position:-100% 0}}
+@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.bezig .shim{animation:none;background:none;color:var(--g10)}.skelet::after{display:none}}
+
+/* navigatie binnen het rapport */
+.nav{position:sticky;top:0;z-index:5;background:var(--g1);border-top:1px solid var(--g4);border-bottom:1px solid var(--g4)}
+.nav .kolom{display:flex;gap:4px;height:44px;align-items:stretch;overflow-x:auto;scrollbar-width:none}
+.nav .kolom::-webkit-scrollbar{display:none}
+.nav a{color:var(--g8);text-decoration:none;padding:0 8px;display:inline-flex;align-items:center;white-space:nowrap;border-bottom:2px solid transparent}
+.nav a:hover{color:var(--g10)}
+.nav a.actief{color:var(--g10);border-bottom-color:var(--merk);font-weight:600}
+
+/* secties */
+.rapport{padding-bottom:136px}
+.sectie{padding:24px 0 32px;border-top:1px solid var(--g4);scroll-margin-top:52px}
+.sectie:first-child{border-top:0}
+.sectie h2{font-size:16px;line-height:24px}
+.sectie .sub{font-size:13px;line-height:18px;color:var(--g8);margin-top:2px}
+.sectie .kop{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.sectie .kop .rechts{margin-left:auto;font-size:13px;line-height:18px;color:var(--g8)}
+h3.sub3{font-size:14px;line-height:20px;margin:24px 0 8px}
+.klein{font-size:13px;line-height:18px;color:var(--g8)}
+
+/* prijs */
+#prijs{display:grid;gap:16px 24px;grid-template-areas:"h" "p" "f" "a"}
+@media (min-width:700px){#prijs{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"h a" "p p" "f f";gap:8px 24px}}
+#prijs h2{grid-area:h;align-self:center}
+#prijs .prijs{grid-area:p}
+#prijs .acties{grid-area:a;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#prijs .feiten-wrap{grid-area:f}
+#prijs .feiten{margin-top:8px}
+@media (max-width:699px){#prijs .acties{justify-content:flex-start}#prijs .feiten{margin-top:0}}
+.prijs .groot{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.prijs .groot b{font:700 40px/44px var(--kop);letter-spacing:-.02em;color:var(--g10)}
+@media (min-width:700px){.prijs .groot b{font-size:48px;line-height:52px}}
+.prijs .groot span{color:var(--g8)}
+.prijs .onder{margin-top:4px;color:var(--g9)}
+.prijs .caveat{margin-top:8px;font-size:13px;line-height:18px;color:var(--g8);max-width:56ch}
+.prijs .acties{display:flex;gap:8px;flex-wrap:wrap}
+.feiten{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;border-top:1px solid var(--g4);padding-top:16px;margin-top:24px}
+@media (min-width:700px){.feiten{grid-template-columns:repeat(5,1fr)}}
+.feit{min-width:0}
+.feit dt{font-size:12px;line-height:16px;color:var(--g8)}
+.feit dd{margin:2px 0 0;font:600 20px/24px var(--kop);color:var(--g10);overflow-wrap:anywhere}
+.feit dd span{display:block;font:400 13px/18px var(--lees);color:var(--g8)}
+.balk{height:6px;border-radius:3px;background:var(--g3);overflow:hidden;display:flex;margin-top:24px}
+.balk i{display:block;height:100%}
+.balk .d{background:var(--merk)}
+.balk .a{background:var(--ai)}
+.legende{font-size:13px;line-height:18px;color:var(--g8);margin-top:8px}
+.skelet{background:var(--g3);border-radius:6px;position:relative;overflow:hidden}
+.skelet::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,253,248,.55),transparent);animation:sh 2s linear infinite}
+
+/* meting */
+.meting{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media (min-width:700px){.meting{grid-template-columns:repeat(3,1fr)}}
+.bronregel{margin-top:16px}
+
+/* kenmerken */
+.velden{display:grid;gap:16px;grid-template-columns:1fr}
+@media (min-width:480px){.velden{grid-template-columns:1fr 1fr}}
+@media (min-width:700px){.velden{grid-template-columns:repeat(3,1fr)}}
+.veld .lr{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;line-height:18px;color:var(--g8);margin-bottom:4px}
+.veld .in{position:relative}
+.veld input,.veld select{width:100%;height:36px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);color:var(--g10);font:inherit;padding:0 8px}
+.veld input.met-eh{padding-right:40px}
+.veld .eh{position:absolute;right:8px;top:0;line-height:36px;font-size:13px;color:var(--g8);pointer-events:none}
+.veld-acties{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:24px}
+
+/* waar het geld zit */
+.geld .r{display:grid;grid-template-columns:minmax(0,1fr) 84px 40px;grid-template-areas:"n g p" "b b b";gap:4px 8px;padding:4px 0;align-items:center}
+@media (min-width:700px){.geld .r{grid-template-columns:minmax(0,1fr) 140px 84px 40px;grid-template-areas:"n b g p";gap:0 12px}}
+.geld .n{grid-area:n;color:var(--g10);display:flex;gap:8px;align-items:center;min-width:0}
+.geld .n em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:699px){.geld .n{flex-wrap:wrap}.geld .n em{white-space:normal}}
+.geld .b{grid-area:b;height:8px;background:var(--g3);border-radius:4px;overflow:hidden}
+.geld .b i{display:block;height:100%;background:var(--merk)}
+.geld .b i.ai{background:var(--ai)}
+.geld .g{grid-area:g;text-align:right;color:var(--g10)}
+.geld .p{grid-area:p;text-align:right;font-size:13px;color:var(--g8)}
+
+/* wat de prijs verschuift */
+.watals div{display:flex;align-items:baseline;gap:12px;padding:4px 0}
+.watals dt{color:var(--g9);flex:1;min-width:0}
+.watals dd{font-weight:600;color:var(--g10);white-space:nowrap}
+.watals a{font-size:13px;white-space:nowrap}
+
+/* uitleg van de AI */
+.ai .kopje{font-size:12px;line-height:16px;color:var(--g8)}
+.bronnen{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+.punten{margin:0;padding:0;list-style:none;counter-reset:p}
+.punten li{position:relative;padding-left:28px;font-size:16px;line-height:24px;color:var(--g10);margin-bottom:16px;counter-increment:p}
+.punten li::before{content:counter(p);position:absolute;left:0;top:0;font-size:13px;line-height:24px;color:var(--g8)}
+.caret{display:inline-block;width:8px;height:14px;background:var(--g10);vertical-align:-2px;margin-left:2px;animation:knip 1s steps(1) infinite}
+@keyframes knip{50%{opacity:0}}
+.ai-acties{display:flex;gap:16px;flex-wrap:wrap;margin-top:4px}
+.twee{display:grid;gap:24px;margin-top:32px}
+@media (min-width:700px){.twee{grid-template-columns:1fr 1fr}}
+.twee h3{font-size:13px;line-height:18px}
+.twee ul{margin:8px 0 0;padding-left:18px}
+.twee li{margin-bottom:8px;color:var(--g9)}
+
+/* tabellen: pc = kolommen, telefoon = gestapelde rij */
+.tabel .kr{display:none}
+.tabel .fase{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:36px;border-top:1px solid var(--g4);margin-top:16px;color:var(--g10);font-weight:600}
+.tabel .fase:first-child{margin-top:0}
+.tabel .fase span{font-weight:400;font-size:13px;line-height:18px;color:var(--g8);text-align:right}
+.tabel .rij{padding:8px 0;border-bottom:1px solid var(--g4);display:grid;gap:8px 12px;grid-template-columns:repeat(3,1fr)}
+.tabel .naam{grid-column:1/-1;color:var(--g10);min-width:0}
+.tabel .naam .chip{margin-left:8px}
+.tabel .naam small{display:block;font-size:13px;line-height:18px;color:var(--g8)}
+.tabel .g{text-align:left;color:var(--g10);min-width:0}
+.tabel .g::before{content:attr(data-l);display:block;font-size:12px;line-height:16px;color:var(--g8)}
+.tabel .skelet{height:36px;margin-top:8px}
+@media (min-width:700px){
+.tabel .kr{display:grid;font-size:12px;line-height:16px;color:var(--g8);padding:0 0 8px;align-items:end!important}
+.tabel--werk .kr,.tabel--werk .rij{grid-template-columns:minmax(200px,1fr) repeat(5,64px) 84px;gap:0 8px;align-items:start}
+.tabel--mat .kr,.tabel--mat .rij{grid-template-columns:minmax(180px,1fr) 72px 72px 76px 76px 84px;gap:0 8px;align-items:start}
+.tabel--eq .kr,.tabel--eq .rij{grid-template-columns:minmax(180px,1fr) 76px 84px 84px;gap:0 8px;align-items:start}
+.tabel .naam{grid-column:auto}
+.tabel .g{text-align:right}
+.tabel .g::before{display:none}
+.tabel .rij:hover{background:var(--g2)}
+}
+
+/* kostenopbouw */
+.kosten div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;color:var(--g9)}
+.kosten dd{color:var(--g10);white-space:nowrap}
+.kosten .som{font-weight:600;color:var(--g10);border-top:1px solid var(--g4)}
+
+/* composer (vast onderaan) */
+.composer{position:fixed;left:0;right:0;bottom:0;z-index:6;padding:0 16px calc(12px + env(safe-area-inset-bottom))}
+@media (min-width:700px){.composer{padding:0 24px 16px}}
+.composer .kaart{max-width:712px;margin:0 auto;background:var(--g1);border:1px solid var(--g4);border-radius:16px;padding:8px;box-shadow:var(--schaduw)}
+.composer .ctx{display:flex;gap:8px;flex-wrap:wrap;padding:2px 4px 6px}
+.composer .rij{display:flex;gap:8px;align-items:center;flex:1;min-width:0}
+@media (min-width:700px){.composer .kaart{display:flex;align-items:center;gap:4px;padding:8px 8px 8px 12px}.composer .ctx{padding:0;flex:none}}
+.composer input{flex:1;min-width:0;height:44px;border:0;background:none;font:inherit;font-size:16px;color:var(--g10);padding:0 8px}
+.composer input::placeholder{color:var(--g7)}
+.composer .knop--primair{height:36px;min-width:96px}
+
+/* lege start */
+.start{padding-block:48px}
+@media (min-width:700px){.start{padding-top:calc(30vh - 48px)}}
+.start h1{font:600 28px/32px var(--kop);letter-spacing:-.01em}
+.start .lead{font-size:16px;line-height:24px;color:var(--g8);margin-top:8px}
+.startkaart{margin-top:24px;background:var(--g1);border:1px solid var(--g4);border-radius:16px;padding:16px}
+.startkaart .arij{display:flex;align-items:center;gap:8px;height:40px;border-bottom:1px solid var(--g4)}
+.startkaart .arij .ico{color:var(--g7)}
+.startkaart input,.startkaart textarea{width:100%;border:0;background:none;font:inherit;font-size:16px;line-height:24px;color:var(--g10);padding:0;resize:none}
+.startkaart input::placeholder,.startkaart textarea::placeholder{color:var(--g7)}
+.startkaart textarea{display:block;height:72px;margin-top:8px}
+.startkaart .voet{display:flex;align-items:center;gap:12px;margin-top:8px}
+.startkaart .voet .status{flex:1;font-size:13px;color:var(--g8)}
+.startkaart .knop--primair{height:40px}
+@media (max-width:699px){.startkaart .voet{flex-direction:column;align-items:stretch}.startkaart .knop--primair{height:44px}}
+.chips{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+@media (min-width:700px){.chips{flex-direction:row}}
+.chips .chipk{display:flex;align-items:center;gap:8px;height:36px;padding:0 8px 0 12px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);color:var(--g10);min-width:0;flex:1;cursor:pointer;text-align:left}
+.chips .chipk span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chips .chipk .ico{color:var(--g7)}
+.start .kan{margin-top:24px;display:grid;gap:4px}
+
+/* lade (menu) */
+.achter{position:fixed;inset:0;background:rgba(33,31,26,.2);z-index:19;display:none}
+.lade{position:fixed;top:0;bottom:0;left:0;width:320px;max-width:calc(100% - 48px);background:var(--g2);border-right:1px solid var(--g4);box-shadow:var(--schaduw);transform:translateX(-105%);transition:transform .2s cubic-bezier(.32,.72,0,1);z-index:20;overflow-y:auto;padding:0 16px 24px;display:flex;flex-direction:column}
+body.menu .lade{transform:none}
+body.menu .achter{display:block}
+@media (prefers-reduced-motion:reduce){.lade{transition:none}}
+.lade .lkop{display:flex;align-items:center;gap:8px;height:48px;font-weight:600;color:var(--g10);flex:none}
+.lade .lkop .knop{margin-left:auto}
+.lade h3{font-size:12px;line-height:16px;color:var(--g8);font-weight:400;margin:24px 0 8px}
+.lade .item{display:block;padding:8px 12px;border-radius:6px;color:var(--g10);text-decoration:none;position:relative}
+.lade .item:hover{background:var(--g3)}
+.lade .item.actief{background:var(--g3)}
+.lade .item small{display:block;font-size:13px;line-height:18px;color:var(--g8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lade .item .meerk{position:absolute;right:4px;top:6px;width:28px;height:28px;border:0;background:none;color:var(--g7);border-radius:6px;cursor:pointer}
+.lade .leegst{padding:8px 12px}
+.lade .leegst b{display:block;font-weight:600;color:var(--g10)}
+.lade .onder{margin-top:auto;padding-top:24px;display:grid;gap:4px}
+.lade .onder .item{display:flex;align-items:center;gap:8px}
+.lade .knop--vol{width:100%}
+
+/* instellingen (vaste weergave die het rapport vervangt) */
+.instel{display:none}
+body.instellingen .rapport,body.instellingen .composer,body.instellingen .nav,body.instellingen .vraag,body.instellingen .trail{display:none}
+body.instellingen .instel{display:block}
+.instel .kolom{max-width:960px}
+.instel .ikop{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:24px 0 16px}
+.instel .ikop h1{font:600 28px/32px var(--kop);letter-spacing:-.01em}
+.segment{display:flex;gap:4px;padding:2px;background:var(--g3);border-radius:6px;width:max-content;max-width:100%;overflow-x:auto}
+.segment a{height:32px;padding:0 12px;border-radius:4px;display:inline-flex;align-items:center;color:var(--g8);text-decoration:none;white-space:nowrap}
+.segment a.actief{background:var(--g1);color:var(--g10);font-weight:600}
+.instel .sectie .velden{max-width:720px}
+.groep{margin-top:24px}
+.groep h3{font-size:14px;line-height:20px;margin-bottom:8px}
+.dt-kop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.zoek{position:relative;flex:1;min-width:200px;max-width:360px}
+.zoek input{width:100%;height:36px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);color:var(--g10);font:inherit;padding:0 8px 0 32px}
+.zoek .ico{position:absolute;left:8px;top:10px;color:var(--g7)}
+.vakken{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}
+.vakken a{height:36px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;color:var(--g8);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}
+.vakken a.actief{color:var(--g10);border-bottom-color:var(--merk);font-weight:600}
+.vakken a b{font-weight:400;color:var(--g7)}
+.post{border-bottom:1px solid var(--g4);padding:8px 0}
+.post .pn{display:flex;align-items:baseline;gap:12px;color:var(--g10);cursor:pointer}
+.post .pn small{display:block;font-size:13px;line-height:18px;color:var(--g8)}
+.post .pn .chev{margin-left:auto;color:var(--g7);align-self:center}
+.post .open{margin-top:12px;display:grid;gap:12px}
+.post .mat{display:grid;gap:4px 12px;grid-template-columns:minmax(0,1fr) 72px 96px 56px auto;align-items:center}
+.post .mat .kr{display:contents;font-size:12px;line-height:16px;color:var(--g8)}
+.post .mat .kr span{padding-bottom:4px}
+.post .mat input{width:100%;height:32px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);color:var(--g10);font:inherit;padding:0 8px;text-align:right}
+.post .mat .lbl{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--g9);text-decoration:none}
+.post .norm{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.post .norm input{width:72px;height:32px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);color:var(--g10);font:inherit;padding:0 8px;text-align:right}
+@media (max-width:699px){.post .mat{grid-template-columns:minmax(0,1fr) 72px 96px}.post .mat .kr span:nth-child(n+4),.post .mat .kg,.post .mat .lbl{display:none}}
+
+/* print: 1 tot 2 A4 met adres, kenmerken, prijs, posten, aannames */
+@media print{
+@page{size:A4;margin:15mm}
+body{background:#fff;color:#000;font-size:10pt;line-height:1.35}
+.top,.nav,.trail,.composer,.lade,.achter,#prijs .acties,.vraag .meer,.vraag .klus,.balk,.legende,.feit dd span,.meting,.geld,.watals,#uitleg .kop,#uitleg h3.sub3,#uitleg .ai,.ai-acties,#materiaal,.veld-acties,.sectie .kop .rechts,.tabel .g[data-l="Naar boven kg"],.tabel .g[data-l="Afval kg"],#meting .klein:last-child{display:none!important}
+.rapport{padding-bottom:0}
+.vraag{padding:0 0 6pt}
+.vraag h1{font-size:14pt;line-height:1.2;margin-top:2pt}
+.sectie{padding:6pt 0;border-top:1px solid #000;break-inside:auto}
+.sectie h2{font-size:12pt}
+.sectie .kop{margin-bottom:4pt}
+#prijs{gap:4pt 12pt;grid-template-areas:"h" "p" "f"}
+.prijs .groot b{font-size:24pt;line-height:1.1}
+.prijs .caveat{margin-top:2pt}
+.feiten{margin-top:4pt;padding-top:4pt;border-top:1px solid #999;grid-template-columns:repeat(5,1fr)}
+.feit dd{font-size:11pt}
+.velden{grid-template-columns:repeat(3,1fr);gap:2pt 16pt}
+.twee{margin-top:6pt}
+.veld .lr{margin:0;display:inline}
+.veld .in{display:inline}
+.veld input{border:0;height:auto;padding:0;font-size:10pt;width:auto}
+.veld .eh{position:static;line-height:1.35}
+.veld{display:flex;justify-content:space-between;gap:8pt;border-bottom:1px dotted #999}
+.chip{background:none!important;color:#000!important;padding:0;height:auto;font-weight:400}
+.chip::before{content:"("}.chip::after{content:")"}
+.tabel .kr{display:grid;color:#000;border-bottom:1px solid #000}
+.tabel--werk .kr,.tabel--werk .rij{grid-template-columns:1fr 64pt 52pt 64pt 70pt;gap:0 8pt}
+.tabel .fase{break-after:avoid;min-height:auto;padding:6pt 0 2pt}
+.tabel .rij{padding:3pt 0;break-inside:avoid}
+.tabel .g{text-align:right}.tabel .g::before{display:none}
+.tabel .naam{grid-column:auto}
+.tabel .naam small{display:none}
+.kosten div{padding:2pt 0}
+.twee{margin-top:8pt;grid-template-columns:1fr 1fr;gap:16pt}
+.print-voet{display:block!important;margin-top:12pt;font-size:9pt;color:#333;border-top:1px solid #999;padding-top:6pt}
+}
+.print-voet{display:none}
+</style>
+</head>
+<body class="leeg">
+<svg class="sprite" aria-hidden="true"><defs>
+<symbol id="i-menu" viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12"/></symbol>
+<symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 2.5v11M2.5 8h11"/></symbol>
+<symbol id="i-pin" viewBox="0 0 16 16"><path d="M8 14.5s4.5-4.2 4.5-8a4.5 4.5 0 0 0-9 0c0 3.8 4.5 8 4.5 8z"/><circle cx="8" cy="6.5" r="1.6"/></symbol>
+<symbol id="i-check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M5 8.2l2 2 4-4.2"/></symbol>
+<symbol id="i-rond" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/></symbol>
+<symbol id="i-spin" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 1 1-6.5 6.5"/></symbol>
+<symbol id="i-chev" viewBox="0 0 16 16"><path d="M3.5 6l4.5 4.5L12.5 6"/></symbol>
+<symbol id="i-stop" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-print" viewBox="0 0 16 16"><path d="M4.5 6V2.5h7V6M4.5 11.5h7v3h-7zM3 6h10a1 1 0 0 1 1 1v4.5H2V7a1 1 0 0 1 1-1z"/></symbol>
+<symbol id="i-copy" viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></symbol>
+<symbol id="i-save" viewBox="0 0 16 16"><path d="M3 2.5h8l2.5 2.5v8.5h-10.5z M5.5 2.5v3.5h5V2.5M5.5 13.5V9.5h5v4"/></symbol>
+<symbol id="i-gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.7M8 12.5v1.7M1.8 8h1.7M12.5 8h1.7M3.6 3.6l1.2 1.2M11.2 11.2l1.2 1.2M3.6 12.4l1.2-1.2M11.2 4.8l1.2-1.2"/></symbol>
+<symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.5 1.5"/></symbol>
+<symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3.5 3.5"/></symbol>
+<symbol id="i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7 11.5l-1 1a2.5 2.5 0 0 1-3.5-3.5l1-1M9 4.5l1-1a2.5 2.5 0 0 1 3.5 3.5l-1 1"/></symbol>
+<symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+<symbol id="i-dash" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M5 8h6"/></symbol>
+</defs></svg>
+<header class="top"><div class="kolom">
+<button class="knop knop--ico knop--ghost" type="button" data-menu aria-label="Berekeningen en instellingen" title="Berekeningen en instellingen"><svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg><span class="lbl">Berekeningen</span></button>
+<a class="merk" href="leeg.html">Richtprijs-AI</a>
+
+</div></header><div class="achter" data-menu-dicht></div>
+<nav class="lade" aria-label="Berekeningen en instellingen">
+<div class="lkop">Richtprijs-AI<button class="knop knop--ico" type="button" data-menu aria-label="Menu sluiten" title="Menu sluiten"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+<a class="knop knop--vol" href="leeg.html"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nieuwe berekening</a>
+<h3>Eerdere berekeningen</h3>
+<p class="leegst"><b>Nog geen berekeningen.</b><span class="klein">Elke berekening komt hier, met adres en prijs.</span></p>
+<div class="onder">
+<a class="item" href="index.html"><svg class="ico" aria-hidden="true"><use href="#i-clock"/></svg>Voorbeeld: zadeldak halfopen woning, 94 m²</a>
+<a class="item" href="#instellingen" data-instellingen><svg class="ico" aria-hidden="true"><use href="#i-gear"/></svg>Instellingen</a>
+</div>
+</nav>
+<main class="start kolom">
+<h1>Richtprijs-AI</h1>
+<p class="lead">Adres en klus. De richtprijs staat er binnen 60 seconden.</p>
+<form class="startkaart" onsubmit="return false">
+<div class="arij"><svg class="ico" aria-hidden="true"><use href="#i-pin"/></svg><label class="sr" for="adres">Adres</label><input id="adres" type="text" placeholder="Adres in Vlaanderen (optioneel): Straat 12, Gemeente" autocomplete="off"></div>
+<label class="sr" for="klus">De klus</label><textarea id="klus" placeholder="Hellend dak 140 m², oude pannen eraf, 12 cm isolatie, nieuwe pannen, 2 dakramen."></textarea>
+<div class="voet"><p class="status" role="status" aria-live="polite"></p><button class="knop knop--primair" type="submit">Bereken richtprijs</button></div>
+</form>
+<div class="chips">
+<button class="chipk" type="button"><span>Zadeldak halfopen woning: pannen, onderdak, sarking 12 cm, 2 dakramen…</span><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+<button class="chipk" type="button"><span>Halfopen woning. Voorgevel 8 m breed en 6 m hoog isoleren met 14 cm EPS en crepi. 3 ramen en 1 deur.</span><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+<button class="chipk" type="button"><span>Plat dak 60 m² op een aanbouw: oude roofing eraf, 12 cm PIR, EPDM, 2 afvoeren, 1 koepel.</span><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+</div>
+<div class="kan"><p class="klein">Meet uit de kaart: grondoppervlak, bebouwing, dakvorm, dakvlak, nokhoogte.</p><p class="klein">Meet niet: binnenruimtes, staat van het dak, bereikbaarheid. Schrijf die in de klus.</p></div>
+</main><div class="instel"><div class="kolom">
+<div class="ikop"><button class="knop" type="button" data-terug>Terug naar de berekening</button><h1>Instellingen</h1><div class="segment"><a class="actief" href="#tarieven">Tarieven</a><a href="#standaarden">Standaarden</a><a href="#datatabel">Datatabel</a></div></div>
+<section class="sectie" id="tarieven" style="border-top:0"><div class="kop"><div><h2>Tarieven</h2><p class="sub">Geldt meteen voor de open berekening. Bewaard op deze pc.</p></div><span class="rechts">Bewaard</span></div>
+<div class="velden">
+<div class="veld"><div class="lr"><label for="t1">Uurtarief arbeid</label></div><div class="in"><input id="t1" type="text" inputmode="decimal" class="met-eh" value="57,50"><span class="eh">€/u</span></div></div>
+<div class="veld"><div class="lr"><label for="t2">Uren per werkdag</label></div><div class="in"><input id="t2" type="text" inputmode="decimal" class="met-eh" value="8"><span class="eh">u</span></div></div>
+<div class="veld"><div class="lr"><label for="t3">Ploeg</label></div><div class="in"><input id="t3" type="text" inputmode="decimal" class="met-eh" value="3"><span class="eh">man</span></div></div>
+<div class="veld"><div class="lr"><label for="t4">Marge op materiaal</label></div><div class="in"><input id="t4" type="text" inputmode="decimal" class="met-eh" value="15"><span class="eh">%</span></div></div>
+<div class="veld"><div class="lr"><label for="t5">Onvoorzien</label></div><div class="in"><input id="t5" type="text" inputmode="decimal" class="met-eh" value="5"><span class="eh">%</span></div></div>
+<div class="veld"><div class="lr"><label for="t6">Btw</label></div><div class="in"><select id="t6"><option>6 % (woning ouder dan 10 jaar)</option><option>21 %</option></select></div></div>
+</div></section><section class="sectie" id="standaarden"><div class="kop"><div><h2>Standaarden van de sector</h2><p class="sub">Wat de AI aanneemt als de klus en de meting niets zeggen. 20 velden; elke wijziging geldt voor de volgende berekening.</p></div></div>
+<div class="groep"><h3>Hellend dak</h3><div class="velden"><div class="veld"><div class="lr"><label for="s-dakramen_gesloten">Dakramen bij gesloten bebouwing</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-dakramen_gesloten" type="text" inputmode="decimal" class="met-eh" value="1"><span class="eh">st</span></div></div><div class="veld"><div class="lr"><label for="s-dakramen_halfopen">Dakramen bij halfopen bebouwing</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-dakramen_halfopen" type="text" inputmode="decimal" class="met-eh" value="2"><span class="eh">st</span></div></div><div class="veld"><div class="lr"><label for="s-dakramen_open">Dakramen bij open bebouwing</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-dakramen_open" type="text" inputmode="decimal" class="met-eh" value="2"><span class="eh">st</span></div></div><div class="veld"><div class="lr"><label for="s-schouwen">Schouwen door het dak</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-schouwen" type="text" inputmode="decimal" class="met-eh" value="1"><span class="eh">st</span></div></div><div class="veld"><div class="lr"><label for="s-helling">Dakhelling</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-helling" type="text" inputmode="decimal" class="met-eh" value="40"><span class="eh">°</span></div></div><div class="veld"><div class="lr"><label for="s-kroonlijst">Kroonlijsthoogte</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-kroonlijst" type="text" inputmode="decimal" class="met-eh" value="6"><span class="eh">m</span></div></div><div class="veld"><div class="lr"><label for="s-isolatie">Sarking-isolatie PIR</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-isolatie" type="text" inputmode="decimal" class="met-eh" value="12"><span class="eh">cm</span></div></div><div class="veld"><div class="lr"><label for="s-afvoeren">Regenafvoeren</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-afvoeren" type="text" inputmode="decimal" class="met-eh" value="2"><span class="eh">st</span></div></div><div class="veld"><div class="lr"><label for="s-overstek_goot">Dakoverstek aan de goot</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-overstek_goot" type="text" inputmode="decimal" class="met-eh" value="0,3"><span class="eh">m</span></div></div><div class="veld"><div class="lr"><label for="s-overstek_gevel">Dakoverstek aan een vrije gevel</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-overstek_gevel" type="text" inputmode="decimal" class="met-eh" value="0,2"><span class="eh">m</span></div></div><div class="veld"><div class="lr"><label for="s-bedekking">Dakbedekking hellend dak</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-bedekking" type="text" inputmode="decimal" class="" value="kleipan klein formaat"></div></div></div></div><div class="groep"><h3>Gevel</h3><div class="velden"><div class="veld"><div class="lr"><label for="s-gevel_isolatie">Gevelisolatie EPS</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-gevel_isolatie" type="text" inputmode="decimal" class="met-eh" value="14"><span class="eh">cm</span></div></div><div class="veld"><div class="lr"><label for="s-gevel_openingen">Ramen en deuren per gevel</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-gevel_openingen" type="text" inputmode="decimal" class="met-eh" value="3"><span class="eh">st</span></div></div><div class="veld"><div class="lr"><label for="s-gevel_opening_omtrek">Dagkanten per raam of deur</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-gevel_opening_omtrek" type="text" inputmode="decimal" class="met-eh" value="4,5"><span class="eh">lm</span></div></div><div class="veld"><div class="lr"><label for="s-crepi">Crepi</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-crepi" type="text" inputmode="decimal" class="" value="siliconenharspleister 1,5 mm"></div></div></div></div><div class="groep"><h3>Plat dak</h3><div class="velden"><div class="veld"><div class="lr"><label for="s-plat_isolatie">Isolatie plat dak PIR</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-plat_isolatie" type="text" inputmode="decimal" class="met-eh" value="12"><span class="eh">cm</span></div></div><div class="veld"><div class="lr"><label for="s-plat_bedekking">Bedekking plat dak</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-plat_bedekking" type="text" inputmode="decimal" class="" value="EPDM"></div></div></div></div><div class="groep"><h3>Binnen</h3><div class="velden"><div class="veld"><div class="lr"><label for="s-plafondhoogte">Plafondhoogte binnen</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-plafondhoogte" type="text" inputmode="decimal" class="met-eh" value="2,6"><span class="eh">m</span></div></div><div class="veld"><div class="lr"><label for="s-verf_lagen">Verflagen</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-verf_lagen" type="text" inputmode="decimal" class="met-eh" value="2"><span class="eh">st</span></div></div></div></div><div class="groep"><h3>Ploeg</h3><div class="velden"><div class="veld"><div class="lr"><label for="s-ploeg">Ploeg</label><span class="chip chip--ai">Standaard</span></div><div class="in"><input id="s-ploeg" type="text" inputmode="decimal" class="met-eh" value="3"><span class="eh">man</span></div></div></div></div>
+</section><section class="sectie" id="datatabel"><div class="kop"><div><h2>Datatabel</h2><p class="sub">223 posten in 7 vakken · 1.590 waarden · stand 6 oktober 2026 · inkoopprijzen zonder btw</p></div></div>
+<div class="dt-kop"><div class="zoek"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><label class="sr" for="zoek">Zoek een post</label><input id="zoek" type="search" placeholder="Zoek op naam of code"></div></div>
+<div class="vakken"><a href="#datatabel" class="actief">Hellend dak <b>62</b></a><a href="#datatabel" class="">Gevel <b>40</b></a><a href="#datatabel" class="">Binnen <b>31</b></a><a href="#datatabel" class="">Plat dak <b>29</b></a><a href="#datatabel" class="">Vloeren en tegels <b>26</b></a><a href="#datatabel" class="">Ramen en deuren <b>22</b></a><a href="#datatabel" class="">Algemeen <b>13</b></a></div>
+<div class="post"><div class="pn"><div>Hard onderdak in houtvezelplaten 22 mm (tand en groef) plaatsen<small>0,18 manuur per m² · 1 man doet 44,4 m² per werkdag</small></div><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></div></div><div class="post"><div class="pn"><div>Dampscherm op het dakbeschot onder de sarking-isolatie plaatsen<small>0,05 manuur per m² · 1 man doet 160 m² per werkdag</small></div><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></div></div><div class="post"><div class="pn"><div>Aanslagbalk aan de dakvoet en randbalk aan de gevels voor de dakvlakverhoging door sarking<small>0,35 manuur per lm · 1 man doet 22,9 lm per werkdag</small></div><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></div></div><div class="post"><div class="pn"><div>Sarking-isolatie PIR 12 cm plaatsen<small>0,25 manuur per m² · 1 man doet 32 m² per werkdag</small></div><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></div><div class="open">
+<div class="norm"><label for="norm">Norm</label><input id="norm" type="text" inputmode="decimal" value="0,25"><span class="klein">manuur per m²</span><span class="chip">Startwaarde</span></div>
+<div class="mat"><div class="kr"><span>Materiaal</span><span style="text-align:right">Per m²</span><span>Prijs €</span><span style="text-align:right">Gewicht</span><span>Label</span></div><span>PIR-sarkingplaat 12 cm</span><span style="text-align:right">1,1 m²</span><input type="text" inputmode="decimal" value="33,16" aria-label="Prijs PIR-sarkingplaat 12 cm"><span class="kg" style="text-align:right">3,9 kg</span><a class="lbl" href="https://andrecelis.be/andrecelis_nl/bauder-bauderpir-sf-120mm.html" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg>Bron</a><span>Sarkingschroeven en tape</span><span style="text-align:right">1 m²</span><input type="text" inputmode="decimal" value="4,00" aria-label="Prijs Sarkingschroeven en tape"><span class="kg" style="text-align:right">0,3 kg</span><span class="lbl">Startwaarde</span></div>
+<p class="klein">Afval: geen. Een gewijzigd cijfer krijgt het label Eigen cijfer met de link Terug naar startwaarde.</p>
+</div></div><div class="post"><div class="pn"><div>Sarking-isolatie PIR 16 cm plaatsen<small>0,27 manuur per m² · 1 man doet 29,6 m² per werkdag</small></div><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></div></div><div class="post"><div class="pn"><div>Tengellatten plaatsen<small>0,05 manuur per m² · 1 man doet 160 m² per werkdag</small></div><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></div></div><div class="post"><div class="pn"><div>Panlatten op maat plaatsen<small>0,10 manuur per m² · 1 man doet 80 m² per werkdag</small></div><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></div></div>
+<p class="klein" style="margin-top:8px">55 andere posten in Hellend dak staan in dezelfde lijst; de weergave toont er hier 7 rond de sarking-post.</p>
+</section>
+</div></div>
+<script>
+(function(){
+var b=document.body;
+document.querySelectorAll('[data-menu],[data-menu-dicht]').forEach(function(e){e.addEventListener('click',function(){b.classList.toggle('menu')})});
+document.querySelectorAll('[data-instellingen]').forEach(function(e){e.addEventListener('click',function(ev){ev.preventDefault();b.classList.add('instellingen');b.classList.remove('menu');window.scrollTo(0,0)})});
+document.querySelectorAll('[data-terug]').forEach(function(e){e.addEventListener('click',function(){b.classList.remove('instellingen');window.scrollTo(0,0)})});
+var meer=document.querySelector('[data-meer]');if(meer)meer.addEventListener('click',function(){document.querySelector('.klus').classList.add('open');meer.hidden=true});
+if(location.hash==='#menu')b.classList.add('menu');
+if(location.hash==='#instellingen')b.classList.add('instellingen');
+var nav=document.querySelector('.nav');if(nav){var links=[].slice.call(nav.querySelectorAll('a'));var secs=links.map(function(l){return document.querySelector(l.getAttribute('href'))});
+window.addEventListener('scroll',function(){var y=window.scrollY+60,i=0;secs.forEach(function(s,j){if(s&&s.offsetTop<=y)i=j});links.forEach(function(l,j){l.classList.toggle('actief',j===i)})},{passive:true});}
+})();
+</script>
+</body>
+</html>

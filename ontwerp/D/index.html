@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Richtprijs-AI · Zadeldak halfopen woning vernieuwen met sarking, 94 m²</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+/* Richtprijs-AI · variant D "AI-werkruimte" · tokens uit het patroon-brief (deel 6) */
+:root{
+  --g1:#fffdf8;--g2:#f4f1e8;--g3:#ebe6da;--g4:#dcd5c6;--g5:#c9c1b0;--g6:#aaa294;--g7:#8a8378;--g8:#6a645b;--g9:#56514a;--g10:#211f1a;
+  --merk:#1e5b3a;--merk-zacht:#e2eee5;--op-merk:#ffffff;--ai:#85560a;--ai-zacht:#f5e9cf;--fout:#a3271b;--donker:#0c2b1b;--op-donker:#fffdf8;
+  --glans:rgba(255,253,248,.75);
+  --kop:'Archivo','Arial Narrow',sans-serif;--lees:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --rail:56px;--gesprek:480px;
+}
+@media (prefers-color-scheme:dark){:root:not(.licht){--g1:#111a15;--g2:#0a110e;--g3:#172219;--g4:#27352d;--g5:#33443a;--g6:#5c675e;--g7:#7f8a80;--g8:#939d93;--g9:#c3cbc2;--g10:#eef2ec;--merk:#4ec27e;--merk-zacht:#143524;--op-merk:#06140c;--ai:#e8bd62;--ai-zacht:#3a2e10;--fout:#ff8f82;--donker:#eef2ec;--op-donker:#111a15;--glans:rgba(238,242,236,.12);color-scheme:dark}}
+:root.donker{--g1:#111a15;--g2:#0a110e;--g3:#172219;--g4:#27352d;--g5:#33443a;--g6:#5c675e;--g7:#7f8a80;--g8:#939d93;--g9:#c3cbc2;--g10:#eef2ec;--merk:#4ec27e;--merk-zacht:#143524;--op-merk:#06140c;--ai:#e8bd62;--ai-zacht:#3a2e10;--fout:#ff8f82;--donker:#eef2ec;--op-donker:#111a15;--glans:rgba(238,242,236,.12);color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{height:100%}
+body{margin:0;background:var(--g1);color:var(--g9);font:400 14px/20px var(--lees);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit;margin:0}
+button{background:none;border:0;padding:0;cursor:pointer;text-align:left}
+button:disabled{cursor:default}
+a{color:var(--merk);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,h4,p,ul,ol,dl{margin:0}
+.ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;display:inline-block;vertical-align:-3px}
+.ic.vol{fill:currentColor;stroke:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--merk);outline-offset:2px}
+.klein{font-size:13px;line-height:18px;color:var(--g8)}
+.inkt{color:var(--g10)}
+
+/* ---------- chips, knoppen ---------- */
+.chip{display:inline-flex;align-items:center;gap:4px;height:18px;padding:0 6px;border-radius:6px;font-size:12px;line-height:18px;font-weight:600;background:var(--g3);color:var(--g9);white-space:nowrap;vertical-align:middle}
+.chip--merk{background:var(--merk-zacht);color:var(--merk)}
+.chip--ai{background:var(--ai-zacht);color:var(--ai)}
+.chip .x{margin:0 -2px 0 2px;color:var(--g8)}
+.knop{height:40px;padding:0 16px;border-radius:6px;background:var(--merk);color:var(--op-merk);font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.knop--36{height:36px}
+.knop--stil{background:var(--g1);border:1px solid var(--g4);color:var(--g10)}
+.knop--stil:hover{border-color:var(--g5)}
+.knop:disabled{background:var(--g3);color:var(--g6)}
+.tekstknop{display:inline-flex;align-items:center;gap:4px;color:var(--g9);white-space:nowrap}
+.tekstknop:hover{color:var(--g10)}
+.tekstknop:disabled{color:var(--g6)}
+.link{color:var(--merk);font-size:13px;line-height:18px}
+
+/* ---------- werkruimte ---------- */
+.werk{display:grid;grid-template-columns:var(--rail) var(--gesprek) minmax(0,1fr);height:100vh;overflow:hidden;background:var(--g1)}
+.werk > *{min-height:0;min-width:0}
+body.rail-open{--rail:260px;--gesprek:440px}
+@media (min-width:1400px){body{--gesprek:560px}body.rail-open{--gesprek:480px}}
+body:not(.paneel-open) .werk,body.instellingen-open .werk{grid-template-columns:var(--rail) minmax(0,1fr)}
+body:not(.paneel-open) .paneel{display:none}
+body.instellingen-open .gesprek,body.instellingen-open .paneel{display:none}
+body:not(.instellingen-open) .instellingen{display:none}
+.topbalk,.segment{display:none}
+
+/* ---------- rail ---------- */
+.rail{background:var(--g2);border-right:1px solid var(--g4);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.rail-open-inhoud,.rail-dicht-inhoud{display:flex;flex-direction:column;flex:1;min-height:0}
+body:not(.rail-open) .rail-open-inhoud{display:none}
+body.rail-open .rail-dicht-inhoud{display:none}
+.rail-kop{height:48px;display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;flex:none}
+.merk{width:12px;height:12px;border-radius:3px;background:var(--merk);flex:none}
+.rail-titel{font-weight:600;color:var(--g10);flex:1;white-space:nowrap}
+.ikoonknop{width:32px;height:32px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:var(--g8);flex:none}
+.ikoonknop:hover{background:var(--g3);color:var(--g10)}
+.rail .nieuw{margin:0 12px;height:36px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--g10);font-weight:600;flex:none}
+.rail-lijst{flex:1;overflow:auto;padding:16px 12px;display:flex;flex-direction:column;gap:2px;min-height:0}
+.rail-groep{font-size:12px;line-height:16px;color:var(--g8);padding:0 12px;margin:0 0 4px}
+.rail-groep:not(:first-child){margin-top:16px}
+.rail-rij{display:block;width:100%;padding:8px 12px;border-radius:6px;min-height:48px}
+.rail-rij:hover{background:var(--g3)}
+.rail-rij.is-actief{background:var(--g3)}
+.rail-rij b{display:block;font-weight:400;color:var(--g10);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-rij span{display:block;font-size:13px;line-height:18px;color:var(--g8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-leeg{padding:8px 12px}
+.rail-leeg b{display:block;font-weight:400;color:var(--g10)}
+.rail-voet{padding:8px 12px 16px;border-top:1px solid var(--g4);display:flex;flex-direction:column;gap:2px;flex:none}
+.rail-voet button{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border-radius:6px;color:var(--g9);line-height:20px}
+.rail-voet button:hover{background:var(--g3);color:var(--g10)}
+.rail-voet button span{min-width:0}
+.rail-dicht-inhoud{align-items:center;padding:0 0 16px}
+.rail-dicht-inhoud .rail-kop{padding:0;justify-content:center;width:100%}
+.rail-dicht-inhoud .ikoonknop{margin-top:8px}
+.rail-dicht-inhoud .onder{margin-top:auto}
+
+/* ---------- gesprek ---------- */
+.gesprek{display:flex;flex-direction:column;min-width:0;background:var(--g1)}
+.gesprek-kop{height:48px;display:flex;align-items:center;gap:8px;padding:0 24px;border-bottom:1px solid var(--g4);flex:none}
+.gesprek-titel{font-weight:600;color:var(--g10);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+body.leeg .gesprek-kop{border-bottom:0}
+.stroom{flex:1;overflow:auto;padding:24px;display:flex;flex-direction:column;gap:24px;min-height:0}
+.bericht{align-self:flex-end;max-width:70%;background:var(--g2);border-radius:12px;padding:16px;font-size:16px;line-height:24px;color:var(--g10)}
+.bericht .adres{display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:600;margin-bottom:4px}
+
+.trail{display:flex;flex-direction:column;gap:8px}
+.trail-kop{display:flex;align-items:center;gap:8px;min-height:32px;color:var(--g10);width:100%}
+.trail-kop .duur{margin-left:auto;font-size:13px;color:var(--g8)}
+.stap{display:grid;grid-template-columns:24px minmax(0,1fr) auto;row-gap:2px;min-height:32px;align-items:start;padding-top:6px}
+.stap .ic{margin-top:2px}
+.stap .label{color:var(--g10)}
+.stap .detail{grid-column:2;font-size:13px;line-height:18px;color:var(--g8)}
+.stap .duur{font-size:13px;line-height:20px;color:var(--g8);padding-left:16px;white-space:nowrap}
+.stap.is-klaar .ic{color:var(--merk)}
+.stap.is-wacht .ic,.stap.is-over .ic{color:var(--g7)}
+.stap.is-wacht .label{color:var(--g8)}
+.stap.is-actief .label{background:linear-gradient(90deg,var(--g10) 0 35%,var(--g6) 50%,var(--g10) 65% 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:glans 2s linear infinite}
+.spinner{animation:draai 1s linear infinite;color:var(--merk)}
+.posten{grid-column:2;font-size:13px;line-height:18px;color:var(--g9);display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.posten .eerder{margin-top:2px}
+
+.ai{display:flex;flex-direction:column;gap:8px}
+.ai-kop{font-size:12px;line-height:16px;color:var(--g8)}
+.bronnen{display:flex;flex-wrap:wrap;gap:8px}
+.ai .punten{margin:8px 0 0;padding-left:20px;font-size:16px;line-height:24px;color:var(--g10);display:flex;flex-direction:column;gap:16px}
+.caret{display:inline-block;width:8px;height:14px;background:var(--g10);vertical-align:-2px;margin-left:2px;animation:knipper 1s steps(1) infinite}
+.lijstje h4{font-size:13px;line-height:18px;font-weight:600;color:var(--g10);margin:16px 0 8px}
+.lijstje ul{padding-left:18px;display:flex;flex-direction:column;gap:8px;color:var(--g9)}
+.acties{display:flex;flex-wrap:wrap;gap:16px;margin-top:8px}
+
+.composer-vast{padding:0 24px 24px;flex:none}
+.composer{border:1px solid var(--g4);border-radius:16px;background:var(--g1)}
+.composer:focus-within{border-color:var(--g5)}
+.composer .context{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 0}
+.composer .regel{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 16px;min-height:44px}
+.composer .regel input{flex:1;min-width:0;border:0;background:none;padding:0;height:36px;font-size:16px;color:var(--g10)}
+.composer input::placeholder,.composer textarea::placeholder{color:var(--g7)}
+.composer-rust{padding:16px;display:flex;flex-direction:column}
+.composer-rust .adresrij{display:flex;align-items:center;gap:8px;height:40px;border-bottom:1px solid var(--g4);color:var(--g8)}
+.composer-rust .adresrij input{flex:1;min-width:0;border:0;background:none;padding:0;font-size:16px;color:var(--g10)}
+.composer-rust textarea{display:block;width:100%;min-height:72px;border:0;background:none;padding:12px 0 0;font-size:16px;line-height:24px;color:var(--g10);resize:none}
+.composer-rust .voet{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:8px}
+.composer-rust .status{font-size:13px;line-height:18px;color:var(--g8);min-height:18px}
+
+.leeg-blok{width:720px;max-width:100%;margin:0 auto;padding-top:calc(30vh - 24px);display:flex;flex-direction:column}
+.leeg-blok h1{font:600 28px/32px var(--kop);color:var(--g10)}
+.leeg-blok .regel16{font-size:16px;line-height:24px;color:var(--g8);margin:8px 0 24px}
+.voorbeelden{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.voorbeelden button{height:36px;max-width:100%;border:1px solid var(--g4);border-radius:6px;background:var(--g1);display:flex;align-items:center;gap:8px;padding:0 8px 0 12px;color:var(--g9);min-width:0}
+.voorbeelden button:hover{border-color:var(--g5);color:var(--g10)}
+.voorbeelden button span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.voorbeelden button .x{color:var(--g7)}
+.leeg-uitleg{margin-top:24px;display:flex;flex-direction:column;gap:2px}
+
+.prijs-compact{display:none}
+
+/* ---------- paneel ---------- */
+.paneel{border-left:1px solid var(--g4);display:flex;flex-direction:column;min-width:0;background:var(--g1);container-type:inline-size;container-name:paneel}
+.acties-meer{display:none}
+.acties-breed{display:contents}
+.paneel-kop{height:48px;display:flex;align-items:center;gap:16px;padding:0 24px;border-bottom:1px solid var(--g4);flex:none}
+.tabs{display:flex;gap:16px;height:48px;flex:none}
+.tabs button{height:48px;color:var(--g8);border-bottom:2px solid transparent;padding:2px 2px 0;white-space:nowrap}
+.tabs button:hover{color:var(--g10)}
+.paneel[data-tab=overzicht] [data-tab-knop=overzicht],.paneel[data-tab=werkblad] [data-tab-knop=werkblad],.paneel[data-tab=materiaal] [data-tab-knop=materiaal],.paneel[data-tab=kenmerken] [data-tab-knop=kenmerken]{color:var(--g10);font-weight:600;border-color:var(--merk)}
+.paneel-acties{margin-left:auto;display:flex;align-items:center;gap:16px;flex:none}
+.paneel-inhoud{flex:1;overflow:auto;padding:0 24px 24px;min-height:0}
+.tab{display:none}
+.paneel[data-tab=overzicht] .tab--overzicht,.paneel[data-tab=werkblad] .tab--werkblad,.paneel[data-tab=materiaal] .tab--materiaal,.paneel[data-tab=kenmerken] .tab--kenmerken{display:block}
+.sectie{padding:32px 0;border-top:1px solid var(--g4)}
+.sectie:first-child{border-top:0;padding-top:24px}
+.sectie-kop{display:flex;align-items:baseline;gap:16px;margin-bottom:8px}
+.sectie-kop h3{font-size:14px;line-height:20px;font-weight:600;color:var(--g10);white-space:nowrap}
+.sectie-kop .rechts{margin-left:auto;font-size:13px;line-height:18px;color:var(--g8);text-align:right}
+.sectie-kop + .klein{margin:-4px 0 16px}
+
+.prijskaart{display:flex;flex-direction:column;gap:8px}
+.prijskaart .titel{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--g10);flex-wrap:wrap}
+.prijs{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.prijs b{font:700 48px/52px var(--kop);letter-spacing:-.02em;color:var(--g10)}
+.prijs span{color:var(--g8)}
+.prijs-onder{color:var(--g9)}
+.caveat{font-size:13px;line-height:18px;color:var(--g8)}
+
+.tegels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;padding-top:16px;border-top:1px solid var(--g4);margin-top:24px}
+.tegel{min-width:0}
+.tegel small{display:block;font-size:12px;line-height:16px;color:var(--g8)}
+.tegel b{display:block;font:600 20px/24px var(--kop);color:var(--g10);margin-top:4px}
+.tegel span{display:block;font-size:13px;line-height:18px;color:var(--g8)}
+.balk{height:6px;border-radius:3px;background:var(--g3);display:flex;overflow:hidden;margin-top:24px}
+.balk i{display:block;height:100%}
+.balk .d{background:var(--merk)}
+.balk .a{background:var(--ai)}
+.legende{font-size:13px;line-height:18px;color:var(--g8);margin-top:8px}
+
+.geld{display:flex;flex-direction:column;gap:8px}
+.geld .r{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(96px,1fr) 84px 40px;gap:16px;align-items:center;min-height:24px}
+.geld .n{color:var(--g10);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px;min-width:0}
+.geld .n em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.geld .b{height:8px;border-radius:4px;background:var(--g3);overflow:hidden}
+.geld .b i{display:block;height:100%;background:var(--merk);border-radius:4px}
+.geld .b i.ai{background:var(--ai)}
+.geld .g{text-align:right;color:var(--g10);white-space:nowrap}
+.geld .p{text-align:right;font-size:13px;color:var(--g8)}
+
+.watals{display:flex;flex-direction:column}
+.watals .r{display:flex;align-items:center;gap:16px;min-height:36px;padding:8px 0;border-top:1px solid var(--g4)}
+.watals .r:first-child{border-top:0}
+.watals .l{flex:1;min-width:0;color:var(--g9)}
+.watals .v{font-weight:600;color:var(--g10);white-space:nowrap;margin-left:auto}
+
+.kosten{display:flex;flex-direction:column;max-width:560px}
+.kosten .r{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-top:1px solid var(--g4)}
+.kosten .r:first-child{border-top:0}
+.kosten .l{color:var(--g9)}
+.kosten .v{color:var(--g10);white-space:nowrap}
+.kosten .som{border-top:1px solid var(--g4)}
+.kosten .som .l,.kosten .som .v{font-weight:600;color:var(--g10)}
+
+/* ---------- tabellen ---------- */
+.tabel{font-variant-numeric:tabular-nums}
+.tabel-kop{display:grid;grid-template-columns:var(--kol);gap:8px;font-size:12px;line-height:16px;color:var(--g8);padding:0 0 8px;border-bottom:1px solid var(--g4)}
+.tabel-kop .g{text-align:right}
+.fase{display:flex;justify-content:space-between;align-items:center;gap:16px;height:36px;padding-top:4px;color:var(--g10);font-weight:600}
+.fase span{font-weight:400;font-size:13px;color:var(--g8);white-space:nowrap}
+.rij{display:grid;grid-template-columns:var(--kol);gap:8px;padding:8px 0;border-bottom:1px solid var(--g4);align-items:start}
+.rij:hover{background:var(--g2)}
+.rij .n{color:var(--g10);min-width:0}
+.rij .n .naam{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.rij .n small{display:block;font-size:13px;line-height:18px;color:var(--g8)}
+.rij .g{text-align:right;white-space:nowrap;color:var(--g10)}
+.rij .g .chip{vertical-align:top}
+.rekenpad{grid-column:1/-1;font-size:13px;line-height:18px;color:var(--g9);display:flex;flex-direction:column;gap:2px;padding:4px 0 0 20px}
+.kol-werk{--kol:minmax(150px,1fr) 76px 76px 76px 76px 76px 96px}
+.kol-mat{--kol:minmax(150px,1fr) 88px 76px 76px 76px 96px}
+.kol-eq{--kol:minmax(150px,1fr) 88px 76px 76px}
+.afval{display:flex;flex-direction:column;gap:8px;margin-top:16px;color:var(--g10)}
+.skelet-rij{display:grid;grid-template-columns:var(--kol);gap:8px;padding:12px 0;border-bottom:1px solid var(--g4)}
+
+/* ---------- kenmerken en meting ---------- */
+.velden{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.veld label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;line-height:18px;color:var(--g8);margin-bottom:4px}
+.veld .in{height:36px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);display:flex;align-items:center;padding:0 12px;color:var(--g10)}
+.veld .in input,.veld .in select{border:0;background:none;width:100%;min-width:0;padding:0;color:var(--g10);height:34px}
+.veld .in .eenheid{color:var(--g8);flex:none;padding-left:8px}
+.veld .terug{display:block;margin-top:4px}
+.plakbalk{position:sticky;bottom:0;margin:24px -24px -24px;padding:16px 24px;background:var(--g1);border-top:1px solid var(--g4);display:flex;align-items:center;gap:16px}
+.plakbalk .tekst{color:var(--g10);flex:1}
+.meting{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.meting .f small{display:block;font-size:12px;line-height:16px;color:var(--g8)}
+.meting .f b{display:block;font:600 20px/24px var(--kop);color:var(--g10);margin-top:4px}
+.meting .f span{display:block;font-size:13px;line-height:18px;color:var(--g8)}
+
+/* ---------- skelet ---------- */
+.skelet{background:var(--g3);border-radius:6px;position:relative;overflow:hidden;display:block}
+.skelet::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--glans),transparent);transform:translateX(-100%);animation:schuif 2s linear infinite}
+.skelet-prijs{display:flex;flex-direction:column;gap:8px}
+.skelet-tegels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;padding-top:16px;border-top:1px solid var(--g4);margin-top:24px}
+.skelet-geld{display:flex;flex-direction:column;gap:16px}
+.skelet-geld .r{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(96px,1fr) 84px 40px;gap:16px;align-items:center}
+
+/* ---------- instellingen ---------- */
+.instellingen{display:flex;flex-direction:column;min-width:0;overflow:auto;background:var(--g1)}
+.inst-kop{height:48px;display:flex;align-items:center;gap:16px;padding:0 24px;border-bottom:1px solid var(--g4);flex:none}
+.inst-kop h2{font-size:14px;line-height:20px;font-weight:600;color:var(--g10)}
+.inst-body{display:grid;grid-template-columns:200px minmax(0,1fr);gap:24px;padding:24px;align-items:start}
+.inst-lijst{display:flex;flex-direction:column;gap:2px;position:sticky;top:24px}
+.inst-lijst a{display:block;padding:8px 12px;border-radius:6px;color:var(--g9)}
+.inst-lijst a:hover{background:var(--g2);text-decoration:none;color:var(--g10)}
+.inst-lijst a.is-actief{background:var(--g3);color:var(--g10);font-weight:600}
+.inst-inhoud{display:flex;flex-direction:column;gap:48px;min-width:0}
+.inst-sectie{max-width:720px;scroll-margin-top:24px}
+.inst-sectie--breed{max-width:none}
+.inst-sectie > .sectie-kop{margin-bottom:4px}
+.inst-sectie .groep{margin-top:24px}
+.inst-sectie .groep h4{font-size:14px;line-height:20px;font-weight:600;color:var(--g10);margin-bottom:8px}
+.vakken{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.vakken button{height:36px;padding:0 12px;border-radius:6px;border:1px solid var(--g4);background:var(--g1);color:var(--g9);white-space:nowrap}
+.vakken button.is-actief{background:var(--g3);border-color:var(--g3);color:var(--g10);font-weight:600}
+.zoek{height:36px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--g8);max-width:360px}
+.zoek input{border:0;background:none;flex:1;min-width:0;color:var(--g10);padding:0}
+.post{border-bottom:1px solid var(--g4);padding:8px 0}
+.post .kop{display:flex;align-items:center;gap:16px;width:100%}
+.post .kop b{display:block;font-weight:400;color:var(--g10)}
+.post .kop small{display:block;font-size:13px;line-height:18px;color:var(--g8)}
+.post .kop .ic{margin-left:auto;color:var(--g7)}
+.post .open{padding:16px 0 8px 24px;display:flex;flex-direction:column;gap:16px}
+.post .norm{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.post .norm .in{height:36px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);display:inline-flex;align-items:center;padding:0 12px;color:var(--g10);width:96px}
+.post .norm .in input{border:0;background:none;width:100%;padding:0;text-align:right}
+.kol-data{--kol:minmax(150px,1fr) 64px 64px 96px 64px 120px}
+.kol-data .rij{border-bottom:0;padding:4px 0}
+.kol-data .in{height:32px;border:1px solid var(--g4);border-radius:6px;background:var(--g1);display:inline-flex;align-items:center;padding:0 8px;color:var(--g10);width:76px}
+.kol-data .in input{border:0;background:none;width:100%;padding:0;text-align:right}
+
+/* ---------- beweging ---------- */
+@keyframes draai{to{transform:rotate(360deg)}}
+@keyframes glans{from{background-position:200% 0}to{background-position:-200% 0}}
+@keyframes schuif{to{transform:translateX(100%)}}
+@keyframes knipper{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.stap.is-actief .label{animation:none;background:none;color:var(--g10);-webkit-text-fill-color:initial}.skelet::after{animation:none}.caret{display:none}}
+
+.menuknop{display:none}
+/* ---------- 900-1099: rail als lade ---------- */
+@media (max-width:1099px) and (min-width:900px){
+  body{--rail:0px;--gesprek:400px}
+  .werk{grid-template-columns:var(--gesprek) minmax(0,1fr)}
+  body:not(.paneel-open) .werk,body.instellingen-open .werk{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  body.lade .rail{display:flex;position:fixed;inset:0 auto 0 0;width:260px;z-index:5;box-shadow:0 4px 16px rgba(33,31,26,.12)}
+  body.lade .rail-open-inhoud{display:flex}
+  body.lade .rail-dicht-inhoud{display:none}
+  .menuknop{display:inline-flex}
+}
+
+/* ---------- telefoon ---------- */
+@media (max-width:899px){
+  body{--rail:0px}
+  .werk{display:block;height:auto;overflow:visible}
+  .rail{display:none}
+  body.lade .rail{display:flex;position:fixed;inset:0 auto 0 0;width:260px;z-index:5;box-shadow:0 4px 16px rgba(33,31,26,.12)}
+  body.lade .rail-open-inhoud{display:flex}
+  body.lade .rail-dicht-inhoud{display:none}
+  .topbalk{display:flex;align-items:center;gap:8px;height:48px;padding:0 8px 0 16px;border-bottom:1px solid var(--g4);position:sticky;top:0;background:var(--g1);z-index:3}
+  .topbalk .gesprek-titel{flex:1}
+  .segment{display:grid;grid-template-columns:1fr 1fr;height:44px;padding:4px 16px;gap:4px;position:sticky;top:48px;background:var(--g1);z-index:3;border-bottom:1px solid var(--g4)}
+  .segment button{border-radius:6px;color:var(--g8);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px}
+  .segment button.is-actief{background:var(--g3);color:var(--g10);font-weight:600}
+  body.seg-resultaat .segment [data-seg=resultaat],body:not(.seg-resultaat) .segment [data-seg=gesprek]{background:var(--g3);color:var(--g10);font-weight:600}
+  .gesprek-kop{display:none}
+  body.seg-resultaat .gesprek{display:none}
+  body.paneel-open.seg-resultaat .paneel{display:flex;border-left:0}
+  body.paneel-open:not(.seg-resultaat) .paneel{display:none}
+  .stroom{overflow:visible;padding:16px;gap:16px}
+  .bericht{max-width:85%}
+  .composer-vast{position:sticky;bottom:0;padding:8px 16px 16px;background:var(--g1)}
+  .composer .regel{min-height:44px}
+  .knop{height:44px}
+  .knop--36{height:44px}
+  .leeg-blok{padding:96px 0 0}
+  .voorbeelden{grid-template-columns:1fr}
+  .composer-rust .voet{flex-direction:column;align-items:stretch}
+  .composer-rust .voet .knop{width:100%}
+  .composer-rust .status:empty{display:none}
+  .prijs-compact{display:flex;flex-direction:column;gap:8px}
+  .prijs-compact .prijs b{font-size:40px;line-height:44px}
+  .prijs-compact .mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding-top:8px}
+  .prijs-compact .mini small{display:block;font-size:12px;line-height:16px;color:var(--g8)}
+  .prijs-compact .mini b{display:block;font:600 20px/24px var(--kop);color:var(--g10)}
+  .prijs-compact .knop{width:100%;margin-top:8px}
+  .paneel-kop{height:44px;padding:0 16px;gap:8px;overflow:auto;position:sticky;top:92px;background:var(--g1);z-index:2}
+  .tabs{height:44px}
+  .tabs button{height:44px}
+  .paneel-acties{display:none}
+  .paneel-inhoud{padding:0 16px 16px;overflow:visible}
+  .sectie{padding:24px 0}
+  .sectie:first-child{padding-top:16px}
+  .prijs b{font-size:40px;line-height:44px}
+  .plakbalk{margin:16px -16px -16px;padding:16px}
+  .inst-body{display:block;padding:16px}
+  .inst-lijst{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;position:static;padding:4px;background:var(--g2);border-radius:6px;margin-bottom:24px}
+  .inst-lijst a{text-align:center;padding:6px 8px}
+  .inst-lijst a.is-actief{background:var(--g1)}
+  .inst-kop{padding:0 16px}
+  .zoek{max-width:none}
+  .vakken{flex-wrap:nowrap;overflow:auto;margin:16px -16px;padding:0 16px}
+  .kosten{max-width:none}
+}
+
+/* ---------- smal paneel (< 640 px): gestapelde rijen, tegels 3 + 2 ---------- */
+@container paneel (max-width:640px){
+  .acties-breed{display:none}
+  .acties-meer{display:inline-flex}
+  .tabel-kop{display:none}
+  .rij{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 16px}
+  .rij .n{grid-column:1/-1}
+  .rij .g{text-align:left;white-space:normal}
+  .rij .g::before{content:attr(data-l);display:block;font-size:12px;line-height:16px;color:var(--g8)}
+  .rekenpad{padding-left:0}
+  .skelet-rij{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .tegels,.skelet-tegels{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .velden{grid-template-columns:1fr}
+  .meting{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .geld .r{grid-template-columns:minmax(0,1fr) 84px 40px}
+  .geld .n{grid-column:1/-1}
+  .skelet-geld .r{grid-template-columns:minmax(0,1fr) 84px 40px}
+  .skelet-geld .r .skelet:first-child{grid-column:1/-1}
+  .fase{height:auto;flex-direction:column;align-items:flex-start;gap:0;padding:12px 0 8px}
+}
+
+/* ---------- print ---------- */
+@media print{
+  .rail,.composer-vast,.trail,.tabs,.paneel-acties,.ai,.topbalk,.segment,.plakbalk,.instellingen,.watals,.prijs-compact{display:none!important}
+  body{background:#fff;color:#000;font-size:10pt}
+  .werk{display:block;height:auto;overflow:visible}
+  .gesprek,.paneel{display:block!important;border:0}
+  .paneel-inhoud{overflow:visible;padding:0}
+  .tab{display:block!important}
+  .prijs b{font-size:24pt}
+  .fase,.rij{break-inside:avoid}
+}
+
+</style>
+</head>
+<body class="paneel-open">
+<div class="topbalk"><button class="ikoonknop" type="button" data-rail title="Berekeningen" aria-label="Berekeningen"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"/></svg></button><span class="gesprek-titel">Zadeldak halfopen woning vernieuwen met sarking, 94 m²</span><button class="ikoonknop" type="button" title="Opslaan, Kopieer, Afdrukken, Verwijderen" aria-label="Meer"><svg class="ic vol" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="12.5" cy="8" r="1"/></svg></button></div><div class="segment" role="tablist"><button type="button" data-seg="gesprek">Gesprek</button><button type="button" data-seg="resultaat">Resultaat · € 24.160</button></div><div class="werk"><aside class="rail" aria-label="Berekeningen en instellingen"><div class="rail-open-inhoud"><div class="rail-kop"><span class="merk" aria-hidden="true"></span><span class="rail-titel">Richtprijs-AI</span><button class="ikoonknop" type="button" data-rail title="Rail inklappen" aria-label="Rail inklappen"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 3v10"/></svg></button></div><button class="nieuw" type="button"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg><span>Nieuwe berekening</span></button><div class="rail-lijst"><p class="rail-groep">Vandaag</p><button class="rail-rij is-actief" type="button" aria-current="true"><b>Zadeldak halfopen woning vernieuwen met sarking, 94 m²</b><span>€ 24.160 · Hellend dak</span></button></div><div class="rail-voet"><button type="button" title="Laadt het voorbeeld"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg><span>Voorbeeld: zadeldak halfopen woning, 94 m²</span></button><button type="button" data-instellingen="open"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.2"/><circle cx="8" cy="8" r="5.2"/><path d="M8 1.5v1.3M8 13.2v1.3M1.5 8h1.3M13.2 8h1.3M3.4 3.4l.9.9M11.7 11.7l.9.9M3.4 12.6l.9-.9M11.7 4.3l.9-.9"/></svg><span>Instellingen</span></button></div></div><div class="rail-dicht-inhoud"><div class="rail-kop"><span class="merk" aria-hidden="true"></span></div><button class="ikoonknop" type="button" title="Nieuwe berekening" aria-label="Nieuwe berekening"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button><button class="ikoonknop" type="button" data-rail title="Berekeningen" aria-label="Berekeningen"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg></button><button class="ikoonknop onder" type="button" data-instellingen="open" title="Instellingen" aria-label="Instellingen"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.2"/><circle cx="8" cy="8" r="5.2"/><path d="M8 1.5v1.3M8 13.2v1.3M1.5 8h1.3M13.2 8h1.3M3.4 3.4l.9.9M11.7 11.7l.9.9M3.4 12.6l.9-.9M11.7 4.3l.9-.9"/></svg></button></div></aside><main class="gesprek" aria-label="Gesprek"><div class="gesprek-kop"><button class="ikoonknop menuknop" type="button" data-rail title="Berekeningen" aria-label="Berekeningen"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"/></svg></button><span class="gesprek-titel">Zadeldak halfopen woning vernieuwen met sarking, 94 m²</span><span class="chip">v1</span></div><div class="stroom"><div class="bericht">Halfopen woning. Zadeldak, voorgevel 8 m breed, woning 9 m diep, dakhelling 40 graden, kroonlijst op 6 m hoogte. Oude kleipannen, latten en onderdak eraf. Nieuw onderdak, sarking-isolatie van 12 cm en nieuwe kleipannen. 2 dakramen, 1 schouw, zinken goten en afvoeren voor en achter vervangen.</div><div class="trail" role="status"><button class="trail-kop" type="button" aria-expanded="true"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg><span>Klaar in 79 s · 3 stappen</span></button><div class="stap is-over"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M5.5 8h5"/></svg><span class="label">Meting overgeslagen: geen adres</span><span class="duur">—</span></div><div class="stap is-klaar"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg><span class="label">Posten geschreven: 14 posten in 6 fases</span><span class="duur">60 s</span></div><div class="stap is-klaar"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg><span class="label">Uitleg geschreven</span><span class="duur">19 s</span></div></div><div class="prijs-compact"><div class="prijs"><b>€ 24.160</b></div><div class="prijs-onder">incl. 6 % btw · € 22.792 excl.</div><p class="caveat">Richtprijs uit de maten in de klus, uw tarieven en de datatabel van 6 oktober 2026. <a href="#plaatsbezoek">3 punten</a> controleert u bij het plaatsbezoek.</p><div class="mini"><div><small>Ploeg</small><b>3 man</b></div><div><small>Werkdagen</small><b>6</b></div><div><small>Manuren</small><b>144</b></div></div><button class="knop knop--stil" type="button" data-seg="resultaat">Bekijk resultaat</button></div><section class="ai" aria-live="polite" aria-atomic="false"><h2 class="ai-kop">Uitleg van de AI</h2><div class="bronnen"><span class="chip">Datatabel 6 oktober 2026</span><span class="chip">Uw tarieven</span></div><ul class="punten"><li>De sarking-isolatie van 12 cm draagt met € 5.825 of 25,6 % het meest: 94 m² maal € 3.649 inkoop aan PIR-platen plus 23,5 manuren, gevolgd door de kleipannen met € 4.000 of 17,6 % omdat het klein formaat van 20,7 stuks per m² 28,2 manuren legwerk vraagt.</li><li>De klant vroeg niet om de stelling (€ 1.623), de nok (€ 542), de gevelpannen aan de vrije dakrand (€ 827) en de zinken aansluiting op het dak van de buur (€ 749), maar met de dakrand op 6 m, een nok van 8 m en een gemene zijde van 11,7 m kan geen van die vier weg.</li><li>De isolatie verschuift de prijs het meest: zonder sarking valt er € 5.825 af, en elke 10 m² dakvlak meer kost € 1.515; met 4 man gaat de prijs € 590 omlaag en met 2 man € 380 omhoog.</li><li>Niets is op het adres gemeten, dus de 94 m² dakvlak, de 11,7 lm vrije rand en de 16 lm goot komen uit de opgegeven 8 × 9 m en 40 graden; één meting van voorgevel, diepte en hellingshoek op het adres zet die hoeveelheden vast.</li><li>De zinken aansluiting op het dak van de buur (€ 749) is een AI-schatting en de dakramen van 78 × 118 cm (€ 2.101) zijn een aanname; vraag de klant naar de hoogte van het buurdak en het gewenste raamformaat.</li><li>Dakramen op de bestaande plaatsen en 2 afvoeren van elk 6 m zijn aannames uit de meetstaat; bij 21 % btw (woning jonger dan 10 jaar) komt er € 3.419 bij.</li></ul><div class="lijstje"><h4>Aannames van de AI</h4><ul><li>Stelling aan de voor- en achtergevel; de vrije zijgevel is bereikbaar vanaf het dak.</li><li>De nieuwe kleipan is een klein formaat van 20,7 stuks per m².</li><li>Dakramen van 78 × 118 cm op de plaats van bestaande dakramen.</li><li>1 regenafvoer voor en 1 achter, elk 6 m.</li></ul></div><div class="lijstje" id="plaatsbezoek"><h4>Te controleren bij het plaatsbezoek</h4><ul><li>Staat van het gebinte en de kepers: zichtbaar na de afbraak.</li><li>Asbest in het oude onderdak of in leien op de schouw.</li><li>Plaats voor stelling, container en pannenlift.</li></ul></div><div class="acties"><button class="tekstknop" type="button"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"/></svg>Korter</button><button class="tekstknop" type="button"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg>Uitgebreider</button><button class="tekstknop" type="button"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>Schrijf opnieuw</button><button class="tekstknop" type="button"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8.5" height="8.5" rx="1"/><path d="M2.5 10.5V3.5a1 1 0 0 1 1-1h7"/></svg>Kopieer</button></div></section></div><div class="composer-vast"><div class="composer"><div class="regel"><input type="text" placeholder="Pas de klus aan, bv. met 3 dakramen in plaats van 2" aria-label="Klus"><button class="knop knop--36" type="button">Bereken</button></div></div><p class="sr" role="status" aria-live="polite">Klaar in 79 s · 3 stappen</p></div></main><section class="paneel" data-tab="overzicht" aria-label="Resultaat"><div class="paneel-kop"><div class="tabs" role="tablist"><button type="button" role="tab" data-tab-knop="overzicht">Overzicht</button><button type="button" role="tab" data-tab-knop="werkblad">Werkblad</button><button type="button" role="tab" data-tab-knop="materiaal">Materiaal</button><button type="button" role="tab" data-tab-knop="kenmerken">Kenmerken</button></div><div class="paneel-acties"><span class="chip">v1</span><span class="acties-breed"><button class="tekstknop" type="button" disabled><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h8.5l2.5 2.5v8.5h-11z"/><path d="M5 2.5v3.5h5V2.5M5 13.5V10h6v3.5"/></svg>Opgeslagen</button><button class="tekstknop" type="button"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8.5" height="8.5" rx="1"/><path d="M2.5 10.5V3.5a1 1 0 0 1 1-1h7"/></svg>Kopieer</button></span><button class="tekstknop" type="button"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6V2h8v4M4 12H2V6h12v6h-2"/><rect x="4" y="9.5" width="8" height="4.5"/></svg>Afdrukken</button><button class="ikoonknop acties-meer" type="button" title="Opslaan, Kopieer" aria-label="Meer acties"><svg class="ic vol" viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="12.5" cy="8" r="1"/></svg></button></div></div><div class="paneel-inhoud"><div class="tab tab--overzicht"><section class="sectie"><div class="prijskaart"><div class="titel"><span>Zadeldak halfopen woning vernieuwen met sarking, 94 m²</span><span class="chip">v1</span></div><div class="prijs"><b>€ 24.160</b><span>incl. 6 % btw</span></div><div class="prijs-onder">€ 22.792 excl. btw · € 242 per m² dakvlak</div><p class="caveat">Richtprijs uit de maten in de klus, uw tarieven en de datatabel van 6 oktober 2026. <a href="#plaatsbezoek">3 punten</a> controleert u bij het plaatsbezoek.</p></div><div class="tegels"><div class="tegel"><small>Ploeg</small><b>3 man</b></div><div class="tegel"><small>Werkdagen</small><b>6</b></div><div class="tegel"><small>Manuren</small><b>144</b><span>18,0 mandagen</span></div><div class="tegel"><small>Naar boven</small><b>5,4 ton</b></div><div class="tegel"><small>Afval</small><b>4,8 ton</b><span>2 containers</span></div></div><div class="balk" role="img" aria-label="97 % van de kostprijs uit de datatabel, 3 % AI-schatting"><i class="d" style="width:97%"></i><i class="a" style="width:3%"></i></div><p class="legende">97 % van de kostprijs uit de datatabel · 3 % AI-schatting</p></section><section class="sectie"><div class="sectie-kop"><h3>Waar het geld zit</h3><span class="rechts">excl. btw, met marge</span></div><div class="geld"><div class="r"><span class="n"><em>Sarking-isolatie PIR 12 cm plaatsen</em></span><span class="b"><i style="width:73%"></i></span><span class="g">€ 5.825</span><span class="p">26&nbsp;%</span></div><div class="r"><span class="n"><em>Kleipannen leggen (klein formaat, 20,7 per m²)</em></span><span class="b"><i style="width:50%"></i></span><span class="g">€ 4.000</span><span class="p">18&nbsp;%</span></div><div class="r"><span class="n"><em>Dakraam plaatsen met gootstuk</em></span><span class="b"><i style="width:26%"></i></span><span class="g">€ 2.101</span><span class="p">9&nbsp;%</span></div><div class="r"><span class="n"><em>Gevelstelling met dakrandbeveiliging plaatsen en afbreken</em><span class="chip">Niet gevraagd, wel nodig</span></span><span class="b"><i style="width:20%"></i></span><span class="g">€ 1.623</span><span class="p">7&nbsp;%</span></div><div class="r"><span class="n"><em>Oude pannen, latten en onderdak afbreken en naar de container brengen</em></span><span class="b"><i style="width:16%"></i></span><span class="g">€ 1.249</span><span class="p">5&nbsp;%</span></div><div class="r"><span class="n"><em>15 kleinere posten samen</em></span><span class="b"><i style="width:100%"></i></span><span class="g">€ 7.995</span><span class="p">35&nbsp;%</span></div></div></section><section class="sectie"><div class="sectie-kop"><h3>Wat de prijs verschuift</h3></div><div class="watals"><div class="r"><span class="l">10 m² dakvlak meer</span><span class="v">+ € 1.515</span></div><div class="r"><span class="l">Zonder sarking-isolatie</span><span class="v">− € 5.825</span></div><div class="r"><span class="l">Zonder dakramen</span><span class="v">− € 2.101</span></div><div class="r"><span class="l">Zonder nieuwe goten</span><span class="v">− € 1.121</span></div><div class="r"><span class="l">Met 2 man: 9 werkdagen in plaats van 6</span><a class="link" href="#">Toepassen</a><span class="v">+ € 380</span></div><div class="r"><span class="l">Met 4 man: 5 werkdagen in plaats van 6</span><a class="link" href="#">Toepassen</a><span class="v">− € 590</span></div><div class="r"><span class="l">Aan 21% btw (woning jonger dan 10 jaar)</span><a class="link" href="#">Toepassen</a><span class="v">+ € 3.419 incl. btw</span></div></div></section><section class="sectie"><div class="sectie-kop"><h3>Kostenopbouw</h3></div><div class="kosten"><div class="r"><span class="l">Arbeid: 144 manuren × € 57,50</span><span class="v">€ 8.261</span></div><div class="r"><span class="l">Materiaal: inkoop € 9.582 + 15 % marge</span><span class="v">€ 11.019</span></div><div class="r"><span class="l">Materieel en afvoer: inkoop € 2.110 + 15 % marge</span><span class="v">€ 2.427</span></div><div class="r som"><span class="l">Subtotaal</span><span class="v">€ 21.707</span></div><div class="r"><span class="l">Onvoorzien 5 %</span><span class="v">€ 1.085</span></div><div class="r som"><span class="l">Prijs excl. btw</span><span class="v">€ 22.792</span></div><div class="r"><span class="l">Btw 6 %</span><span class="v">€ 1.368</span></div><div class="r som"><span class="l">Prijs incl. btw</span><span class="v">€ 24.160</span></div></div></section></div><div class="tab tab--werkblad"><section class="sectie"><div class="tabel kol-werk"><div class="tabel-kop"><span>Werk</span><span class="g">Hoeveelheid</span><span class="g">Manuren</span><span class="g">Materiaal €</span><span class="g">Naar boven kg</span><span class="g">Afval kg</span><span class="g">Bron</span></div><div class="fase"><span class="inkt">Werfinrichting</span><span>11,5 manuren · 0,5 werkdagen met 3 man</span></div><div class="rij"><div class="n"><div class="naam"><span>Gevelstelling met dakrandbeveiliging plaatsen en afbreken</span><span class="chip">Niet gevraagd, wel nodig</span></div><small>Dakrand op 6 m: stelling aan voor- en achtergevel.</small><small>Voor- en achtergevel: 2 × 8 m × 6 m</small></div><div class="g" data-l="Hoeveelheid">96 m²</div><div class="g" data-l="Manuren">11,5</div><div class="g" data-l="Materiaal €">768</div><div class="g" data-l="Naar boven kg">—</div><div class="g" data-l="Afval kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="fase"><span class="inkt">Afbraak</span><span>20,7 manuren · 0,9 werkdagen met 3 man</span></div><div class="rij"><div class="n"><div class="naam"><span>Oude pannen, latten en onderdak afbreken en naar de container brengen</span></div><small>Dakvlak: 2 × 8 m × (4,5 m ÷ cos 40°) = 2 × 8 × 5,87</small></div><div class="g" data-l="Hoeveelheid">94 m²</div><div class="g" data-l="Manuren">20,7</div><div class="g" data-l="Materiaal €">—</div><div class="g" data-l="Naar boven kg">—</div><div class="g" data-l="Afval kg">4.700</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="fase"><span class="inkt">Dakopbouw</span><span>42,3 manuren · 1,8 werkdagen met 3 man</span></div><div class="rij"><div class="n"><div class="naam"><span>Onderdakfolie plaatsen</span></div><small>Volledig dakvlak</small></div><div class="g" data-l="Hoeveelheid">94 m²</div><div class="g" data-l="Manuren">4,7</div><div class="g" data-l="Materiaal €">196</div><div class="g" data-l="Naar boven kg">16</div><div class="g" data-l="Afval kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n"><div class="naam"><span>Sarking-isolatie PIR 12 cm plaatsen</span><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></div><small>Volledig dakvlak</small></div><div class="g" data-l="Hoeveelheid">94 m²</div><div class="g" data-l="Manuren">23,5</div><div class="g" data-l="Materiaal €">3.649</div><div class="g" data-l="Naar boven kg">413</div><div class="g" data-l="Afval kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div><div class="rekenpad"><span>94 m² × 0,25 manuur = 23,5 manuren</span><span>98,7 m² PIR-sarkingplaat 12 cm × € 33,16 = € 3.273</span><span>94 m² Sarkingschroeven en tape × € 4,00 = € 376</span></div></div><div class="rij"><div class="n"><div class="naam"><span>Tengellatten plaatsen</span></div><small>Volledig dakvlak</small></div><div class="g" data-l="Hoeveelheid">94 m²</div><div class="g" data-l="Manuren">4,7</div><div class="g" data-l="Materiaal €">148</div><div class="g" data-l="Naar boven kg">83</div><div class="g" data-l="Afval kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n"><div class="naam"><span>Panlatten op maat plaatsen</span></div><small>Volledig dakvlak</small></div><div class="g" data-l="Hoeveelheid">94 m²</div><div class="g" data-l="Manuren">9,4</div><div class="g" data-l="Materiaal €">354</div><div class="g" data-l="Naar boven kg">221</div><div class="g" data-l="Afval kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="fase"><span class="inkt">Dakbedekking</span><span>28,2 manuren · 1,2 werkdagen met 3 man</span></div><div class="rij"><div class="n"><div class="naam"><span>Kleipannen leggen (klein formaat, 20,7 per m²)</span></div><small>Volledig dakvlak</small></div><div class="g" data-l="Hoeveelheid">94 m²</div><div class="g" data-l="Manuren">28,2</div><div class="g" data-l="Materiaal €">1.903</div><div class="g" data-l="Naar boven kg">4.206</div><div class="g" data-l="Afval kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="fase"><span class="inkt">Afwerking</span><span>26,6 manuren · 1,1 werkdagen met 3 man</span></div><div class="rij"><div class="n"><div class="naam"><span>Nok afwerken met nokpannen en ondervorst</span><span class="chip">Niet gevraagd, wel nodig</span></div><small>Nok van 8 m sluit het dak af.</small><small>Noklengte = gevelbreedte</small></div><div class="g" data-l="Hoeveelheid">8 lm</div><div class="g" data-l="Manuren">2,8</div><div class="g" data-l="Materiaal €">309</div><div class="g" data-l="Naar boven kg">88</div><div class="g" data-l="Afval kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n"><div class="naam"><span>Vrije dakrand afwerken met gevelpannen</span><span class="chip">Niet gevraagd, wel nodig</span></div><small>Vrije dakrand van 11,7 m aan de open zijde.</small><small>Vrije zijde: 2 × 5,87 m</small></div><div class="g" data-l="Hoeveelheid">11,7 lm</div><div class="g" data-l="Manuren">2,9</div><div class="g" data-l="Materiaal €">539</div><div class="g" data-l="Naar boven kg">144</div><div class="g" data-l="Afval kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n"><div class="naam"><span>Zinken aansluiting op het dak van de buur</span><span class="chip">Niet gevraagd, wel nodig</span></div><small>Gemene zijde van 11,7 m sluit aan op het dak van de buur.</small><small>Gemene zijde: 2 × 5,87 m</small></div><div class="g" data-l="Hoeveelheid">11,7 lm</div><div class="g" data-l="Manuren">5,9</div><div class="g" data-l="Materiaal €">328</div><div class="g" data-l="Naar boven kg">35</div><div class="g" data-l="Afval kg">—</div><div class="g" data-l="Bron"><span class="chip chip--ai">AI-schatting</span></div></div><div class="rij"><div class="n"><div class="naam"><span>Schouw aansluiten met loodslabben</span></div><small>1 schouw</small></div><div class="g" data-l="Hoeveelheid">1 st</div><div class="g" data-l="Manuren">5,0</div><div class="g" data-l="Materiaal €">180</div><div class="g" data-l="Naar boven kg">18</div><div class="g" data-l="Afval kg">5</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n"><div class="naam"><span>Dakraam plaatsen met gootstuk</span></div><small>2 dakramen</small></div><div class="g" data-l="Hoeveelheid">2 st</div><div class="g" data-l="Manuren">10,0</div><div class="g" data-l="Materiaal €">1.240</div><div class="g" data-l="Naar boven kg">84</div><div class="g" data-l="Afval kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="fase"><span class="inkt">Afwatering</span><span>14,4 manuren · 0,6 werkdagen met 3 man</span></div><div class="rij"><div class="n"><div class="naam"><span>Zinken hanggoot vervangen</span></div><small>Voor en achter: 2 × 8 m</small></div><div class="g" data-l="Hoeveelheid">16 lm</div><div class="g" data-l="Manuren">9,6</div><div class="g" data-l="Materiaal €">448</div><div class="g" data-l="Naar boven kg">40</div><div class="g" data-l="Afval kg">48</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n"><div class="naam"><span>Zinken regenafvoer vervangen</span></div><small>2 afvoeren × 6 m</small></div><div class="g" data-l="Hoeveelheid">12 lm</div><div class="g" data-l="Manuren">4,8</div><div class="g" data-l="Materiaal €">288</div><div class="g" data-l="Naar boven kg">19</div><div class="g" data-l="Afval kg">18</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div></div></section></div><div class="tab tab--materiaal"><section class="sectie"><div class="sectie-kop"><h3>Materiaallijst</h3><span class="rechts">inkoop excl. btw</span></div><div class="tabel kol-mat"><div class="tabel-kop"><span>Materiaal</span><span class="g">Aantal</span><span class="g">Prijs €</span><span class="g">Totaal €</span><span class="g">Gewicht kg</span><span class="g">Bron</span></div><div class="rij"><div class="n">Onderdakfolie</div><div class="g" data-l="Aantal">103,4 m²</div><div class="g" data-l="Prijs €">1,90</div><div class="g" data-l="Totaal €">196</div><div class="g" data-l="Gewicht kg">16</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">PIR-sarkingplaat 12 cm</div><div class="g" data-l="Aantal">98,7 m²</div><div class="g" data-l="Prijs €">33,16</div><div class="g" data-l="Totaal €">3.273</div><div class="g" data-l="Gewicht kg">385</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Sarkingschroeven en tape</div><div class="g" data-l="Aantal">94 m²</div><div class="g" data-l="Prijs €">4,00</div><div class="g" data-l="Totaal €">376</div><div class="g" data-l="Gewicht kg">28</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Tengellat</div><div class="g" data-l="Aantal">178,6 lm</div><div class="g" data-l="Prijs €">0,75</div><div class="g" data-l="Totaal €">134</div><div class="g" data-l="Gewicht kg">80</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Nagels voor de tengellatten</div><div class="g" data-l="Aantal">94 m²</div><div class="g" data-l="Prijs €">0,15</div><div class="g" data-l="Totaal €">14</div><div class="g" data-l="Gewicht kg">3</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Panlat</div><div class="g" data-l="Aantal">394,8 lm</div><div class="g" data-l="Prijs €">0,85</div><div class="g" data-l="Totaal €">336</div><div class="g" data-l="Gewicht kg">217</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Nagels voor de panlatten</div><div class="g" data-l="Aantal">94 m²</div><div class="g" data-l="Prijs €">0,20</div><div class="g" data-l="Totaal €">19</div><div class="g" data-l="Gewicht kg">4</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Kleipan</div><div class="g" data-l="Aantal">2.003 st</div><div class="g" data-l="Prijs €">0,95</div><div class="g" data-l="Totaal €">1.903</div><div class="g" data-l="Gewicht kg">4.206</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Nokpan</div><div class="g" data-l="Aantal">24 st</div><div class="g" data-l="Prijs €">8,20</div><div class="g" data-l="Totaal €">197</div><div class="g" data-l="Gewicht kg">84</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Ventilerende ondervorst (ruiterrol)</div><div class="g" data-l="Aantal">8,4 lm</div><div class="g" data-l="Prijs €">12,04</div><div class="g" data-l="Totaal €">101</div><div class="g" data-l="Gewicht kg">3</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Nokklemmen met RVS schroeven</div><div class="g" data-l="Aantal">24 st</div><div class="g" data-l="Prijs €">0,45</div><div class="g" data-l="Totaal €">11</div><div class="g" data-l="Gewicht kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Gevelpan</div><div class="g" data-l="Aantal">48 st</div><div class="g" data-l="Prijs €">11,11</div><div class="g" data-l="Totaal €">533</div><div class="g" data-l="Gewicht kg">144</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">RVS schroeven voor de gevelpannen</div><div class="g" data-l="Aantal">48 st</div><div class="g" data-l="Prijs €">0,12</div><div class="g" data-l="Totaal €">6</div><div class="g" data-l="Gewicht kg">—</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Materiaal: Zinken aansluiting op het dak van de buur</div><div class="g" data-l="Aantal">11,7 lm</div><div class="g" data-l="Prijs €">28,00</div><div class="g" data-l="Totaal €">328</div><div class="g" data-l="Gewicht kg">35</div><div class="g" data-l="Bron"><span class="chip chip--ai">AI-schatting</span></div></div><div class="rij"><div class="n">Lood en afdichting voor schouw</div><div class="g" data-l="Aantal">1 st</div><div class="g" data-l="Prijs €">180,00</div><div class="g" data-l="Totaal €">180</div><div class="g" data-l="Gewicht kg">18</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Dakraam 78 × 118 cm met gootstuk</div><div class="g" data-l="Aantal">2 st</div><div class="g" data-l="Prijs €">620,00</div><div class="g" data-l="Totaal €">1.240</div><div class="g" data-l="Gewicht kg">84</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Zinken goot met haken</div><div class="g" data-l="Aantal">16 lm</div><div class="g" data-l="Prijs €">28,00</div><div class="g" data-l="Totaal €">448</div><div class="g" data-l="Gewicht kg">40</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div><div class="rij"><div class="n">Zinken afvoerbuis met beugels</div><div class="g" data-l="Aantal">12 lm</div><div class="g" data-l="Prijs €">24,00</div><div class="g" data-l="Totaal €">288</div><div class="g" data-l="Gewicht kg">19</div><div class="g" data-l="Bron"><span class="chip chip--merk">Datatabel</span></div></div></div></section><section class="sectie"><div class="sectie-kop"><h3>Materieel en afvoer</h3><span class="rechts">inkoop excl. btw</span></div><div class="tabel kol-eq"><div class="tabel-kop"><span>Post</span><span class="g">Aantal</span><span class="g">Prijs €</span><span class="g">Totaal €</span></div><div class="rij"><div class="n">Huur gevelstelling (2 weken)</div><div class="g" data-l="Aantal">96 m²</div><div class="g" data-l="Prijs €">8,00</div><div class="g" data-l="Totaal €">768</div></div><div class="rij"><div class="n">Pannenlift</div><div class="g" data-l="Aantal">6 dagen</div><div class="g" data-l="Prijs €">60,00</div><div class="g" data-l="Totaal €">360</div></div><div class="rij"><div class="n">Werfwagen en verplaatsing</div><div class="g" data-l="Aantal">6 dagen</div><div class="g" data-l="Prijs €">45,00</div><div class="g" data-l="Totaal €">270</div></div><div class="rij"><div class="n">Container 10 m³ steenpuin</div><div class="g" data-l="Aantal">1 st</div><div class="g" data-l="Prijs €">412,00</div><div class="g" data-l="Totaal €">412</div></div><div class="rij"><div class="n">Container 10 m³ hout</div><div class="g" data-l="Aantal">1 st</div><div class="g" data-l="Prijs €">300,00</div><div class="g" data-l="Totaal €">300</div></div><div class="rij"><div class="n">Klein restje rest mee in de werfwagen</div><div class="g" data-l="Aantal">1 st</div><div class="g" data-l="Prijs €">0,00</div><div class="g" data-l="Totaal €">—</div></div><div class="rij"><div class="n">Afvoer oud metaal naar de schroothandel</div><div class="g" data-l="Aantal">1 st</div><div class="g" data-l="Prijs €">0,00</div><div class="g" data-l="Totaal €">—</div></div></div><div class="afval"><h4 class="klein inkt" style="font-weight:600">Afval per soort</h4><p>Puin 4.230 kg → 1 container 10 m³ steenpuin (12 ton per container)</p><p>Hout 470 kg → 1 container 10 m³ hout (4 ton per container)</p><p>Rest 5 kg → Klein restje rest mee in de werfwagen</p><p>Metaal 66 kg → Afvoer oud metaal naar de schroothandel</p></div></section></div><div class="tab tab--kenmerken"><section class="sectie"><div class="sectie-kop"><h3>Kenmerken van de klus</h3></div><p class="klein">Ingevuld uit de klus, de meting en de standaarden. Pas aan wat anders is en herbereken.</p><div class="velden"><div class="veld"><label><span>Bebouwing</span><span class="chip">Uit de klus</span></label><div class="in"><input type="text" value="halfopen"></div></div><div class="veld"><label><span>Dakvorm</span><span class="chip">Uit de klus</span></label><div class="in"><input type="text" value="zadeldak"></div></div><div class="veld"><label><span>Gevelbreedte</span><span class="chip">Uit de klus</span></label><div class="in"><input type="text" value="8" inputmode="decimal"><span class="eenheid">m</span></div></div><div class="veld"><label><span>Diepte</span><span class="chip">Uit de klus</span></label><div class="in"><input type="text" value="9" inputmode="decimal"><span class="eenheid">m</span></div></div><div class="veld"><label><span>Dakhelling</span><span class="chip">Uit de klus</span></label><div class="in"><input type="text" value="40" inputmode="decimal"><span class="eenheid">°</span></div></div><div class="veld"><label><span>Kroonlijsthoogte</span><span class="chip">Uit de klus</span></label><div class="in"><input type="text" value="6" inputmode="decimal"><span class="eenheid">m</span></div></div><div class="veld"><label><span>Dakvlak</span><span class="chip">Berekend</span></label><div class="in"><input type="text" value="94" inputmode="decimal"><span class="eenheid">m²</span></div></div><div class="veld"><label><span>Noklengte</span><span class="chip">Berekend</span></label><div class="in"><input type="text" value="8" inputmode="decimal"><span class="eenheid">m</span></div></div><div class="veld"><label><span>Bedekking</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="kleipan klein formaat"></div></div><div class="veld"><label><span>Isolatie sarking PIR</span><span class="chip">Uit de klus</span></label><div class="in"><input type="text" value="12" inputmode="decimal"><span class="eenheid">cm</span></div></div><div class="veld"><label><span>Dakramen</span><span class="chip">Aangepast</span></label><div class="in"><input type="text" value="3" inputmode="decimal"><span class="eenheid">st</span></div><a class="link terug" href="#">Terug naar 2</a></div><div class="veld"><label><span>Schouwen</span><span class="chip">Uit de klus</span></label><div class="in"><input type="text" value="1" inputmode="decimal"><span class="eenheid">st</span></div></div><div class="veld"><label><span>Goten</span><span class="chip">Berekend</span></label><div class="in"><input type="text" value="16" inputmode="decimal"><span class="eenheid">lm</span></div></div><div class="veld"><label><span>Regenafvoeren</span><span class="chip">Berekend</span></label><div class="in"><input type="text" value="12" inputmode="decimal"><span class="eenheid">lm</span></div></div><div class="veld"><label><span>Gemene zijde</span><span class="chip">Berekend</span></label><div class="in"><input type="text" value="11,7" inputmode="decimal"><span class="eenheid">lm</span></div></div><div class="veld"><label><span>Vrije dakrand</span><span class="chip">Berekend</span></label><div class="in"><input type="text" value="11,7" inputmode="decimal"><span class="eenheid">lm</span></div></div><div class="veld"><label><span>Stelling</span><span class="chip">Berekend</span></label><div class="in"><input type="text" value="96" inputmode="decimal"><span class="eenheid">m²</span></div></div></div><div class="plakbalk"><span class="tekst">1 kenmerk aangepast</span><button class="knop knop--36" type="button">Herbereken met deze kenmerken</button><button class="knop knop--36 knop--stil" type="button">Herstel</button></div></section><section class="sectie"><div class="sectie-kop"><h3>Gemeten op het adres</h3></div><p class="klein">Geen meting: er was geen adres.</p></section></div></div></section><section class="instellingen" aria-label="Instellingen"><div class="inst-kop"><button class="knop knop--36 knop--stil" type="button" data-instellingen="dicht"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4L6 8l4 4"/></svg>Terug naar de berekening</button><h2>Instellingen</h2></div><div class="inst-body"><nav class="inst-lijst"><a class="is-actief" href="#tarieven">Tarieven</a><a href="#standaarden">Standaarden</a><a href="#datatabel">Datatabel</a></nav><div class="inst-inhoud"><section class="inst-sectie" id="tarieven"><div class="sectie-kop"><h3>Tarieven</h3><span class="rechts">Bewaard</span></div><p class="klein" style="margin-bottom:16px">Geldt meteen voor de open berekening. Bewaard op deze pc.</p><div class="velden"><div class="veld"><label><span>Uurtarief</span></label><div class="in"><input type="text" value="57,50" inputmode="decimal"><span class="eenheid">€/u</span></div></div><div class="veld"><label><span>Uren per werkdag</span></label><div class="in"><input type="text" value="8" inputmode="decimal"><span class="eenheid">u</span></div></div><div class="veld"><label><span>Ploeg</span></label><div class="in"><input type="text" value="3" inputmode="decimal"><span class="eenheid">man</span></div></div><div class="veld"><label><span>Marge op materiaal</span></label><div class="in"><input type="text" value="15" inputmode="decimal"><span class="eenheid">%</span></div></div><div class="veld"><label><span>Onvoorzien</span></label><div class="in"><input type="text" value="5" inputmode="decimal"><span class="eenheid">%</span></div></div><div class="veld"><label><span>Btw</span></label><div class="in"><select><option>6 % (woning ouder dan 10 jaar)</option><option>21 %</option></select></div></div></div></section><section class="inst-sectie" id="standaarden"><div class="sectie-kop"><h3>Standaarden van de sector</h3><span class="rechts">20 velden</span></div><p class="klein">Wat de app aanneemt als de klus en de meting niets zeggen. Geldt voor de volgende berekening.</p><div class="groep"><h4>Hellend dak</h4><div class="velden"><div class="veld"><label><span>Dakramen bij gesloten bebouwing</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="1"><span class="eenheid">st</span></div></div><div class="veld"><label><span>Dakramen bij halfopen bebouwing</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="2"><span class="eenheid">st</span></div></div><div class="veld"><label><span>Dakramen bij open bebouwing</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="2"><span class="eenheid">st</span></div></div><div class="veld"><label><span>Schouwen door het dak</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="1"><span class="eenheid">st</span></div></div><div class="veld"><label><span>Dakhelling</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="40"><span class="eenheid">°</span></div></div><div class="veld"><label><span>Kroonlijsthoogte</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="6"><span class="eenheid">m</span></div></div><div class="veld"><label><span>Sarking-isolatie PIR</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="12"><span class="eenheid">cm</span></div></div><div class="veld"><label><span>Regenafvoeren</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="2"><span class="eenheid">st</span></div></div><div class="veld"><label><span>Dakoverstek aan de goot</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="0,3"><span class="eenheid">m</span></div></div><div class="veld"><label><span>Dakoverstek aan een vrije gevel</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="0,2"><span class="eenheid">m</span></div></div><div class="veld"><label><span>Dakbedekking hellend dak</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="kleipan klein formaat"></div></div></div></div><div class="groep"><h4>Gevel</h4><div class="velden"><div class="veld"><label><span>Gevelisolatie EPS</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="14"><span class="eenheid">cm</span></div></div><div class="veld"><label><span>Ramen en deuren per gevel</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="3"><span class="eenheid">st</span></div></div><div class="veld"><label><span>Dagkanten per raam of deur</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="4,5"><span class="eenheid">lm</span></div></div><div class="veld"><label><span>Crepi</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="siliconenharspleister 1,5 mm"></div></div></div></div><div class="groep"><h4>Plat dak</h4><div class="velden"><div class="veld"><label><span>Isolatie plat dak PIR</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="12"><span class="eenheid">cm</span></div></div><div class="veld"><label><span>Bedekking plat dak</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="EPDM"></div></div></div></div><div class="groep"><h4>Binnen</h4><div class="velden"><div class="veld"><label><span>Plafondhoogte binnen</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="2,6"><span class="eenheid">m</span></div></div><div class="veld"><label><span>Verflagen</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="2"><span class="eenheid">st</span></div></div></div></div><div class="groep"><h4>Ploeg</h4><div class="velden"><div class="veld"><label><span>Ploeg</span><span class="chip chip--ai">Standaard</span></label><div class="in"><input type="text" value="3"><span class="eenheid">man</span></div></div></div></div></section><section class="inst-sectie inst-sectie--breed" id="datatabel"><div class="sectie-kop"><h3>Datatabel</h3><span class="rechts">223 posten · 1.590 waarden · stand 6 oktober 2026</span></div><p class="klein">Norm en inkoopprijzen zonder btw. Uw eigen cijfer vervangt de startwaarde; de bron opent in een nieuw tabblad.</p><div class="zoek" style="margin-top:16px"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg><input type="search" placeholder="Zoek op naam of code" aria-label="Zoek in de datatabel"></div><div class="vakken"><button type="button" class="is-actief">Hellend dak · 62</button><button type="button">Gevel · 40</button><button type="button">Plat dak · 29</button><button type="button">Binnen · 31</button><button type="button">Ramen en deuren · 22</button><button type="button">Vloeren en tegels · 26</button><button type="button">Algemeen · 13</button></div><div class="post"><button class="kop" type="button" aria-expanded="false"><span><b>Hard onderdak in houtvezelplaten 22 mm (tand en groef) plaatsen</b><small>0,18 manuur per m² · 1 man doet 44,4 m² per werkdag</small></span><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"/></svg></button></div><div class="post"><button class="kop" type="button" aria-expanded="false"><span><b>Dampscherm op het dakbeschot onder de sarking-isolatie plaatsen</b><small>0,05 manuur per m² · 1 man doet 160 m² per werkdag</small></span><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"/></svg></button></div><div class="post"><button class="kop" type="button" aria-expanded="false"><span><b>Aanslagbalk aan de dakvoet en randbalk aan de gevels voor de dakvlakverhoging door sarking</b><small>0,35 manuur per lm · 1 man doet 22,9 lm per werkdag</small></span><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"/></svg></button></div><div class="post"><button class="kop" type="button" aria-expanded="true"><span><b>Sarking-isolatie PIR 12 cm plaatsen</b><small>0,25 manuur per m² · 1 man doet 32 m² per werkdag</small></span><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button><div class="open"><div class="norm"><span class="klein">Norm</span><span class="in"><input type="text" value="0,25"></span><span class="klein">manuur per m²</span><span class="chip">Startwaarde</span></div><div class="tabel kol-data"><div class="tabel-kop"><span>Materiaal</span><span class="g">Per</span><span class="g">Eenheid</span><span class="g">Prijs €</span><span class="g">Kg</span><span class="g">Label</span></div><div class="rij"><div class="n">PIR-sarkingplaat 12 cm</div><div class="g" data-l="Per">1,1</div><div class="g" data-l="Eenheid">m²</div><div class="g" data-l="Prijs €"><span class="in"><input type="text" value="33,16"></span></div><div class="g" data-l="Kg">3,9</div><div class="g" data-l="Label"><a class="chip" href="https://andrecelis.be/andrecelis_nl/bauder-bauderpir-sf-120mm.html" target="_blank" rel="noopener"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 9.5l3-3M7 11l-1 1a2.5 2.5 0 0 1-3.5-3.5l1-1M9 5l1-1a2.5 2.5 0 0 1 3.5 3.5l-1 1"/></svg>Bron</a></div></div><div class="rij"><div class="n">Sarkingschroeven en tape</div><div class="g" data-l="Per">1</div><div class="g" data-l="Eenheid">m²</div><div class="g" data-l="Prijs €"><span class="in"><input type="text" value="4,00"></span></div><div class="g" data-l="Kg">0,3</div><div class="g" data-l="Label"><span class="chip">Startwaarde</span></div></div></div></div></div><div class="post"><button class="kop" type="button" aria-expanded="false"><span><b>Sarking-isolatie PIR 16 cm plaatsen</b><small>0,27 manuur per m² · 1 man doet 29,6 m² per werkdag</small></span><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"/></svg></button></div><div class="post"><button class="kop" type="button" aria-expanded="false"><span><b>Tengellatten plaatsen</b><small>0,05 manuur per m² · 1 man doet 160 m² per werkdag</small></span><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"/></svg></button></div><div class="post"><button class="kop" type="button" aria-expanded="false"><span><b>Panlatten op maat plaatsen</b><small>0,10 manuur per m² · 1 man doet 80 m² per werkdag</small></span><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"/></svg></button></div><div class="post"><button class="kop" type="button" aria-expanded="false"><span><b>Kleipannen leggen (klein formaat, 20,7 per m²)</b><small>0,30 manuur per m² · 1 man doet 26,7 m² per werkdag</small></span><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"/></svg></button></div></section></div></div></section></div>
+<script>(function(){
+var b=document.body,p=document.querySelector('.paneel');
+function zet(h){String(h||'').replace(/^#/,'').split(',').forEach(function(t){
+ if(['overzicht','werkblad','materiaal','kenmerken'].indexOf(t)>=0&&p){p.setAttribute('data-tab',t);b.classList.add('seg-resultaat');}
+ if(t==='resultaat')b.classList.add('seg-resultaat');
+ if(t==='instellingen'||t==='tarieven'||t==='standaarden'||t==='datatabel')b.classList.add('instellingen-open');
+ if(t==='rail')b.classList.add('rail-open');
+ if(t==='lade')b.classList.add('lade');
+ if(t==='donker')document.documentElement.classList.add('donker');
+});}
+zet(location.hash);
+document.querySelectorAll('[data-tab-knop]').forEach(function(k){k.addEventListener('click',function(){p.setAttribute('data-tab',k.getAttribute('data-tab-knop'));});});
+document.querySelectorAll('[data-seg]').forEach(function(k){k.addEventListener('click',function(){b.classList.toggle('seg-resultaat',k.getAttribute('data-seg')==='resultaat');});});
+document.querySelectorAll('[data-rail]').forEach(function(k){k.addEventListener('click',function(){b.classList.toggle(window.innerWidth<1100?'lade':'rail-open');});});
+document.querySelectorAll('[data-instellingen]').forEach(function(k){k.addEventListener('click',function(){b.classList.toggle('instellingen-open',k.getAttribute('data-instellingen')==='open');});});
+document.querySelectorAll('.inst-lijst a').forEach(function(k){k.addEventListener('click',function(){document.querySelectorAll('.inst-lijst a').forEach(function(x){x.classList.toggle('is-actief',x===k);});});});
+document.querySelectorAll('a.eerder').forEach(function(k){k.addEventListener('click',function(e){e.preventDefault();zet('#werkblad');});});
+})();</script>
+</body>
+</html>
