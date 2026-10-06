@@ -51,6 +51,8 @@
     { k: 'kroonlijst', label: 'Kroonlijsthoogte', eenheid: 'm', std: 6 },
     { k: 'isolatie', label: 'Sarking-isolatie PIR', eenheid: 'cm', std: 12 },
     { k: 'afvoeren', label: 'Regenafvoeren', eenheid: 'st', std: 2 },
+    { k: 'overstek_goot', label: 'Dakoverstek aan de goot', eenheid: 'm', std: 0.3 },
+    { k: 'overstek_gevel', label: 'Dakoverstek aan een vrije gevel', eenheid: 'm', std: 0.2 },
     { k: 'bedekking', label: 'Dakbedekking hellend dak', eenheid: '', std: 'kleipan klein formaat', tekst: true },
     { k: 'gevel_isolatie', label: 'Gevelisolatie EPS', eenheid: 'cm', std: 14 },
     { k: 'gevel_openingen', label: 'Ramen en deuren per gevel', eenheid: 'st', std: 3 },
@@ -68,14 +70,17 @@
   }));
   function standaardRegels(st) {
     return [
-      'Dakramen per woning als de beschrijving er niets over zegt: gesloten bebouwing ' + st.dakramen_gesloten + ', halfopen ' + st.dakramen_halfopen + ', open ' + st.dakramen_open + '.',
+      'Bestaande dakramen per woning als de beschrijving er niets over zegt: gesloten bebouwing ' + st.dakramen_gesloten + ', halfopen ' + st.dakramen_halfopen + ', open ' + st.dakramen_open + '. Bestaande dakramen worden op de nieuwe dakopbouw herplaatst (dak.dakraam.herplaatsen); een nieuw dakraam alleen als de beschrijving het vraagt.',
       'Schouwen door het dak: ' + st.schouwen + '.',
       'Dakhelling: ' + st.helling + ' graden. Kroonlijsthoogte: ' + st.kroonlijst + ' m.',
-      'Isolatie bij een dakrenovatie: sarking PIR ' + st.isolatie + ' cm (0 = geen isolatie).',
-      'Goten: voor en achter, elk zo lang als de gevelbreedte. Regenafvoeren: ' + st.afvoeren + ', elk zo lang als de kroonlijsthoogte.',
+      'Dakoverstek: ' + st.overstek_goot + ' m aan de goot en ' + st.overstek_gevel + ' m aan elke vrije gevel. Dakvlak van een zadeldak = (noklengte + overstek aan elke vrije gevel) x ((overspanning + 2 x overstek aan de goot) / cos helling). Goten, nok en dakranden krijgen dezelfde toeslag. Een meting op het adres is zonder overstek: tel de overstek erbij.',
+      'Isolatie bij een dakrenovatie: sarking PIR ' + st.isolatie + ' cm (0 = geen isolatie); kies de post met die dikte (dak.sarking120 = 12 cm, dak.sarking160 = 16 cm).',
+      'Goten en regenafvoeren: ' + st.afvoeren + ' afvoeren, elk zo lang als de kroonlijsthoogte; goten voor en achter, elk zo lang als de gevelbreedte plus de overstek. Vervangen alleen als de beschrijving het vraagt; anders alleen losmaken en herbevestigen waar het werk dat nodig maakt.',
       'Dakbedekking hellend dak: ' + st.bedekking + '.',
-      'Stelling bij dakwerk: voor- en achtergevel, gevelbreedte maal kroonlijsthoogte; een vrije zijgevel wordt vanaf het dak bereikt.',
+      'Stelling bij dakwerk: voor- en achtergevel, gevelbreedte maal kroonlijsthoogte. Elke vrije dakrand krijgt randbeveiliging (valbeveiliging, per lm); een stelling aan een vrije zijgevel alleen als de beschrijving werk aan die gevel noemt.',
       'Nok en vrije dakrand worden altijd afgewerkt; elke gemene zijde krijgt een aansluiting op het dak van de buur.',
+      'Asbest: een dak, onderdak of leien van vóór 2001 zonder informatie over asbest = aanname "geen asbest" plus een punt voor het plaatsbezoek. Bij asbest de asbestposten gebruiken (hechtgebonden, verpakt afgevoerd); niet-hechtgebonden asbest valt buiten de prijs (erkende verwijderaar) en wordt als aanname gemeld.',
+      'Meerdere vakken in één klus (bv. dak en gevel): posten uit elk vak; één stelling per gevel, onder het vak dat eerst begint; de kopregel noemt alle vakken.',
       'Gevel: elke behandelde gevel krijgt een stelling van gevelbreedte maal gevelhoogte; per gevel ' + st.gevel_openingen + ' ramen of deuren met elk ' + st.gevel_opening_omtrek + ' lm dagkant; gevel-m² = bruto gevel min de openingen (1,8 m² per opening).',
       'Gevel bij crepi: isolatie EPS ' + st.gevel_isolatie + ' cm (0 = crepi zonder isolatie), afwerking ' + st.crepi + '; profielen = plint + hoeken + dagkanten; regenafvoeren worden losgemaakt en herplaatst; de plint loopt over de gevelbreedte.',
       'Plat dak: isolatie PIR ' + st.plat_isolatie + ' cm, bedekking ' + st.plat_bedekking + ', dakrandprofiel over de vrije randen, opstand tegen elke aangrenzende muur, 1 afvoer per 50 m².',
@@ -132,6 +137,7 @@
     } else if (o.t === 'kop') {
       if (o.titel) m.titel = String(o.titel);
       if (o.vak) m.vak = String(o.vak);
+      if (Array.isArray(o.vakken)) m.vakken = o.vakken.map(String).slice(0, 7);
       if (num(o.oppervlakte_m2) > 0) m.dakvlak_m2 = num(o.oppervlakte_m2);
       if (o.oppervlakte_naam) m.vlakNaam = String(o.oppervlakte_naam).slice(0, 30);
       if (num(o.dakvlak_m2) > 0) m.dakvlak_m2 = num(o.dakvlak_m2);
@@ -160,7 +166,8 @@
       if (!p || typeof p !== 'object') continue;
       const q = num(p.hoeveelheid);
       const def = p.code ? DATA.posten[p.code] : null;
-      if (!(q > 0)) continue;
+      /* Een post zonder leesbare hoeveelheid verdwijnt niet stil: hij staat bij de overgeslagen posten met de reden. */
+      if (!(q > 0)) { overgeslagen.push(String(def ? def.naam : (p.naam || p.code || 'post zonder naam')) + ' (hoeveelheid ' + (p.hoeveelheid == null || p.hoeveelheid === '' ? 'ontbreekt' : 'onleesbaar: ' + String(p.hoeveelheid).slice(0, 20)) + ')'); continue; }
       let r;
       if (def) {
         r = { bron: 'data', code: p.code, fase: def.fase, naam: def.naam, eenheid: def.eenheid, hoeveelheid: q,
@@ -205,13 +212,14 @@
     const matKg = som((r) => r.matKg);
     const afvalKg = som((r) => r.afvalKg);
 
-    /* Afval per soort: elke soort met genoeg kilo's krijgt eigen containers; een kleine hoeveelheid gaat in big bags.
-       Kleine restjes van andere soorten tellen bij 'rest'; asbest gaat altijd apart. */
+    /* Afval per soort: elke soort met genoeg kilo's krijgt eigen containers (op gewicht én op volume); een kleine hoeveelheid gaat
+       in big bags; heel weinig gaat mee in de werfwagen. Kleine fracties van andere soorten tellen bij 'rest'; asbest gaat altijd apart;
+       metaal gaat naar de schroothandel zonder container. */
     const perSoort = {};
     for (const r of regels) for (const a of r.afval) perSoort[a.soort] = (perSoort[a.soort] || 0) + a.kg;
     for (const soort of Object.keys(perSoort)) {
       const c = DATA.containers[soort];
-      if (soort !== 'rest' && soort !== 'asbest' && perSoort[soort] > 0 && perSoort[soort] < c.los) { perSoort.rest = (perSoort.rest || 0) + perSoort[soort]; delete perSoort[soort]; }
+      if (soort !== 'rest' && soort !== 'asbest' && soort !== 'metaal' && perSoort[soort] > 0 && perSoort[soort] < c.los) { perSoort.rest = (perSoort.rest || 0) + perSoort[soort]; delete perSoort[soort]; }
     }
     const afvoer = [];
     let containers = 0;
@@ -219,14 +227,18 @@
       const kg = perSoort[soort] || 0;
       if (kg <= 0) continue;
       const c = DATA.containers[soort];
-      if (c.ton <= 0) continue;
-      if (kg < c.los && c.bigbag > 0) {
-        const n = Math.ceil(kg / Math.max(1, c.los) * 1 - 1e-9) || 1;
-        afvoer.push({ soort, naam: 'Big bag ' + soort, eenheid: 'st', prijs: c.bigbag, aantal: n, kost: n * c.bigbag, kg, bron: 'data', soort2: 'bigbag' });
-      } else {
-        const n = Math.ceil(kg / 1000 / c.ton - 1e-9);
+      const m3 = c.dichtheid > 0 ? kg / c.dichtheid : 0;
+      if (c.prijs === 0 && c.bigbag === 0) {
+        afvoer.push({ soort, naam: c.naam, eenheid: 'st', prijs: 0, aantal: 1, kost: 0, kg, m3, bron: 'data', soort2: 'afvoer' });
+      } else if (kg < (c.klein || 0)) {
+        afvoer.push({ soort, naam: 'Klein restje ' + soort + ' mee in de werfwagen', eenheid: 'st', prijs: 0, aantal: 1, kost: 0, kg, m3, bron: 'data', soort2: 'werfwagen' });
+      } else if (kg < c.los && c.bigbag > 0 && m3 <= 1) {
+        const n = Math.max(1, Math.ceil(kg / Math.max(1, c.los) - 1e-9));
+        afvoer.push({ soort, naam: 'Big bag ' + soort, eenheid: 'st', prijs: c.bigbag, aantal: n, kost: n * c.bigbag, kg, m3, bron: 'data', soort2: 'bigbag' });
+      } else if (c.ton > 0) {
+        const n = Math.max(Math.ceil(kg / 1000 / c.ton - 1e-9), c.m3 > 0 ? Math.ceil(m3 / c.m3 - 1e-9) : 0, 1);
         containers += n;
-        afvoer.push({ soort, naam: c.naam, eenheid: 'st', prijs: c.prijs, aantal: n, kost: n * c.prijs, kg, ton: c.ton, bron: 'data', soort2: 'container' });
+        afvoer.push({ soort, naam: c.naam, eenheid: 'st', prijs: c.prijs, aantal: n, kost: n * c.prijs, kg, m3, ton: c.ton, bron: 'data', soort2: 'container' });
       }
     }
 
@@ -342,10 +354,13 @@
       'Bebouwing: ' + b.type + ' (' + b.buren + ' aangebouwde buren); gemene muur ' + b.gemeneMuur + ' m; vrije gevel ' + b.vrijeGevel + ' m',
     ];
     if (d) {
-      uit.push('Dak: ' + d.vorm + (d.helling ? ', helling ' + d.helling + ' graden' : '') + ', ' + Math.round(d.platAandeel * 100) + '% van het dak is plat');
-      uit.push('Dakvlak (schuin gemeten, zonder oversteek): ' + d.dakvlak + ' m2; nokhoogte ' + d.nokhoogte + ' m; kroonlijst ' + d.kroonlijst + ' m boven het maaiveld' +
-        (d.noklengte ? '; noklengte ' + d.noklengte + ' m; overspanning ' + d.overspanning + ' m (afgeleid)' : ''));
+      uit.push('Dak: ' + d.vorm + (d.helling ? ', helling ' + d.helling + ' graden' : '') + ', ' + Math.round(d.platAandeel * 100) + '% van het dak is plat' +
+        (d.platDeel ? ' (plat deel ' + d.platDeel.m2 + ' m2 op ' + d.platDeel.hoogte + ' m hoogte)' : ''));
+      uit.push('Dakvlak (schuin gemeten, zonder overstek: tel de overstek uit de standaarden erbij): ' + d.dakvlak + ' m2; nokhoogte ' + d.nokhoogte + ' m; ' + (d.kroonlijst ? 'kroonlijst ' + d.kroonlijst + ' m boven het maaiveld' : 'kroonlijst niet af te leiden (samengesteld dak): neem de standaard of de beschrijving') +
+        (d.noklengte ? '; noklengte ' + d.noklengte + ' m; overspanning ' + d.overspanning + ' m (afgeleid uit de rechthoekige contour)' : (d.vorm !== 'plat' ? '; noklengte en overspanning niet af te leiden (samengesteld gebouw): gebruik het gemeten dakvlak' : '')));
     }
+    for (const w of (gm.waarschuwingen || [])) uit.push('Let op: ' + w);
+    uit.push('Hoogtemeting uit de vlucht van 2013 tot 2015: is het dak nadien verbouwd, dan kloppen de dakmaten niet; neem dat op als punt voor het plaatsbezoek.');
     return uit;
   }
 
@@ -378,7 +393,7 @@
       '   Bron per kenmerk: "beschrijving" (staat in de klus), "gemeten" (uit de meting), "berekend" (afgeleid uit andere kenmerken), "standaard" (uit de standaarden), "vast" (vaste kenmerken). Bebouwing is open, halfopen of gesloten. De posten volgen exact uit de kenmerken.',
       '1. Past een werk bij een code uit de datatabel, gebruik dan die code en geef alleen de hoeveelheid in de eenheid van die code.',
       '2. Werk dat niet in de datatabel staat (andere bedekking, timmerwerk, elektriciteit, sanitair): geef een post zonder code met je eigen schatting per eenheid: uur_per_eenheid (manuren), materiaal_eur_per_eenheid (inkoop in België, zonder btw), kg_per_eenheid (gewicht van het nieuwe materiaal), afval_kg_per_eenheid en afval_soort (' + Object.keys(DATA.containers).join(', ') + ').',
-      '3. Reken de hoeveelheden uit de maten. Dakvlak van een zadeldak = 2 x noklengte x (halve overspanning / cos(helling)). Gevel-m² = breedte x hoogte min de openingen. Zet de berekening met de getallen in "toelichting" (maximaal 1 zin). In de kopregel: oppervlakte_m2 = de hoofdoppervlakte van de klus en oppervlakte_naam = dakvlak, gevel, vloer of wand.',
+      '3. Reken de hoeveelheden uit de maten, met de dakoverstek uit de standaarden. Dakvlak van een zadeldak = (noklengte + overstek aan elke vrije gevel) x ((overspanning + 2 x overstek aan de goot) / cos(helling)). Gevel-m² = breedte x hoogte min de openingen. Zet de berekening met de getallen in "toelichting" (maximaal 1 zin). In de kopregel: oppervlakte_m2 = de hoofdoppervlakte van de klus, oppervlakte_naam = dakvlak, gevel, vloer of wand, en vakken = de lijst van vakken in de klus.',
       '4. Ontbreekt een maat in de beschrijving en in de meting, neem dan de standaard van de sector; staat ze daar ook niet, kies een gangbare waarde voor een Belgische woning en zet die keuze met het getal in een aanname.',
       '5. Neem alle stappen op die nodig zijn om het werk af te leveren, ook als de beschrijving ze niet noemt: stelling, afbraak of voorbereiding, profielen en dagkanten, afwerking van nok en dakrand, aansluitingen op buren en schouwen, plamuren vóór schilderwerk. Zet bij zo een stap "gevraagd":false en in "waarom" in maximaal 12 woorden waarom hij nodig is, met de maat.',
       '6. Geef maximaal 5 punten voor het plaatsbezoek: alleen wat ter plaatse te zien is en de prijs kan veranderen.',
@@ -387,7 +402,7 @@
       '',
       'ANTWOORD: alleen regels met elk één volledig JSON-object op één regel. Geen tekst ervoor of erna, geen codeblok. Eerst de kenmerken, dan de kopregel, dan de posten in volgorde van uitvoering, dan de aannames, dan de punten voor het plaatsbezoek. Voorbeeld van de vorm:',
       '{"t":"kenmerken","vak":"Hellend dak","lijst":[{"k":"bebouwing","label":"Bebouwing","waarde":"halfopen","eenheid":"","bron":"beschrijving"},{"k":"dakvlak_m2","label":"Dakvlak","waarde":94,"eenheid":"m²","bron":"berekend"},{"k":"dakramen_st","label":"Dakramen","waarde":2,"eenheid":"st","bron":"standaard"}]}',
-      '{"t":"kop","titel":"korte naam van de klus","vak":"Hellend dak","oppervlakte_m2":94,"oppervlakte_naam":"dakvlak","ploeg":3,"materieel_per_dag":["lift","transport"]}',
+      '{"t":"kop","titel":"korte naam van de klus","vak":"Hellend dak","vakken":["Hellend dak"],"oppervlakte_m2":94,"oppervlakte_naam":"dakvlak","ploeg":3,"materieel_per_dag":["lift","transport"]}',
       '{"t":"post","code":"dak.afbraak","hoeveelheid":94,"gevraagd":true,"toelichting":"2 x 8 m x 5,87 m"}',
       '{"t":"post","fase":"Afwerking","naam":"werk zonder code","eenheid":"lm","hoeveelheid":12,"uur_per_eenheid":0.5,"materiaal_eur_per_eenheid":28,"kg_per_eenheid":3,"afval_kg_per_eenheid":0,"gevraagd":false,"waarom":"gemene zijde van 12 m sluit aan op het dak van de buur","toelichting":"2 x 6 m"}',
       '{"t":"aanname","tekst":"..."}',
@@ -422,7 +437,9 @@
       wat_als: a.watAls.map((w) => ({ wijziging: w.label, verschil_eur: e(w.verschil), basis: w.inclBtw ? 'incl. btw' : 'excl. btw' })),
       kenmerken: Object.values(m.kenmerken || {}).map((x) => ({ kenmerk: x.label, waarde: x.waarde + (x.eenheid ? ' ' + x.eenheid : ''), bron: x.bron })),
       aannames_van_de_meetstaat: m.aannames || [],
-      datatabel: 'startwaarden van ' + DATA.stand,
+      niet_meegerekend: r.overgeslagen,
+      btw_voorwaarde: r.t.btw === 6 ? '6 % btw geldt alleen voor een privéwoning ouder dan 10 jaar die hoofdzakelijk bewoond wordt, met factuur aan de eigenaar of huurder; anders 21 %.' : '21 % btw.',
+      datatabel: 'startwaarden van ' + DATA.stand + '; posten met een bron-veld dragen een geopende prijsbron',
     };
     return [
       'Je bent calculator met 20 jaar ervaring in ' + (r.vak === 'Overig' ? 'de bouw' : r.vak.toLowerCase()) + ' in Vlaanderen. Je legt een collega-aannemer uit hoe deze richtprijs tot stand komt.',
@@ -441,6 +458,7 @@
       '- Geen zin die op elke klus past. Geen algemene raad. Geen beleefdheden.',
       '- Verboden woorden: mogelijk, waarschijnlijk, ongeveer, eventueel, belangrijk, uiteraard, kortom.',
       '- Heeft een onderwerp niets scherps, sla het over. 3 sterke punten zijn beter dan 6 zwakke.',
+      '- Staat er iets onder "niet_meegerekend", zeg dan in één zin dat het buiten de prijs valt. De btw-voorwaarde noem je alleen als de klus eraan twijfelt.',
       '- Bedragen als "€ 1.234". Nederlands zoals een Vlaamse aannemer het zegt.',
       '',
       'BEREKENING:',

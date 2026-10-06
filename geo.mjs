@@ -74,10 +74,13 @@ export async function meetAdres(vraag, opVoortgang = () => {}) {
     return ring && ring.length > 3 ? { id: f.id, type: f.properties.LBLTYPE, opname: f.properties.OPNDATUM, ring: ring.slice(0, -1) } : null;
   }).filter(Boolean);
   const hoofd = gebouwen.filter((g) => g.type === 'hoofdgebouw');
-  let doel = hoofd.find((g) => binnen(p, g.ring)) || gebouwen.find((g) => binnen(p, g.ring));
+  /* Alleen een hoofdgebouw: ligt het adrespunt in een bijgebouw of in de tuin, dan het dichtste hoofdgebouw met een waarschuwing. */
+  let doel = hoofd.find((g) => binnen(p, g.ring));
   let afstandTotAdres = 0;
+  const waarschuwingen = [];
   if (!doel) {
     for (const g of hoofd) { const a = afstandRing(p, g.ring); if (a < 30 && (!doel || a < afstandTotAdres)) { doel = g; afstandTotAdres = a; } }
+    if (doel) waarschuwingen.push('Het adrespunt ligt ' + rond(afstandTotAdres) + ' m naast het gekozen hoofdgebouw: controleer het grondoppervlak.');
   }
   if (!doel) throw Object.assign(new Error('Geen gebouw gevonden op dit adres.'), { code: 'gebouw' });
   const ring = doel.ring;
@@ -122,7 +125,8 @@ export async function meetAdres(vraag, opVoortgang = () => {}) {
     cellen = [];
     for (let ix = Math.floor(minX); ix <= maxX; ix += stap) for (let iy = Math.floor(minY); iy <= maxY; iy += stap) {
       const c = [ix + 0.5, iy + 0.5];
-      if (binnen(c, ring) && afstandRing(c, ring) >= 0.7) cellen.push({ ix, iy, c });
+      const d = afstandRing(c, ring);
+      if (binnen(c, ring) && d >= 0.7) cellen.push({ ix, iy, c, d });
     }
     if (cellen.length <= 340) break;
   }
@@ -147,6 +151,7 @@ export async function meetAdres(vraag, opVoortgang = () => {}) {
       const gx = afgeleide(h(1, 0), h(-1, 0)), gy = afgeleide(h(0, 1), h(0, -1));
       if (gx == null && gy == null) continue;
       const hoek = Math.atan(Math.hypot(gx || 0, gy || 0)) * 180 / Math.PI;
+      q.hoek = hoek;
       hellingen.push(hoek);
       if (hoek >= 15 && hoek <= 60) { somU += Math.abs((gx || 0) * u[0] + (gy || 0) * u[1]); somV += Math.abs((gx || 0) * v[0] + (gy || 0) * v[1]); }
     }
@@ -157,18 +162,35 @@ export async function meetAdres(vraag, opVoortgang = () => {}) {
     const vorm = !helling || platAandeel > 0.7 ? 'plat' : platAandeel < 0.3 ? 'hellend' : 'gemengd (hellend en plat)';
     const rad = helling * Math.PI / 180;
     const valtLangsU = somU > somV;
+    /* Nok en kroonlijst alleen uit de schuine cellen: een plat aanbouwdeel trekt anders de kroonlijst naar beneden.
+       Per schuine cel: hoogte aan de gevel = hoogte van de cel min (afstand tot de gevel x tan helling). */
+    const schuinCellen = gemeten.filter((q) => q.hoek != null && q.hoek >= 15 && q.hoek <= 60);
+    const platCellen = gemeten.filter((q) => q.hoek != null && q.hoek < 10);
+    const nokBasis = (vorm !== 'plat' && schuinCellen.length >= 5 ? schuinCellen : gemeten).map((q) => q.h);
+    /* Bij een samengesteld dak (hellend én plat) is de kroonlijst niet af te leiden: dan 0, en de prompt zegt dat. */
+    const kroonlijst = vorm === 'plat' ? percentiel(hoogtes, 0.5)
+      : vorm !== 'hellend' ? 0
+      : schuinCellen.length >= 5 ? Math.max(2, percentiel(schuinCellen.map((q) => q.h - q.d * Math.tan(rad)), 0.1))
+      : Math.max(2, percentiel(hoogtes, 0.05) - 0.7 * Math.tan(rad));
+    /* Noklengte en overspanning alleen als de contour één rechthoek is en het dak bijna helemaal schuin: anders zijn ze
+       niet af te leiden en moet de AI met het gemeten dakvlak werken. */
+    const rechthoekig = A / Math.max(1, maatU * maatV) >= 0.9;
+    const nokAfleidbaar = vorm !== 'plat' && rechthoekig && platAandeel <= 0.05;
     dak = {
       vorm,
       helling: vorm === 'plat' ? 0 : Math.round(helling),
       platAandeel: rond(platAandeel, 2),
       dakvlak: rond(vorm === 'plat' ? A : A * (platAandeel + (1 - platAandeel) / Math.cos(rad)), 0),
-      nokhoogte: rond(percentiel(hoogtes, 0.98)),
-      kroonlijst: rond(Math.max(2, percentiel(hoogtes, 0.05) - (vorm === 'plat' ? 0 : 0.7 * Math.tan(rad)))),
-      noklengte: vorm === 'plat' ? 0 : rond(valtLangsU ? maatV : maatU),
-      overspanning: vorm === 'plat' ? 0 : rond(valtLangsU ? maatU : maatV),
+      platDeel: platCellen.length && vorm !== 'plat' ? { m2: rond(A * platAandeel, 0), hoogte: rond(percentiel(platCellen.map((q) => q.h), 0.5)) } : null,
+      nokhoogte: rond(percentiel(nokBasis, 0.98)),
+      kroonlijst: rond(kroonlijst),
+      nokAfleidbaar,
+      noklengte: nokAfleidbaar ? rond(valtLangsU ? maatV : maatU) : 0,
+      overspanning: nokAfleidbaar ? rond(valtLangsU ? maatU : maatV) : 0,
       punten: gemeten.length,
       raster: stap,
     };
+    if (!rechthoekig && vorm !== 'plat') waarschuwingen.push('Samengesteld gebouw: noklengte en overspanning zijn niet af te leiden uit de contour; werk met het gemeten dakvlak.');
   }
 
   return {
@@ -176,7 +198,8 @@ export async function meetAdres(vraag, opVoortgang = () => {}) {
     gebouw: { type: doel.type, oppervlakte: rond(A), omtrek: rond(O), lengte: rond(Math.max(maatU, maatV)), breedte: rond(Math.min(maatU, maatV)), opname: doel.opname || '', afstandTotAdres: rond(afstandTotAdres) },
     bebouwing: { type: buren.length === 0 ? 'open' : buren.length === 1 ? 'halfopen' : 'gesloten', buren: buren.length, gemeneMuur: rond(gemeneMuur), aanbouw: rond(aanbouw), vrijeGevel: rond(O - gemeneMuur - aanbouw) },
     dak,
-    bron: 'Digitaal Vlaanderen: adressenregister, GRB-gebouwcontour, hoogtemodel DHMV II (1 m raster, vlucht 2013-2015)',
+    waarschuwingen,
+    bron: 'Digitaal Vlaanderen: adressenregister, GRB-gebouwcontour' + (doel.opname ? ' (opgenomen ' + doel.opname + ')' : '') + ', hoogtemodel DHMV II (1 m raster, vlucht 2013-2015)',
   };
 }
 

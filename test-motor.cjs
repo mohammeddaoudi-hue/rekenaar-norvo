@@ -17,13 +17,20 @@ const hand = 11.52 + 20.68 + 4.7 + 23.5 + 4.7 + 9.4 + 28.2 + 2.8 + 2.925 + 5.85 
 toets('manuren = handberekening', bijna(r.uren, hand, 0.01), r.uren.toFixed(2) + ' tegen ' + hand.toFixed(2));
 toets('werkdagen = ceil(manuren / 8 / 3)', r.werkdagen === Math.ceil(hand / 8 / 3), String(r.werkdagen));
 
-/* 2. Afval per soort: puin 94x45 = 4230 kg -> 1 container van 12 ton; hout 94x5 = 470 kg -> 1 container hout (4 ton);
-      rest 1x5 + 16x3 + 12x1,5 = 71 kg -> 1 big bag */
+/* 2. Afval per soort: puin 94x45 = 4230 kg -> 1 container van 12 ton (3,8 m³); hout 94x5 = 470 kg -> 1 container hout (1,9 m³);
+      metaal (oud zink) 16x3 + 12x1,5 = 66 kg -> naar de schroothandel zonder kost; rest 1x5 = 5 kg -> mee in de werfwagen */
 toets('afval = 4771 kg', bijna(r.afvalKg, 4771, 0.01), String(r.afvalKg));
 toets('puin 4230 kg in 1 container', r.afvoer.some((x) => x.soort === 'puin' && x.soort2 === 'container' && x.aantal === 1 && bijna(x.kg, 4230, 0.01)), JSON.stringify(r.afvoer.map((x) => [x.soort, x.soort2, x.aantal, Math.round(x.kg)])));
 toets('hout 470 kg in 1 container', r.afvoer.some((x) => x.soort === 'hout' && x.soort2 === 'container' && x.aantal === 1));
-toets('rest 71 kg in 1 big bag', r.afvoer.some((x) => x.soort === 'rest' && x.soort2 === 'bigbag' && x.aantal === 1 && bijna(x.kg, 71, 0.01)));
+toets('oud zink 66 kg naar de schroothandel, € 0, geen container', r.afvoer.some((x) => x.soort === 'metaal' && x.soort2 === 'afvoer' && x.kost === 0 && bijna(x.kg, 66, 0.01)));
+toets('rest 5 kg mee in de werfwagen, € 0', r.afvoer.some((x) => x.soort === 'rest' && x.soort2 === 'werfwagen' && x.kost === 0));
 toets('2 containers in totaal', r.containers === 2, String(r.containers));
+const licht = kopie(VOORBEELD.meetstaat);
+licht.posten.push({ fase: 'Afbraak', naam: 'Oude isolatie verwijderen', eenheid: 'm²', hoeveelheid: 200, uur_per_eenheid: 0.05, materiaal_eur_per_eenheid: 0, kg_per_eenheid: 0, afval_kg_per_eenheid: 2, afval_soort: 'isolatie' });
+toets('400 kg isolatie = 13 m³ = 2 containers (op volume, niet op gewicht)', bereken(licht, {}).afvoer.find((x) => x.soort === 'isolatie').aantal === 2, JSON.stringify(bereken(licht, {}).afvoer.find((x) => x.soort === 'isolatie')));
+const onleesbaar = kopie(VOORBEELD.meetstaat);
+onleesbaar.posten.push({ code: 'dak.nok', hoeveelheid: 'acht' });
+toets('onleesbare hoeveelheid wordt gemeld, niet stil weggelaten', bereken(onleesbaar, {}).overgeslagen.some((s) => /onleesbaar/.test(s)), bereken(onleesbaar, {}).overgeslagen.join(' | '));
 const zwaar = kopie(VOORBEELD.meetstaat);
 zwaar.posten.find((p) => p.code === 'dak.afbraak').hoeveelheid = 280;
 toets('12,6 ton puin = 2 containers puin', bereken(zwaar, {}).afvoer.find((x) => x.soort === 'puin').aantal === 2, String(bereken(zwaar, {}).afvoer.find((x) => x.soort === 'puin').kg));
@@ -110,16 +117,19 @@ zonder.posten = zonder.posten.filter((p) => p.code !== 'dak.sarking120');
 toets('zonder sarking = herberekening', !!wa(/Zonder sarking/) && bijna(wa(/Zonder sarking/).verschil, bereken(zonder, {}).kosten.excl - k.excl, 0.001), wa(/Zonder sarking/) && wa(/Zonder sarking/).verschil.toFixed(0));
 toets('21% btw = excl x 0,15', !!wa(/21% btw/) && bijna(wa(/21% btw/).verschil, k.excl * 0.15, 0.001));
 toets('geen btw-regel als er al 21% staat', !analyse(v, { btw: 21 }).watAls.some((w) => /21% btw/.test(w.label)));
-toets('niet gevraagd, wel nodig: 4 werken + lift + werfwagen + 3 afvoerposten', a.extras.length === 9, a.extras.map((d) => d.naam.slice(0, 14)).join(' | '));
+toets('niet gevraagd, wel nodig: 4 werken + lift + werfwagen + 4 afvoerregels', a.extras.length === 10, a.extras.map((d) => d.naam.slice(0, 14)).join(' | '));
 const bijnaVol = kopie(v);
-bijnaVol.posten.find((p) => p.code === 'dak.afbraak').hoeveelheid = 250;
+bijnaVol.posten.find((p) => p.code === 'dak.afbraak').hoeveelheid = 230;
 toets('container puin bijna vol wordt gemeld', analyse(bijnaVol, {}).watAls.some((w) => /puin meer en er komt een container bij/.test(w.label)), analyse(bijnaVol, {}).watAls.map((w) => w.label).join(' | '));
 toets('container puin op 35% wordt niet gemeld', !a.watAls.some((w) => /puin meer/.test(w.label)));
 
 /* 13. Prompts: de meting en de berekening gaan mee */
 const gm = { adres: 'Teststraat 1, 2800 Mechelen', gebouw: { oppervlakte: 72, omtrek: 36, lengte: 12, breedte: 6 }, bebouwing: { type: 'gesloten', buren: 2, gemeneMuur: 24, vrijeGevel: 12 },
-  dak: { vorm: 'hellend', helling: 42, platAandeel: 0.1, dakvlak: 94, nokhoogte: 10.2, kroonlijst: 6.1, noklengte: 6, overspanning: 12 } };
+  dak: { vorm: 'hellend', helling: 42, platAandeel: 0.1, dakvlak: 94, nokhoogte: 10.2, kroonlijst: 6.1, noklengte: 6, overspanning: 12 }, waarschuwingen: ['Het adrespunt ligt 4 m naast het gekozen hoofdgebouw: controleer het grondoppervlak.'] };
 toets('prompt met meting bevat de gemeten maten', /GEMETEN OP HET ADRES/.test(bouwPrompt('x', gm)) && bouwPrompt('x', gm).includes('helling 42 graden'));
+toets('prompt met meting bevat de waarschuwing en de overstek', bouwPrompt('x', gm).includes('Let op: Het adrespunt') && bouwPrompt('x', gm).includes('Dakoverstek: 0.3 m'));
+const gmSamengesteld = Object.assign({}, gm, { dak: Object.assign({}, gm.dak, { noklengte: 0, overspanning: 0, nokAfleidbaar: false }) });
+toets('samengesteld gebouw: nok niet afleiden', bouwPrompt('x', gmSamengesteld).includes('niet af te leiden'));
 toets('prompt zonder meting bevat geen meetblok', !/GEMETEN OP HET ADRES/.test(bouwPrompt('x', null)));
 const up = bouwUitlegPrompt(VOORBEELD.klus, null, v, {});
 toets('uitlegvraag bevat de uitgerekende prijs en de wat-als', up.includes('"incl_btw":' + Math.round(k.incl)) && up.includes('"wat_als"'), String(Math.round(k.incl)));

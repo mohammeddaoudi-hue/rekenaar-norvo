@@ -287,6 +287,13 @@ Object.assign(globalThis.RP_DATA.posten, {
     mat: [
       { naam: 'Dakraam 78 × 118 cm met gootstuk', per: 1, eenheid: 'st', prijs: 620, kg: 42 }
     ] },
+  'dak.dakraam.herplaatsen': { fase: 'Afwerking', naam: 'Bestaand dakraam herplaatsen op de nieuwe dakopbouw (nieuw gootstuk en manchet)', eenheid: 'st', uur: 3,
+    afval: [{ soort: 'rest', kg: 6 }],
+    mat: [
+      { naam: 'Gootstuk voor bestaand dakraam 78 × 118 cm', per: 1, eenheid: 'st', prijs: 150, kg: 6 },
+      { naam: 'Waterkerende manchet BFX 78 × 118 cm', per: 1, eenheid: 'st', prijs: 31.56, kg: 1.73,
+        bron: { url: 'https://bouwmaat.nl/velux-gootstuk-edw-mk06-0000-aluminium-78x118-cm-ombergrijs/product/0000582205', datum: '2026-10-06', wat: 'pagina toont VELUX waterkerende manchet BFX MK06 1000 78x118 cm: 31,56 excl. btw; 1,73 kg' } }
+    ] },
   'dak.dakraam.vervangen': { fase: 'Afwerking', naam: 'Dakraam vervangen op een bestaande opening (zelfde maat, nieuw gootstuk en manchet)', eenheid: 'st', uur: 4,
     afval: [{ soort: 'rest', kg: 40 }],
     mat: [
@@ -361,7 +368,7 @@ Object.assign(globalThis.RP_DATA.posten, {
   /* ---------- Afwatering ---------- */
   /* 6 okt: prijs 32 vervangen door 28 = RheinZink mastgoot M30 17,35 per lm (bron) plus 2 beugels en soldeer per lm */
   'dak.goot.zink': { fase: 'Afwatering', naam: 'Zinken hanggoot vervangen', eenheid: 'lm', uur: 0.6, keuze: 'nieuwe goten',
-    afval: [{ soort: 'rest', kg: 3 }],
+    afval: [{ soort: 'metaal', kg: 3 }],
     mat: [
       { naam: 'Zinken goot met haken', per: 1, eenheid: 'lm', prijs: 28, kg: 2.5,
         bron: { url: 'https://www.bouwmaat.nl/en/collections/rheinzink', datum: '2026-10-06', wat: 'RheinZink mastgoot M30 zink 3 m: 52,06 excl. btw = 17,35 per lm; plus 2 gootbeugels en soldeer per lm = 28' } }
@@ -404,7 +411,7 @@ Object.assign(globalThis.RP_DATA.posten, {
       { naam: 'Bladvanger (1 per 10 lm goot)', per: 0.1, eenheid: 'st', prijs: 6, kg: 0.1 }
     ] },
   'dak.afvoer.zink': { fase: 'Afwatering', naam: 'Zinken regenafvoer vervangen', eenheid: 'lm', uur: 0.4, keuze: 'nieuwe afvoeren',
-    afval: [{ soort: 'rest', kg: 1.5 }],
+    afval: [{ soort: 'metaal', kg: 1.5 }],
     mat: [
       { naam: 'Zinken afvoerbuis met beugels', per: 1, eenheid: 'lm', prijs: 24, kg: 1.6 }
     ] },

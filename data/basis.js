@@ -21,15 +21,17 @@ globalThis.RP_DATA = {
   /* uurtarief = wat de klant per manuur betaalt zonder btw (Mohammed, 6 okt 2026: "arbeidsuren zijn aan 57,5"); overhead en winst op
      arbeid zitten daarin. materiaalmarge = opslag op inkoop van materiaal en materieel (startwaarde). onvoorzien = reserve op het subtotaal (startwaarde). */
   tarieven: { uurtarief: 57.5, urenPerDag: 8, materiaalmarge: 15, onvoorzien: 5, btw: 6 },
-  /* Afval per soort: een soort met minder dan 'los' kg gaat in big bags (prijs per big bag) in plaats van een container;
-     kleine restfracties worden bij 'rest' geteld. Asbest gaat altijd apart. */
+  /* Afval per soort. Een container telt op gewicht (ton) én op volume (m3 van de container, met de dichtheid kg/m³ van de soort):
+     het grootste aantal telt. Een soort met minder dan 'los' kg gaat in big bags (prijs per big bag); minder dan 'klein' kg gaat mee in de
+     werfwagen zonder kost. Kleine fracties van andere soorten worden bij 'rest' geteld. Asbest gaat altijd apart. Metaal (oud zink, lood)
+     gaat naar de schroothandel: prijs 0, geen container. */
   containers: {
-    puin: { naam: 'Container 10 m³ steenpuin', prijs: 412, ton: 12, los: 300, bigbag: 45 },
-    hout: { naam: 'Container 10 m³ hout', prijs: 300, ton: 4, los: 300, bigbag: 45 },
-    rest: { naam: 'Container 10 m³ gemengd bouwafval', prijs: 520, ton: 6, los: 300, bigbag: 55 },
-    isolatie: { naam: 'Container 10 m³ isolatie', prijs: 450, ton: 2, los: 200, bigbag: 55 },
-    metaal: { naam: 'Afvoer oud metaal (zink, lood)', prijs: 0, ton: 5, los: 0, bigbag: 0 },
-    asbest: { naam: 'Asbestcontainer 10 m³ (hechtgebonden, verpakt)', prijs: 900, ton: 5, los: 200, bigbag: 150 },
+    puin: { naam: 'Container 10 m³ steenpuin', prijs: 412, ton: 12, m3: 10, dichtheid: 1100, los: 300, bigbag: 45, klein: 25 },
+    hout: { naam: 'Container 10 m³ hout', prijs: 300, ton: 4, m3: 10, dichtheid: 250, los: 300, bigbag: 45, klein: 25 },
+    rest: { naam: 'Container 10 m³ gemengd bouwafval', prijs: 520, ton: 6, m3: 10, dichtheid: 300, los: 300, bigbag: 55, klein: 25 },
+    isolatie: { naam: 'Container 10 m³ isolatie', prijs: 450, ton: 2, m3: 10, dichtheid: 30, los: 200, bigbag: 55, klein: 10 },
+    metaal: { naam: 'Afvoer oud metaal naar de schroothandel', prijs: 0, ton: 5, m3: 10, dichtheid: 500, los: 0, bigbag: 0, klein: 0 },
+    asbest: { naam: 'Asbestcontainer 10 m³ (hechtgebonden, verpakt)', prijs: 900, ton: 5, m3: 10, dichtheid: 800, los: 200, bigbag: 150, klein: 0 },
   },
   perDag: {
     lift: { naam: 'Pannenlift', prijs: 60 },

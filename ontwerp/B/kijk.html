@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<title>Richtprijs-AI · kijkvenster</title>
+<!-- Hulpbestand voor de eigen keuring: toont een deel van een pagina op volle grootte. ?p=index.html&w=1280&y=2400 -->
+<style>html,body{margin:0;overflow:hidden;background:#888}#k{display:block;border:0;background:#fff}</style>
+</head>
+<body>
+<iframe id="k"></iframe>
+<script>
+var q = new URLSearchParams(location.search);
+var w = Number(q.get('w') || 1280), y = Number(q.get('y') || 0), h = Number(q.get('h') || 1200);
+var k = document.getElementById('k');
+k.style.width = w + 'px'; k.style.height = (y + h) + 'px'; k.style.marginTop = (-y) + 'px';
+k.src = q.get('p') || 'index.html';
+</script>
+</body>
+</html>

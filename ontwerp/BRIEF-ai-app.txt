@@ -1,0 +1,898 @@
+RICHTPRIJS-AI — PATROON-BRIEF "AI-APP"
+==========================================
+
+Status: versie 1, 7 oktober 2026. Vervangt: niets (eerste brief voor deze ronde).
+Voor: de ontwerpers van ontwerp/A, ontwerp/B en ontwerp/C. Niet voor de eigenaar.
+Ijkpunt dat verslagen moet worden: http://localhost:4791/#voorbeeld (de huidige pagina: één kolom van 1040 px,
+tien secties onder elkaar, donker prijsvlak, één statusregel, een aparte verborgen Stop-knop).
+Opdracht van de eigenaar, letterlijk: "echt een AI-app-achtig, ga kijken hoe dit wordt gedaan normaliter" en
+"super mooi, super overzichtelijk, als een miljarden-SaaS-product, en simpel".
+
+Hoe dit brief werkt
+- Elke keuze eindigt met de bron (url) waar het patroon vandaan komt. Elke url in dit brief is op 7 oktober 2026
+  geopend en nagelezen; de volledige lijst staat in deel 9.
+- Alle cijfers in de voorbeelden zijn echte uitkomsten van motor.js voor de voorbeeldklus (deel 0.2). Verzin geen
+  andere cijfers; waar een cijfer uit de live meting komt (/api/adres) draait u een echte meting.
+- Alles wat in de inhoudslijst van de opdracht staat blijft. Deel 0.3 zegt per punt waar het staat. Secundair werk
+  gaat achter een tab, een inklapper of de instellingen; niets wordt geschrapt.
+- Taal op het scherm: Nederlands, Vlaams register, "u". Geen hedge-woorden. Geen emoji's.
+
+
+0. FEITEN WAAR HET BRIEF OP STEUNT
+----------------------------------
+
+0.1 Wat de app doet (gelezen in ui.js, motor.js, server.mjs, geo.mjs op 7 oktober 2026)
+- Invoer: adres (Vlaanderen) + klus (tekst, minstens 25 tekens, anders de fout "Beschrijf de klus met de soort
+  werk en de maten.").
+- Stap 1 (alleen met adres): GET /api/adres meet het gebouw op. Bronregel uit geo.mjs: "Digitaal Vlaanderen:
+  adressenregister, GRB-gebouwcontour, hoogtemodel DHMV II (1 m raster, vlucht 2013-2015)". Velden die ui.js nu
+  toont: grondoppervlak (m², lengte × breedte), bebouwing (type, m gemene muur, m vrije gevel), dak (vorm, helling
+  in graden, % plat), dakvlak (m², zonder oversteek), nokhoogte (m, kroonlijst m), aantal hoogtepunten, en een
+  waarschuwing als het adrespunt naast het gebouw ligt. Faalt de meting, dan rekent de app door met de maten uit de
+  klus (ui.js regel 89).
+- Stap 2: POST /api/ai streamt het antwoord van Claude als tekst; elke volledige regel die met "{" begint is één
+  JSON-post die RP.pasRegelToe in de meetstaat zet; het aantal posten loopt live op. Levert ook: titel van de klus,
+  kenmerken (per vak 3 tot 17 velden, elk met waarde + bron uit RP.BRONNEN: beschrijving, gemeten, berekend,
+  standaard, vast), aannames, punten voor het plaatsbezoek.
+- motor.js rekent lokaal en onmiddellijk (RP.analyse): regels per fase, manuren, mandagen, ploeg, werkdagen,
+  kilo's naar boven, afval per soort, containers, materiaallijst, materieel, kostenopbouw, top-posten, wat-als.
+  Tarieven wijzigen = meteen herrekenen zonder AI-ronde. Kenmerken wijzigen = nieuwe AI-ronde (start(vast)).
+- Stap 3: POST /api/ai streamt de uitleg (3 tot 6 punten).
+- Duur: 20 tot 60 s voor de drie stappen samen (server.mjs, gemeten op 6 oktober 2026 met de voorbeeldklus: met
+  denkdiepte low komt de eerste postregel na 16 s, met de standaarddiepte na 47 s).
+- Server: GET/POST/DELETE /api/berekeningen (id, titel, adres, datum, prijs, vak) voor de geschiedenis;
+  /api/instellingen voor tarieven, standaarden en datatabel; de server draait op http://localhost:4791.
+- Fouten die de server of ui.js nu geven: "De lokale server antwoordt niet. Start start.cmd opnieuw.", "De AI gaf
+  geen bruikbare meetstaat.", "De uitleg is niet volledig aangekomen.", "Er lopen al 3 vragen. Wacht tot er één
+  klaar is.", "Geef straat, huisnummer en gemeente.", "De kaartdienst van Vlaanderen antwoordt niet."
+
+0.2 De voorbeeldklus (RP.VOORBEELD, berekend met RP.analyse op 7 oktober 2026; gebruik deze cijfers in elke mock)
+- Klus: "Halfopen woning. Zadeldak, voorgevel 8 m breed, woning 9 m diep, dakhelling 40 graden, kroonlijst op 6 m
+  hoogte. Oude kleipannen, latten en onderdak eraf. Nieuw onderdak, sarking-isolatie van 12 cm en nieuwe
+  kleipannen. 2 dakramen, 1 schouw, zinken goten en afvoeren voor en achter vervangen."
+- Titel van de AI: "Zadeldak halfopen woning vernieuwen met sarking, 94 m²". Het voorbeeld heeft geen meting en
+  geen kenmerken (RP.VOORBEELD.gemeten bestaat niet): de trail toont dan "Meting overgeslagen: geen adres".
+- Prijs: € 24.230 incl. 6 % btw · € 22.859 excl. btw · € 243 per m² dakvlak.
+- Kerncijfers: ploeg 3 man · 6 werkdagen · 144 manuren (18,0 mandagen) · 5,4 ton materiaal naar boven ·
+  4,8 ton afval in 2 containers en 1 big bag.
+- Aandeel: 97 % van de kostprijs uit de datatabel, 3 % AI-schatting.
+- Waar het geld zit (excl. btw, met marge): Sarking-isolatie PIR 12 cm plaatsen € 5.825 (25 %) · Kleipannen leggen
+  (klein formaat, 20,7 per m²) € 4.000 (17 %) · Dakraam plaatsen met gootstuk € 2.101 (9 %) · Gevelstelling met
+  dakrandbeveiliging plaatsen en afbreken € 1.623 (7 %, niet gevraagd, wel nodig) · Oude pannen, latten en onderdak
+  afbreken en naar de container brengen € 1.249 (5 %) · 14 kleinere posten samen € 8.061 (35 %).
+- Wat de prijs verschuift: 10 m² dakvlak meer + € 1.515 · Zonder sarking-isolatie − € 5.825 · Zonder dakramen
+  − € 2.101 · Zonder nieuwe goten − € 1.121 · Met 2 man: 9 werkdagen in plaats van 6 + € 380 · Met 4 man:
+  5 werkdagen in plaats van 6 − € 590 · Aan 21 % btw (woning jonger dan 10 jaar) + € 3.429 incl. btw.
+- Werkblad: 14 posten in 6 fases: Werfinrichting 11,5 manuren / 0,5 werkdag · Afbraak 20,7 / 0,9 · Dakopbouw
+  42,3 / 1,8 · Dakbedekking 28,2 / 1,2 · Afwerking 26,6 / 1,1 · Afwatering 14,4 / 0,6. Vier posten zijn "Niet
+  gevraagd, wel nodig" (stelling, nok, gevelpannen, zinken aansluiting op het dak van de buur); één post is een
+  AI-schatting (Zinken aansluiting op het dak van de buur, 11,7 lm, € 28 per lm).
+- Materiaallijst: 18 regels. Materieel en afvoer: 6 regels (gevelstelling 2 weken € 768, pannenlift 6 dagen € 360,
+  werfwagen 6 dagen € 270, container steenpuin € 412, container hout € 300, big bag rest € 55). Afval per soort:
+  puin 4.230 kg, hout 470 kg, rest 71 kg.
+- Kostenopbouw: arbeid 144 manuren × € 57,50 = € 8.261 · materiaal inkoop € 9.582 + 15 % marge = € 11.019 ·
+  materieel en afvoer inkoop € 2.165 + 15 % marge = € 2.490 · subtotaal € 21.770 · onvoorzien 5 % € 1.089 ·
+  prijs excl. btw € 22.859 · btw 6 % € 1.372 · prijs incl. btw € 24.230.
+- Aannames van de AI (4): "Stelling aan de voor- en achtergevel; de vrije zijgevel is bereikbaar vanaf het dak." ·
+  "De nieuwe kleipan is een klein formaat van 20,7 stuks per m²." · "Dakramen van 78 × 118 cm op de plaats van
+  bestaande dakramen." · "1 regenafvoer voor en 1 achter, elk 6 m."
+- Te controleren bij het plaatsbezoek (3): "Staat van het gebinte en de kepers: zichtbaar na de afbraak." ·
+  "Asbest in het oude onderdak of in leien op de schouw." · "Plaats voor stelling, container en pannenlift."
+- Tarieven (6 velden): uurtarief € 57,50 · 8 uren per werkdag · ploeg 3 man · marge op materiaal 15 % ·
+  onvoorzien 5 % · btw 6 % (keuze 6 of 21).
+- Standaarden van de sector: 18 velden (gemeten: RP.STANDAARDEN.length = 18; de opdracht zegt 13, het brief volgt
+  de code). Datatabel: 222 posten in 7 vakken (Hellend dak, Gevel, Plat dak, Binnen, Ramen en deuren, Vloeren en
+  tegels, Algemeen), 1.582 waarden, stand 6 oktober 2026. Kenmerken voor Hellend dak: 17 velden.
+
+0.3 Kaart van de inhoudslijst: waar elk punt in het nieuwe ontwerp staat
+ 1. Invoer (adres, klus, knop, Stop, status met stap en seconden) → de composer (5.1) en de voortgangstrail (5.3)
+    in de gesprekskolom; de hoofdknop is tijdens het werk de Stop-knop.
+ 2. Gemeten op het adres → resultaat van stap 1 in de trail (één regel) + volledig blok in de tab Kenmerken van het
+    paneel (5.12).
+ 3. Kenmerken van de klus met bron-label, bewerkbaar, "Herbereken met deze kenmerken" → tab Kenmerken (5.12).
+ 4. Uitkomst (prijs groot, excl., per m², ploeg, werkdagen, manuren, ton, afval, balk) → bovenaan de tab Overzicht
+    van het paneel (5.4, 5.5); op de telefoon ook als compacte prijskaart in het gesprek (3.3).
+ 5. Hoe deze prijs tot stand komt: waar het geld zit en wat-als → tab Overzicht (5.8, 5.9); uitleg van de AI
+    (streamt) + "Schrijf opnieuw" → het AI-bericht in het gesprek (5.7).
+ 6. Werkblad per stap → tab Werkblad (5.10).
+ 7. Materiaallijst, materieel en afvoer → tab Materiaal (5.11); kostenopbouw → onderaan de tab Overzicht (5.11).
+ 8. Aannames van de AI en Te controleren bij het plaatsbezoek → onder de uitleg in het AI-bericht (5.7); ook in de
+    print (5.16).
+ 9. Instellingen: tarieven, standaarden, datatabel → tandwiel in de rail, vaste weergave Instellingen (5.13).
+10. Eerdere berekeningen (titel, adres, datum, prijs; laden, verwijderen) → de rail (5.14); Opslaan, Afdrukken,
+    Kopieer samenvatting → de drie acties in de paneelkop (5.4); print → 5.16.
+
+
+1. KERN IN 10 REGELS
+--------------------
+ 1. De app is een werkruimte met drie zones, zoals Lovable, v0, Claude met artifacts en NotebookLM: links een
+    inklapbare rail met eerdere berekeningen en het tandwiel, in het midden het gesprek (invoer, stappen, uitleg),
+    rechts het resultaat als vast paneel met tabs. Bronnen: https://docs.lovable.dev/features/projects/editor ·
+    https://support.claude.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them ·
+    https://www.jasonspielman.com/notebooklm
+ 2. Het gesprek is geen vrije chat: één berekening = één draad. Bovenaan het bericht van de aannemer (adres + klus),
+    daaronder de drie stappen als activiteitsrijen met seconden, daaronder het antwoord van de AI (uitleg, aannames,
+    plaatsbezoek). Een vervolgbericht maakt een nieuwe versie (v2) van dezelfde berekening. Bronnen:
+    https://linear.app/developers/agent-interaction · https://docs.lovable.dev/features/projects/chat
+ 3. Eén composer: adres en klus in één afgeronde kaart met één hoofdknop rechtsonder; tijdens het werk wordt diezelfde
+    knop op dezelfde plek "Stop"; de aparte verborgen Stop-knop (#stop) verdwijnt. Bronnen:
+    https://www.assistant-ui.com/examples/chatgpt · https://www.shapeof.ai/patterns/controls ·
+    https://elements.ai-sdk.dev/components/prompt-input
+ 4. Leeg scherm = kop + composer gecentreerd, iets boven het midden, met drie voorbeeldchips eronder en zonder
+    uitlegalinea; na de eerste berekening zit de composer vast onderaan het gesprek. Bronnen:
+    https://www.assistant-ui.com/examples/chatgpt · https://www.setproduct.com/blog/ai-chat-interface-ui-design
+ 5. Alles langer dan vijftien regels staat niet in het gesprek maar in het paneel rechts: vier tabs (Overzicht,
+    Werkblad, Materiaal, Kenmerken) en drie acties bovenaan (Opslaan, Kopieer, Afdrukken); onder 900 px wordt het
+    paneel de tab "Resultaat". Bronnen: https://support.claude.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them ·
+    https://docs.lovable.dev/features/projects/editor
+ 6. De drie stappen staan binnen 1 s na de klik op het scherm; elke rij = werkwoord + object, tijdens het werk de
+    parameter (adres, teller posten), na afloop het resultaat en de duur in seconden; 1 s na de laatste stap klapt
+    de lijst dicht tot "Klaar in {n} s". Bronnen: https://www.smashingmagazine.com/2026/05/practical-interface-patterns-ai-transparency/ ·
+    https://cloudscape.design/gen-ai/patterns/progressive-steps/ · https://elements.ai-sdk.dev/components/reasoning
+ 7. Alleen de uitleg streamt als tekst, met een klein gevuld vierkant als caret; de posten komen per afgewerkte rij
+    binnen; ruwe JSON komt nooit in beeld. Bronnen: https://cloudscape.design/patterns/genai/genai-loading-states/ ·
+    https://www.setproduct.com/blog/ai-chat-interface-ui-design ·
+    https://www.smashingmagazine.com/2026/05/designing-stable-interfaces-streaming-content/
+ 8. Elke waarde draagt een bronwoord (Gemeten, Uit de klus, Berekend, Standaard, Aangepast; Datatabel, AI-schatting).
+    Zekerheid = bron + één vaste regel onder de prijs; nooit een percentage, nooit een marge. Bronnen:
+    https://carbondesignsystem.com/guidelines/carbon-for-ai/ · https://pair.withgoogle.com/chapter/explainability-trust/ ·
+    https://www.shapeof.ai/patterns/caveat
+ 9. Eén accent (dennengroen) op de hoofdknop, de actieve stap, de focusring, links en de datatabel-balk; amber alleen
+    op "AI-schatting" en "Standaard"; warm grijs in tien stappen; geen donker prijsvlak, geen gradient, geen glow.
+    Bronnen: https://vercel.com/geist/colors · https://developers.openai.com/apps-sdk/concepts/design-guidelines ·
+    https://carbondesignsystem.com/guidelines/carbon-for-ai/
+10. Instellingen (tarieven, standaarden, datatabel) staan achter één tandwiel in de rail en openen als vaste weergave
+    die de werkruimte vervangt, nooit als zwevend paneel; een gewijzigd tarief is als chip bij de prijs zichtbaar.
+    Bronnen: https://www.figma.com/blog/our-approach-to-designing-ui3/ ·
+    https://www.aiuxplayground.com/guides/designing-better-ai-chat-part-1
+
+Wat het NIET is
+- Geen chatvenster met bubbels voor de AI-tekst ("Bubbles signal 'messenger' and undermine the tool framing",
+  https://www.setproduct.com/blog/ai-chat-interface-ui-design).
+- Geen tien secties onder elkaar; geen formulier met de knop onder twee losse velden.
+- Geen zwevende panelen over de inhoud (https://www.figma.com/blog/our-approach-to-designing-ui3/).
+- Geen voortgangsbalk met percentage, geen typ-animatie, geen spinner als enig signaal.
+- Geen knoppen zonder functie: geen microfoon, geen bijlagen, geen modus-kiezer. De app verwerkt geen foto's en
+  heeft één modus; het adresveld bepaalt of er een meting is.
+
+
+2. LAYOUT PC (1280 EN 1440)
+---------------------------
+
+2.1 Zones en maten
+- Rail (links): open 260 px, dicht 56 px (alleen iconen met tooltip). Achtergrond g2, één 1 px lijn g4 rechts.
+  Klapt automatisch dicht zodra het paneel opent (reden: breedte voor het werkblad); de gebruiker kan hem weer
+  openen, dan schuift hij de rest naar rechts (geen overlay). Bronnen: https://www.pcworld.com/article/2648110/microsofts-new-copilot-interface-looks-a-lot-like-one-you-already-know.html ·
+  https://www.setproduct.com/blog/ai-chat-interface-ui-design (Conversation Rail) ·
+  https://linear.app/blog/behind-the-latest-design-refresh (rail een paar tinten gedempt).
+- Gesprek (midden): achtergrond g1. Kop 48 px (titel van de berekening 14/600 + versiechip; leeg bij een nieuwe
+  berekening). Inhoud gecentreerd, maximale tekstbreedte 720 px zolang er geen paneel is. Composer onderaan vast
+  zodra er een berekening loopt of staat. Bron voor de breedte: https://www.setproduct.com/blog/ai-chat-interface-ui-design
+  ("Claude.ai uses around 768 pixels, ChatGPT around 768, Perplexity around 720").
+- Paneel (rechts): achtergrond g1, 1 px lijn g4 links, eigen verticale scroll. Kop 48 px: tabs links, acties
+  rechts. Verschijnt op het moment dat stap 2 start (eerst als skelet, 4.2). Bron: https://support.claude.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them
+  ("An artifact opens in its own window beside your conversation").
+- Scheidingslijn tussen gesprek en paneel is sleepbaar; gesprek minimaal 440 px; de gekozen breedte blijft bewaard
+  op deze pc. Bron: https://www.figma.com/blog/our-approach-to-designing-ui3/ (vaste, verstelbare panelen).
+
+2.2 Leeg scherm (eerste keer, geen berekening open)
+- Rail open (260). Geen paneel. Het gesprek vult de rest; het blok "kop + composer + chips" staat gecentreerd met de
+  bovenkant van de kop op 30 % van de hoogte van het venster. Bron: https://www.assistant-ui.com/examples/chatgpt
+  ("heading + composer rendered together above the viewport center").
+- Breedte van het blok: 720 px. Volgorde: kop "Richtprijs-AI" (28 px Archivo 600, inkt) · 8 px · één regel
+  "Adres en klus. De richtprijs staat er binnen 60 seconden." (16 px, g8) · 24 px · composer (5.1, ruststand) ·
+  16 px · drie voorbeeldchips (6.5) · 24 px · twee regels 13 px g8: "Meet uit de kaart: grondoppervlak, bebouwing,
+  dakvorm, dakvlak, nokhoogte." en "Meet niet: binnenruimtes, staat van het dak, bereikbaarheid. Schrijf die in de
+  klus." Bronnen: https://www.microsoft.com/en-us/haxtoolkit/library/ (G1) ·
+  https://developer.apple.com/tutorials/data/design/human-interface-guidelines/generative-ai.json ("Set clear
+  expectations about what your AI-powered feature can and can't do").
+
+2.3 Scherm met resultaat op 1440 (rail automatisch dicht)
+- Rail 56 · gesprek 560 · paneel 824. Tekstbreedte in het gesprek: 560 − 2 × 24 = 512 px.
+- Gesprek, van boven naar onder: kop 48 (titel "Zadeldak halfopen woning vernieuwen met sarking, 94 m²" + chip
+  "v1") · 24 · gebruikersbericht (5.2) · 24 · trail (5.3) · 24 · AI-bericht (5.7) · 24 · composer vast onderaan
+  (bodem-padding van de stroom = hoogte van de composer + 16).
+- Paneel, tab Overzicht van boven naar onder: prijskaart (5.4) · kerncijfers + balk (5.5) · waar het geld zit (5.8)
+  · wat de prijs verschuift (5.9) · kostenopbouw (5.11). Secties gescheiden door één 1 px lijn g4 en 32 px.
+- Rail door de gebruiker geopend: 260 · 480 · 700. Het werkblad past op 700 (kolommen 5.10).
+
+2.4 Scherm met resultaat op 1280
+- Rail 56 · gesprek 480 · paneel 744. Rail geopend: 260 · 440 · 580; onder 640 px paneelbreedte schakelen de
+  tabellen naar de gestapelde rij (5.10) en gaan "Opslaan" en "Kopieer" in het "…"-menu van de paneelkop.
+
+2.5 Tussen 900 en 1099 px
+- Rail verborgen; een menu-knop (icoon + tooltip "Berekeningen") links in de gesprekskop opent de rail als lade over
+  het gesprek (de enige overlay in de app, de conventie van ChatGPT en Copilot op smalle vensters; bron:
+  https://www.pcworld.com/article/2648110/microsofts-new-copilot-interface-looks-a-lot-like-one-you-already-know.html).
+- Gesprek 400 · paneel de rest (bij 1000 px: 600, gestapelde tabelrijen).
+
+2.6 Paneel: tabs en inhoud
+- Tabs in de kop (14 px, 600 voor de actieve tab, onderstreep 2 px merk; inactief g8): Overzicht · Werkblad ·
+  Materiaal · Kenmerken. Inhoud per tab staat in deel 5. Bron voor tabs in de paneelkop:
+  https://docs.lovable.dev/features/projects/editor ("Preview, Files, Code, More").
+- Acties rechts in de kop, als tekstknoppen 14 px met icoon 16 px: Opslaan · Kopieer · Afdrukken. Bron:
+  https://support.claude.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them ("controls at the top
+  of the artifact panel to view the code, copy the content, or download it").
+- Versiechip links van de acties: "v1", na een herberekening "v2" met een pijl terug naar v1 (4.5).
+
+2.7 Weergave Instellingen (tandwiel in de rail)
+- Vervangt gesprek + paneel in de werkruimte; de rail blijft staan. Links een lijst van 200 px: Tarieven ·
+  Standaarden · Datatabel. Rechts de inhoud, maximaal 720 px breed voor Tarieven en Standaarden, volle breedte voor
+  de Datatabel. Bovenaan een knop "Terug naar de berekening". Bron: https://www.figma.com/blog/behind-our-redesign-ui3/
+  (vaste panelen; wat u bewerkt bovenaan) en https://www.figma.com/blog/our-approach-to-designing-ui3/.
+
+2.8 Wat ingeklapt staat
+- De trail na afloop (één regel "Klaar in {n} s · 3 stappen").
+- De postenlijst onder stap 2 (open tijdens stap 2, dicht erna).
+- Elke fase in het werkblad is open op pc; op de telefoon alleen de eerste.
+- Het rekenpad van een post (klik op de naam, 5.10).
+- De rail zelf (56 px) zodra het paneel open is.
+
+
+3. LAYOUT TELEFOON (390 PX)
+---------------------------
+
+3.1 Vaste delen
+- Bovenbalk 48 px: menu-knop (opent de rail als lade), titel van de berekening (14/600, afgekapt), "…"-menu
+  (Opslaan, Kopieer, Afdrukken, Verwijderen).
+- Segmentknop 44 px direct onder de bovenbalk, twee segmenten: "Gesprek" en "Resultaat"; zodra de prijs er is
+  leest het tweede segment "Resultaat · € 24.230". Swipen tussen de twee werkt ook. Bronnen:
+  https://docs.lovable.dev/features/projects/editor ("the Lovable mobile app arranges the same areas as swipeable
+  views") · https://support.claude.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them ("view the
+  result in the Artifacts tab").
+- Composer vast onderaan het segment Gesprek, hoogte 44 px in rust (één regel), groeit tot 6 regels; respecteert
+  de safe-area; de stroom krijgt bodem-padding gelijk aan de hoogte van de composer; het toetsenbord duwt de
+  composer omhoog zonder sprong. Hoofdknop 44 × 44 px minimum. Bron:
+  https://www.setproduct.com/blog/ai-chat-interface-ui-design ("at least 44 pixels tall for thumb reach").
+
+3.2 Volgorde in het segment Gesprek (leeg)
+- Kop "Richtprijs-AI" (28) op 96 px van boven · regel "Adres en klus. De richtprijs staat er binnen 60 seconden."
+  · composer in ruststand (adresveld + klus van 3 regels + knop over de volle breedte, 44 px) · drie chips onder
+  elkaar · de twee "Meet uit de kaart / Meet niet"-regels. Zijgutter 16 px.
+
+3.3 Boven de vouw na een berekening (390 × 844, segment Gesprek)
+- Bovenbalk · segmentknop · gebruikersbericht ingeklapt op 2 regels met "Meer" · trail als één regel "Klaar in
+  {n} s" (chevron) · compacte prijskaart: "€ 24.230" (40 px Archivo 700) · "incl. 6 % btw · € 22.859 excl." (14)
+  · caveat (13) · knop "Bekijk resultaat" (secundair, volle breedte, 44) · het begin van de uitleg. Bron voor
+  "prijs eerst, details dicht": https://pair.withgoogle.com/chapter/explainability-trust/ ("just the aspects that
+  impact user trust and decision-making").
+- De compacte prijskaart bestaat alleen onder 900 px; op pc staat de prijs enkel in het paneel (geen dubbel).
+  Bron: https://developers.openai.com/apps-sdk/concepts/design-guidelines ("No duplicate inputs").
+
+3.4 Details bereikbaar via het segment Resultaat
+- Bovenaan een horizontaal scrollende rij van vier tabs (Overzicht · Werkblad · Materiaal · Kenmerken), 44 px.
+- Tabellen worden gestapelde rijen: naam op de volle breedte, daaronder de cijfers in twee rijen van drie met het
+  kolomlabel in 12 px g8 erboven (de huidige data-l-aanpak in app.css blijft).
+- Fase-groepen in het werkblad zijn inklapbaar; alleen de eerste staat open.
+- De kenmerken staan in één kolom; de knop "Herbereken met deze kenmerken" plakt onderaan het segment zodra er een
+  veld gewijzigd is.
+- Instellingen: volle breedte, de drie secties als segmentknop bovenaan; de datatabel met zoekveld bovenaan en de
+  zeven vakken als horizontaal scrollende chips.
+- Keuring op 390 px gebeurt vóór "kijk maar" (memory mobile-first).
+
+
+4. STATEN
+---------
+
+4.1 Leeg (eerste keer)
+- Zoals 2.2 en 3.2. De rail toont "Nog geen berekeningen. Elke berekening komt hier, met adres en prijs." (13 g8)
+  en onderaan de vaste regel "Voorbeeld: zadeldak halfopen woning, 94 m²" die het voorbeeld laadt (het huidige
+  anker #voorbeeld). Geen paneel. Geen knop in de lege zone zelf: de knop zit in de composer. Bron:
+  https://vercel.com/geist/empty-state (titel + één zin met nieuwe informatie; "Never Get Started, Continue, or
+  OK").
+- Chip klikken vult adres (leeg bij het voorbeeld) en klus in de composer en zet de cursor achteraan; de gebruiker
+  klikt zelf "Bereken richtprijs". Bron: https://www.nngroup.com/articles/prompt-controls-genai/ (prompt controls
+  "expedite and supplement text input").
+
+4.2 Bezig (drie stappen)
+- Op de klik, in hetzelfde frame: de inhoud van de composer wordt het gebruikersbericht bovenaan het gesprek; de
+  composer schuift naar de onderrand (leeg, placeholder "Pas de klus aan…", knop "Stop"); de rail klapt dicht; het
+  paneel opent met een skelet (brede balk op de plaats van de prijs, vijf korte balken voor de kerncijfers, zes
+  rijen voor "waar het geld zit"; shimmer van links naar rechts, 2 s). Bronnen:
+  https://www.nngroup.com/articles/skeleton-screens/ · https://elements.ai-sdk.dev/components/shimmer
+- De trail staat er binnen 1 s met drie rijen, alle drie meteen zichtbaar (wacht / bezig / wacht). Bron:
+  https://linear.app/developers/agent-interaction ("send an activity ... within 10 seconds to avoid the session
+  being marked as unresponsive") · https://www.nngroup.com/articles/response-times-3-important-limits/ (1 s).
+- Stap 1, actief: "Gebouw opmeten op {adres}" (het adres uit het veld) · rechts de verstreken seconden. Klaar:
+  "Gemeten: dakvlak … m², … bebouwing, nok … m" (cijfers uit /api/adres) · de duur in s. Geen adres: rij blijft staan met
+  het streep-icoon en "Meting overgeslagen: geen adres" en springt meteen naar klaar (geen laadstaat korter dan
+  1 s; bron: https://cloudscape.design/gen-ai/patterns/progressive-steps/).
+- Stap 2, actief: "Posten schrijven uit de klus" · detail "7 posten" dat per regel oploopt · onder de rij de
+  postenlijst (open): de laatste 6 posten als leesbare regels, bv. "Sarking-isolatie PIR 12 cm plaatsen · 94 m²".
+  In het paneel vult het werkblad rij per rij; de prijsplaats toont tot het einde van stap 2 het skelet met
+  daaronder in 13 px g8 "Tussenstand € 16.648 · 7 posten" (incl. btw, het lopende totaal uit RP.analyse; na de
+  eerste 7 posten van het voorbeeld is dat € 16.648). Het grote getal verschijnt pas als stap 2 klaar is, in één
+  frame. Klaar: "Posten geschreven: 14 posten in 6 fases" · de duur in s.
+  Bronnen: https://cloudscape.design/patterns/genai/genai-loading-states/ (streaming alleen voor tekst; tabellen
+  per rij met laadbalk) · https://elements.ai-sdk.dev/components/chain-of-thought (badges onder de actieve stap).
+- Stap 3, actief: "Uitleg schrijven bij € 24.230" · de uitleg streamt in het AI-bericht (5.7). Klaar: "Uitleg
+  geschreven" · de duur in s.
+- De actieve rij: spinner 16 px + shimmer op de tekst (2 s cyclus); bij prefers-reduced-motion geen shimmer, alleen
+  de spinner. Nooit shimmer op prijs, posten of uitleg. Bron: https://elements.ai-sdk.dev/components/shimmer ·
+  https://vercel.com/geist/loading-dots ("avoid pairing Loading Dots with another animated indicator on the same
+  line").
+- Vanaf de tweede run toont de actieve rij ook de duur van dezelfde stap in de vorige run: "{n} s · vorige keer
+  {n} s" (de duur per stap wordt na elke run bewaard op deze pc; in de mock komen de seconden uit een echte run). Bron: https://www.nngroup.com/articles/progress-indicators/ en
+  https://cloudscape.design/gen-ai/patterns/progressive-steps/ ("This step may take up to 15 seconds").
+- De composer-voet links draagt de ene statusregel voor schermlezers (role=status, aria-live=polite): "Stap 2 van
+  3 · Posten schrijven · {n} s"; visueel is de trail de status.
+
+4.3 Klaar
+- 1 s na "Uitleg geschreven" klapt de trail dicht tot "Klaar in {n} s · 3 stappen" met chevron; alle resultaten
+  blijven in de rijen staan. Bron: https://elements.ai-sdk.dev/components/reasoning ("Automatically opens when
+  streaming content and closes when finished") · https://cloudscape.design/gen-ai/patterns/progressive-steps/
+  ("collapsed by default").
+- De knop in de composer wordt "Bereken" (placeholder "Pas de klus aan, bv. met 3 dakramen in plaats van 2").
+  Een vervolgbericht = nieuwe versie: stap 1 wordt overgeslagen zolang de meting bestaat en het adres niet
+  veranderde; stap 2 en 3 lopen opnieuw met de klus + "Aanpassing: …"; het paneel toont "v2" en in het gesprek
+  één regel "v2: € 25.478 · + € 1.248 tegenover v1" (het voorbeeld met 3 dakramen in plaats van 2; bedragen uit
+  motor.js). Bronnen:
+  https://docs.lovable.dev/features/projects/chat (versies per bericht) · https://cursor.com/docs/agent/overview
+  (checkpoints in de tijdlijn).
+- De berekening is na stap 2 automatisch bewaard via POST /api/berekeningen en staat bovenaan de rail (titel van
+  de AI, adres, datum, prijs). "Opslaan" in de paneelkop leest daarna "Opgeslagen" (uitgeschakeld) tot er iets
+  wijzigt. Bron: https://www.setproduct.com/blog/ai-chat-interface-ui-design ("if you ship AI chat without it,
+  users assume their history is gone").
+
+4.4 Fout
+- Elke fout staat in de rij of het blok waar ze hoort, noemt het onderdeel, de oorzaak en de volgende stap, en
+  heeft één herstelknop; de tekst "Er ging iets mis" komt nergens voor. Bronnen:
+  https://www.smashingmagazine.com/2026/05/practical-interface-patterns-ai-transparency/ (partial success) ·
+  https://docs.lovable.dev/features/projects/chat ("Try to fix") · https://www.nngroup.com/articles/prompt-controls-genai/
+  (fout ver van de focus is fout).
+- Adres niet gevonden: rij 1 krijgt het driehoek-icoon (inkt) en "Geen gebouw gevonden op dit adres · gerekend met
+  de maten uit de klus"; stap 2 en 3 lopen door (zo werkt ui.js nu al); link "Adres aanpassen" zet de focus in het
+  adresveld van de composer.
+- Server weg (fetch faalt): banner bovenaan het gesprek, onder de kop: titel "De lokale server antwoordt niet",
+  tekst "Start start.cmd opnieuw.", knop "Opnieuw proberen"; blijft tot de server antwoordt. Bron:
+  https://docs.stripe.com/stripe-apps/patterns/communicating-state (banner = blijvend, titel + tekst + actie).
+- Geen bruikbare posten: rij 2 krijgt het kruis (rood) en "De AI gaf geen bruikbare posten"; onder de trail een
+  kaart met één knop "Opnieuw berekenen"; het paneel blijft op het skelet.
+- Uitleg afgebroken: in het AI-bericht zelf "Uitleg niet volledig aangekomen" + knop "Opnieuw schrijven"; de prijs
+  en het paneel blijven staan.
+- Drie vragen tegelijk (429): rij krijgt de tekst van de server "Er lopen al 3 vragen. Wacht tot er één klaar is."
+  + knop "Opnieuw proberen".
+- Klus korter dan 25 tekens: geen run; rode regel 13 px onder het klusveld "Beschrijf de klus met de soort werk en
+  de maten." die bij de eerste toetsaanslag verdwijnt. Bron: https://developers.raycast.com/information/best-practices
+  (valideren bij blur, fout wissen bij typen).
+
+4.5 Verouderd (tarief of kenmerk gewijzigd)
+- Tarief gewijzigd (uurtarief, uren per dag, ploeg, marge, onvoorzien, btw): motor.js rekent meteen; de prijs
+  wisselt in één frame; links van de nieuwe prijs staat 10 s de oude doorgestreept in 14 px g8 ("€ 24.230"); een
+  chip "Uurtarief € 60" (neutraal, met ×) staat onder de prijs zolang het tarief van de startwaarde afwijkt.
+  Boven de uitleg een strook g2: "Geschreven bij € 24.230; de prijs is nu € 24.630." (het voorbeeld met uurtarief
+  € 60 in plaats van € 57,50) met de tekstknop "Schrijf opnieuw". De versiechip leest "v1 · tarieven gewijzigd". Bronnen:
+  https://developer.apple.com/tutorials/data/design/human-interface-guidelines/generative-ai.json ("provide a
+  clear signal that their action had an effect") · https://www.aiuxplayground.com/guides/designing-better-ai-chat-part-1
+  (context als zichtbare, verwijderbare chips).
+- Kenmerk gewijzigd (tab Kenmerken): het veld verliest zijn bronchip en krijgt "Aangepast" + de link "Terug naar
+  94" (de AI-waarde); onderaan het paneel plakt een balk "2 kenmerken aangepast" met "Herbereken met deze
+  kenmerken" (primair) en "Herstel" (secundair). Herbereken maakt v2 (stap 2 en 3 opnieuw, meting blijft). Bron:
+  https://carbondesignsystem.com/guidelines/carbon-for-ai/ ("the component will change from the AI variant to the
+  default variant" + "revert to AI button") · https://docs.stripe.com/stripe-apps/patterns/action-buttons.
+- Terug naar v1: klik op de pijl bij "v2" toont v1 in het paneel (alleen-lezen, chip "v1 · bekijken"); "Herstel v1"
+  vraagt één bevestiging ("v2 verwijderen en v1 herstellen?" · Herstel / Behoud v2). Bron:
+  https://docs.lovable.dev/features/projects/chat ("Restore your project to that point after you confirm").
+
+4.6 Geschiedenis laden
+- Klik op een rij in de rail: GET /api/berekeningen/{id}; het gesprek wordt in één frame opgebouwd (geen stream,
+  volledige tekst), de trail staat dicht als "Berekend op 6 oktober 2026 · {n} s", het paneel vult, de rij in de
+  rail is geselecteerd (g3). De composer leest "Pas de klus aan…" en maakt bij gebruik v2 van deze berekening.
+- Verwijderen: "…" op de rij → "Verwijderen" → één bevestiging ("Berekening verwijderen?" · Verwijderen /
+  Behouden) → DELETE → toast "Berekening verwijderd". Bron: https://docs.stripe.com/stripe-apps/patterns/communicating-state
+  (toast ≤ 30 tekens).
+- Zoekveld bovenaan de rail (zichtbaar vanaf 8 berekeningen), zoekt in titel en adres. Bron:
+  https://cursor.com/docs/agent/overview (zoeken in gesprekken).
+
+4.7 Gestopt (door de gebruiker)
+- Klik op "Stop" of Esc: de lopende stap krijgt het streep-icoon en "Gestopt na stap 2 · {n} posten binnen"; het
+  paneel toont wat er is met de chip "Onvolledig"; de uitleg (als die liep) eindigt zonder caret met de regel
+  "Uitleg gestopt"; de knop wordt "Opnieuw berekenen" en krijgt de focus. Bron:
+  https://www.smashingmagazine.com/2026/05/designing-stable-interfaces-streaming-content/ (bij stop: timers
+  annuleren, buffer leegmaken, caret weg) · https://www.shapeof.ai/patterns/controls ("remain clickable until the
+  process is complete").
+
+
+5. COMPONENTEN MET EXACTE REGELS
+--------------------------------
+
+5.1 Composer
+- Ruststand (leeg scherm): kaart 720 px breed, achtergrond g1, 1 px rand g4, radius 16, padding 16. Rij 1:
+  pin-icoon 16 px + invoer "Adres in Vlaanderen (optioneel): Straat 12, Gemeente" (16 px, placeholder g7), hoogte
+  40, geen eigen rand, 1 px lijn g4 eronder. Rij 2: klusveld 16 px, minimaal 3 regels (72 px), groeit mee tot
+  12 regels en scrolt daarna; placeholder "Hellend dak 140 m², oude pannen eraf, 12 cm isolatie, nieuwe pannen,
+  2 dakramen." Voet: links de statusregel (13 g8, leeg in rust), rechts de hoofdknop. Bronnen:
+  https://elements.ai-sdk.dev/components/prompt-input (header/body/footer, auto-resize, Enter/Shift+Enter) ·
+  https://www.setproduct.com/blog/ai-chat-interface-ui-design ("grow with content up to a sensible cap").
+- Hoofdknop: tekstknop met label, 40 px hoog (44 op de telefoon), padding 0 16, 14/600, achtergrond merk, tekst
+  wit, radius 6. Staten: "Bereken richtprijs" (rust) · "Stop" met vierkant-icoon 12 px (tijdens de run, zelfde
+  plek, zelfde breedte vastgezet op de breedte van de ruststand) · "Opnieuw berekenen" (na een fout of stop) ·
+  "Bereken" (vastgezette composer). Nooit twee knoppen naast elkaar. Bronnen: https://www.shapeof.ai/patterns/controls
+  · https://www.assistant-ui.com/examples/chatgpt (één hoofdknop met wisselende staat).
+- Toetsen: Enter = berekenen, Shift+Enter = nieuwe regel, Esc = Stop tijdens een run. Bron:
+  https://elements.ai-sdk.dev/components/prompt-input.
+- Vastgezette stand (onderaan het gesprek): zelfde kaart, breedte = gesprekskolom − 48, radius 16; bovenin een
+  chiprij met de context: "{adres} · gemeten" (chip met pin en ×; in de mock de placeholder "Straat 12, Gemeente"; × verwijdert de meting voor
+  de volgende versie); klusveld 1 regel (44 px) die groeit tot 8 regels; knop "Bereken" 36 px rechts in dezelfde
+  rij. Bron: https://www.aiuxplayground.com/guides/designing-better-ai-chat-part-1 ("like ingredients on a cutting
+  board: visible, removable, hard to miss").
+- Chips onder de composer (alleen leeg scherm): drie klussen, 14 px, g1 met 1 px rand g4, radius 6, hoogte 36,
+  tekst afgekapt op één regel; elke chip heeft een × dat de chip verbergt (bewaard op deze pc). Bron:
+  https://www.setproduct.com/blog/ai-chat-interface-ui-design ("a centered input and a few suggestion chips").
+
+5.2 Gebruikersbericht
+- Rechts uitgelijnd, maximaal 70 % van de kolombreedte, achtergrond g2, radius 12, padding 16, tekst 16 px inkt.
+  Eerste regel (als er een adres is): pin-icoon + adres in 14/600. Daaronder de klus. Langer dan 6 regels:
+  afgekapt met "Meer". Bron: https://www.setproduct.com/blog/ai-chat-interface-ui-design (bubbels voor de
+  gebruiker, niet voor de AI).
+
+5.3 Voortgangstrail
+- Lijst zonder kader, volle kolombreedte, 8 px tussen rijen. Rij: minimaal 32 px; icoonkolom 24 px; label 14 inkt;
+  detail 13 g8 op de volgende regel; rechts de duur 13 g8 tabular. Iconen 16 px, outline: leeg rondje g7 = wacht ·
+  spinner = bezig · vinkje in merk = klaar · rondje met streep g7 = overgeslagen of gestopt · driehoek inkt =
+  waarschuwing · kruis fout = fout. Bronnen: https://elements.ai-sdk.dev/components/chain-of-thought
+  (complete/active/pending) · https://www.nngroup.com/articles/prompt-controls-genai/ (icoon + label).
+- Labels: tegenwoordige tijd + het echte object; geen drie puntjes; nooit "Laden", "Bezig", "Even geduld".
+  Bronnen: https://cloudscape.design/patterns/genai/genai-loading-states/ ("[Generating/Loading] [specific
+  artifact]", geen ellipsis) · https://www.smashingmagazine.com/2026/05/practical-interface-patterns-ai-transparency/
+  ("Let's stop using vague words like 'Loading' or 'Working.'") ·
+  https://developer.apple.com/tutorials/data/design/human-interface-guidelines/generative-ai.json ("instead of
+  'Processing…', say 'Finding substitutions for ingredients'").
+- Postenlijst onder stap 2: 13 px g9, één regel per post "naam · hoeveelheid eenheid", maximaal 6 regels zichtbaar
+  met de link "+ 8 eerder" naar de tab Werkblad; geen eigen scrollvak. Open op pc tijdens stap 2, dicht op de
+  telefoon; na afloop dicht met de kop "Posten geschreven: 14 posten in 6 fases". Bronnen:
+  https://www.shapeof.ai/patterns/stream-of-thought ("a bounded box, with details minimized or altogether hidden
+  behind a click") · https://developers.openai.com/apps-sdk/concepts/design-guidelines ("No nested scrolling").
+- Ingeklapte stand: één rij "Klaar in {n} s · 3 stappen" met chevron rechts.
+
+5.4 Prijskaart (bovenaan de tab Overzicht)
+- Geen kader, geen gekleurd vlak; padding 24. Rij 1: titel van de AI (14/600 inkt) + chips "v1" en, bij het
+  voorbeeld, "Voorbeeld" (neutraal). Rij 2: "€ 24.230" in 48 px Archivo 700, tabular, letter-spacing −0,02 em,
+  met "incl. 6 % btw" (14 g8) op dezelfde basislijn rechts ervan. Rij 3 (14 g9): "€ 22.859 excl. btw · € 243 per
+  m² dakvlak". Rij 4, de caveat (13 g8): "Richtprijs uit de kaartmeting, uw tarieven en de datatabel van
+  6 oktober 2026. 3 punten controleert u bij het plaatsbezoek." waarbij "3 punten" een link is naar de lijst
+  onder de uitleg. Geen percentage, geen marge, geen vork. Bronnen: https://www.shapeof.ai/patterns/caveat ("A
+  targeted note ... is more actionable than a blanket warning") ·
+  https://pair.withgoogle.com/chapter/explainability-trust/ (numerieke zekerheid vraagt kansbegrip) ·
+  https://developers.openai.com/apps-sdk/concepts/design-guidelines (merkkleur alleen op de primaire knop; het
+  donkere prijsvlak vervalt).
+- Onder rij 4, alleen als een tarief van de startwaarde afwijkt: chips "Uurtarief € 60", "Ploeg 4 man" (neutraal,
+  met ×; × zet het tarief terug; met ploeg 4 is het voorbeeld € 23.605 incl. btw in 5 werkdagen).
+- Twee acties maximaal in deze kaart: geen. De acties staan in de paneelkop. Bron:
+  https://developers.openai.com/apps-sdk/concepts/design-guidelines ("up to two actions maximum").
+
+5.5 Kerncijfers en balk
+- Vijf tegels in één rij (paneel ≥ 700 px; 3 + 2 daaronder): label 12 g8 boven, waarde 20 px Archivo 600 inkt
+  tabular, subregel 13 g8. Inhoud: Ploeg "3 man" · Werkdagen "6" · Manuren "144" / "18,0 mandagen" · Naar boven
+  "5,4 ton" · Afval "4,8 ton" / "2 containers, 1 big bag". Eén 1 px lijn g4 boven de rij.
+- Balk: 6 px hoog, radius 3, spoor g3, vulling merk (97 %) en amber (3 %); legende 13 px eronder: "97 % van de
+  kostprijs uit de datatabel · 3 % AI-schatting"; role=img met dezelfde tekst als aria-label. Dit is een
+  bronverdeling, geen zekerheid. Bron: https://www.shapeof.ai/patterns/caveat (zekerheid als bron) ·
+  https://carbondesignsystem.com/guidelines/carbon-for-ai/ (AI-aanwezigheid markeren).
+
+5.6 Bron-labels
+- Chip 12/600, radius 6, padding 1 6, hoogte 18. Twee gekleurde soorten: groen (tekst merk op merk-zacht
+  #e2eee5): "Gemeten", "Datatabel" · amber (tekst #85560a op #f5e9cf): "AI-schatting", "Standaard". Neutraal
+  (tekst g9 op g3): "Uit de klus", "Berekend", "Aangepast", "Niet gevraagd, wel nodig", "Voorbeeld",
+  "Onvolledig", "v1". Amber staat nergens anders. Bronnen: https://carbondesignsystem.com/guidelines/carbon-for-ai/
+  ("The AI label is the primary indicator to communicate that AI is present"; "Don't use the Carbon for AI
+  styling as decoration") · https://pair.withgoogle.com/chapter/explainability-trust/ (bronwoord in plaats van
+  percentage).
+- Woordenlijst (RP.BRONNEN → label): beschrijving = Uit de klus · gemeten = Gemeten · berekend = Berekend ·
+  standaard = Standaard · vast = Aangepast. Regels (motor.js bron): data = Datatabel · ai = AI-schatting.
+
+5.7 Streamende uitleg (het AI-bericht)
+- Volle kolombreedte, geen bubbel, geen kader; kop 12 px g8 "Uitleg van de AI"; daaronder de bronnenrij: drie
+  neutrale chips "Kaartmeting Digitaal Vlaanderen" (alleen met meting), "Datatabel 6 oktober 2026", "Uw tarieven".
+  Bron: https://www.setproduct.com/blog/ai-chat-interface-ui-design ("citations are non-negotiable for trust").
+- Tekst 16 px, regelhoogte 1,5, als lijst van 3 tot 6 punten; elke nieuwe regel van de stream wordt één nieuw
+  punt; de laatste regel is één levende tekstnode die per animatieframe verlengd wordt (gebufferd, geflusht per
+  requestAnimationFrame); innerHTML wordt nooit per chunk gewist. Caret: gevuld vierkant 8 × 14 px inkt achter
+  het laatste teken, knippert 1 s; bij prefers-reduced-motion geen caret en de tekst verschijnt in één keer.
+  aria-live="polite", aria-atomic="false". Bronnen:
+  https://www.smashingmagazine.com/2026/05/designing-stable-interfaces-streaming-content/ ·
+  https://www.setproduct.com/blog/ai-chat-interface-ui-design ("Claude.ai uses a small filled square").
+- Auto-scroll alleen als de lezer binnen 60 px van de onderkant van de stroom staat; scrolt hij omhoog, dan
+  springt niets en verschijnt rechtsonder in de kolom de knop "Naar het laatste"; de vlag wordt bij elke nieuwe
+  run gereset. Bronnen: https://www.smashingmagazine.com/2026/05/designing-stable-interfaces-streaming-content/
+  ("That 60px threshold matters") · https://www.setproduct.com/blog/ai-chat-interface-ui-design ("Jump to
+  latest").
+- Nooit een kunstmatige vertraging op de stream. Bron: https://www.setproduct.com/blog/ai-chat-interface-ui-design
+  ("Users prefer fast and honest over slow and theatrical").
+- Onder de uitleg twee lijsten in 14 px met kop 13/600: "Aannames van de AI" (4 regels in het voorbeeld) en "Te
+  controleren bij het plaatsbezoek" (3 regels); de tweede kop is het doel van de link "3 punten" uit de caveat.
+- Actierij onder het bericht, tekstknoppen 14 px g9 met icoon 16: "Korter" · "Uitgebreider" · "Schrijf opnieuw" ·
+  "Kopieer". Een nieuwe uitleg komt naast de vorige: pijltjes "1 / 2" links in de actierij; de vorige wordt nooit
+  overschreven. "Korter" en "Uitgebreider" sturen dezelfde vraag met één extra regel achter
+  RP.bouwUitlegPrompt(...) ("Schrijf de helft korter." / "Schrijf dubbel zo lang."); dat gebeurt in ui.js,
+  motor.js blijft ongewijzigd. Bronnen: https://www.shapeof.ai/patterns/controls ("show the regeneration as an
+  iterative version") · https://www.nngroup.com/articles/prompt-controls-genai/ (Gemini "Shorter" in Modify
+  response) · https://www.aiuxplayground.com/guides/designing-better-ai-chat-part-1 ("Make second drafts one tap
+  away: shorter, deeper, try again").
+- Verouderd: strook g2 boven de tekst, zie 4.5. Afgebroken: regel + knop in het blok, zie 4.4.
+
+5.8 Waar het geld zit
+- Kop 14/600 "Waar het geld zit" + rechts 13 g8 "excl. btw, met marge". Zes rijen: naam (14 inkt, één regel,
+  afgekapt) · balk 8 px (spoor g3, vulling merk; amber als de post een AI-schatting is) · bedrag (14 tabular,
+  rechts, 84 px) · aandeel (13 g8, rechts, 40 px). Rijen 8 px uit elkaar. Breedte van de langste balk = 100 %.
+  Inhoud: de vijf grootste posten uit RP.analyse().top en "14 kleinere posten samen". Bron:
+  https://www.parallelhq.com/blog/llm-chat-ux-patterns (cijfers als component, geen alinea).
+
+5.9 Wat de prijs verschuift
+- Kop 14/600. Zeven rijen uit RP.analyse().watAls: label links (14 g9), verschil rechts (14/600 inkt tabular,
+  "+ € 1.515" / "− € 5.825", bij de btw-rij "+ € 3.429 incl. btw"). De rijen over de ploeg en de btw dragen de
+  tekstlink "Toepassen" (13 merk) die het tarief meteen zet (motor.js, geen AI-ronde); daarna geldt 4.5. Bron:
+  https://developer.apple.com/tutorials/data/design/human-interface-guidelines/generative-ai.json ("surfacing
+  controls like Edit, Undo, Retry, or Adjust near generated content").
+
+5.10 Werkblad (tab Werkblad)
+- Kopregel 12 px g8, naamwoorden, zonder hoofdletters-stijl en zonder letter-spacing, eenheid in de kop: Werk ·
+  Hoeveelheid · Manuren · Materiaal € · Naar boven kg · Afval kg · Bron. Bron: https://vercel.com/geist/table
+  ("Column headers are ... nouns or noun phrases ... Never sentences").
+- Fase-groep: rij 36 px met 1 px lijn g4 erboven, geen gekleurd vlak: links "Dakopbouw" (14/600 inkt), rechts
+  "42,3 manuren · 1,8 werkdagen met 3 man" (13 g8 tabular). Bron: https://linear.app/blog/behind-the-latest-design-refresh
+  ("Structure should be felt not seen").
+- Rij: padding 8 0, 1 px lijn g4 onder, hover g2. Kolommen (paneel ≥ 640): naam minimaal 150 px flexibel ·
+  5 cijferkolommen van 76 px rechts uitgelijnd · bron 96 px. Op de hele tabel font-variant-numeric: tabular-nums;
+  een nul of onbekende waarde toont "—". Bron: https://vercel.com/geist/table ("Render — in cells where a value
+  is unknown or not applicable").
+- Naamcel: naam 14 inkt; chip "Niet gevraagd, wel nodig" (neutraal) achter de naam als gevraagd = false, met de
+  reden op de regel eronder in 13 g8 ("Dakrand op 6 m: stelling aan voor- en achtergevel."); toelichting 13 g8
+  ("Voor- en achtergevel: 2 × 8 m × 6 m").
+- Klik op de naam klapt het rekenpad uit (13 g9, één regel per onderdeel): "94 m² × 0,25 manuur = 23,5 manuren" ·
+  "98,7 m² PIR-sarkingplaat 12 cm × € 33,16 = € 3.273" · "94 m² sarkingschroeven en tape × € 4,00 = € 376". Alle
+  getallen staan in de regel van motor.js (uren, mat[].aantal, prijs, kost). Bron:
+  https://www.smashingmagazine.com/2026/05/practical-interface-patterns-ai-transparency/ ("See how this price was
+  calculated") · https://www.microsoft.com/en-us/haxtoolkit/library/ (G11).
+- Onder de tabel, als r.overgeslagen regels heeft: 13 g8 "Niet meegerekend, omdat de AI geen cijfers gaf: …".
+- Paneel < 640 px en telefoon: gestapelde rij (3.4).
+
+5.11 Lijsten
+- Materiaallijst (tab Materiaal): kolommen Materiaal · Aantal · Prijs € · Totaal € · Gewicht kg · Bron; dezelfde
+  rijregels als 5.10; 18 rijen in het voorbeeld.
+- Materieel en afvoer (tab Materiaal, onder de materiaallijst): kolommen Post · Aantal · Prijs € · Totaal €;
+  daaronder "Afval per soort" als drie regels 14: "Puin 4.230 kg → 1 container 10 m³ steenpuin (12 ton per
+  container)" · "Hout 470 kg → 1 container 10 m³ hout (4 ton per container)" · "Rest 71 kg → 1 big bag".
+- Kostenopbouw (onderaan de tab Overzicht): acht rijen, label links 14 g9, bedrag rechts 14 inkt tabular; de
+  somrijen (Subtotaal, Prijs excl. btw, Prijs incl. btw) in 600 met een 1 px lijn g4 erboven, zonder groen vlak.
+  Inhoud exact zoals 0.2.
+- Aannames en plaatsbezoek: zie 5.7 (14 px, 8 px tussen regels). Bron voor de afstanden:
+  https://www.notion.com/blog/updating-the-design-of-notion-pages (lijstregels dicht bij elkaar, alinea's ruim).
+
+5.12 Kenmerken (tab Kenmerken)
+- Boven: "Kenmerken van de klus" (kop 14/600) + 13 g8 "Ingevuld uit de klus, de meting en de standaarden. Pas aan
+  wat anders is en herbereken." Velden in twee kolommen (paneel ≥ 640), 16 px tussen velden, 4 px tussen label en
+  veld. Veld: labelrij met label 13 g8 links en bronchip rechts; invoer 36 px hoog, 14 inkt, g1, 1 px rand g4,
+  radius 6, eenheid als suffix in het veld (g8). Hellend dak: 17 velden (bebouwing, dakvorm, gevelbreedte m,
+  diepte m, helling °, kroonlijst m, dakvlak m², noklengte m, bedekking, isolatie cm, dakramen st, schouwen st,
+  goot lm, afvoer lm, gemene zijde lm, vrije dakrand lm, stelling m²). Bron:
+  https://www.figma.com/blog/behind-our-redesign-ui3/ (wat u bewerkt bovenaan, eenheden zichtbaar).
+- Wijziging: chip wordt "Aangepast", link "Terug naar 94" (13 merk) verschijnt achter het veld; plakbalk onderaan
+  met "Herbereken met deze kenmerken" (primair, 36 px) en "Herstel"; de knop is uitgeschakeld (grijs, verlaagd
+  contrast, niet verborgen) zolang een run loopt. Bron: https://carbondesignsystem.com/guidelines/carbon-for-ai/.
+- Onder: "Gemeten op het adres" (kop 14/600) + adres 13 g8. Vijf feiten in een rooster van drie kolommen (label
+  12 g8, waarde 20 Archivo 600 inkt tabular, subregel 13 g8): Grondoppervlak (m²; lengte × breedte) ·
+  Bebouwing (type; m gemene muur, m vrije gevel) · Dak (vorm; helling °, % plat) · Dakvlak (m²; zonder
+  oversteek) · Nokhoogte (m; kroonlijst m). Daaronder de bronregel 13 g8: "Digitaal Vlaanderen: adressenregister,
+  GRB-gebouwcontour, hoogtemodel DHMV II (1 m raster, vlucht 2013-2015). n hoogtepunten gemeten." en, als het
+  adrespunt naast het gebouw ligt, de bestaande waarschuwingszin uit ui.js. Zonder meting: één regel "Geen meting:
+  er was geen adres." Cijfers in de mock komen uit een echte /api/adres-oproep.
+
+5.13 Instellingen (weergave uit 2.7)
+- Tarieven: zes velden in twee kolommen (Uurtarief €/u · Uren per werkdag · Ploeg man · Marge op materiaal % ·
+  Onvoorzien % · Btw, keuze 6 % (woning ouder dan 10 jaar) / 21 %); naast een gewijzigde waarde de link "Terug
+  naar startwaarde" met de startwaarde erbij ("Terug naar € 57,50"); onder de kop 13 g8 "Geldt meteen voor de open
+  berekening. Bewaard op deze pc." Opslaan gebeurt stil bij elke wijziging; naast de kop staat 13 g8 "Bewaard".
+- Standaarden van de sector: 18 velden in vijf groepen met een kop 14/600: Hellend dak (dakramen bij gesloten,
+  halfopen, open bebouwing; schouwen; dakhelling; kroonlijsthoogte; sarking-isolatie PIR; regenafvoeren;
+  dakbedekking) · Gevel (gevelisolatie EPS; ramen en deuren per gevel; dagkanten per raam of deur; crepi) · Plat
+  dak (isolatie PIR; bedekking) · Binnen (plafondhoogte; verflagen) · Ploeg. Elk veld zoals in 5.12, met chip
+  "Standaard" (amber) bij de startwaarde en "Eigen cijfer" (neutraal) na een wijziging + "Terug naar
+  startwaarde".
+- Datatabel: zoekveld bovenaan (zoekt in naam en code), daaronder zeven vak-tabs met aantal ("Hellend dak · 61", gemeten: Hellend dak 61, Gevel 40, Binnen 31, Plat dak 29, Vloeren en tegels 26,
+  Ramen en deuren 22, Algemeen 13);
+  per post een rij: naam 14 inkt + "0,25 manuur per m² · 1 man doet 32 m² per werkdag" 13 g8; klik klapt uit:
+  norm (bewerkbaar), materialen (naam · per · eenheid · prijs € bewerkbaar · kg), afval kg. Elk cijfer draagt één
+  label: "Startwaarde" (neutraal) · "Bron" (neutraal met link-icoon, opent bron.url in een nieuw tabblad; bv. de
+  stucloper op hornbach.nl in data/alg.js) · "Eigen cijfer" (neutraal) + link "Terug naar startwaarde". De norm
+  en de prijzen zijn de eigen cijfers van de aannemer; de app leunt nooit op correcties om een slechte startwaarde
+  goed te maken (de datatabel moet zelf kloppen). Bewaring via /api/instellingen. Bron:
+  https://developers.openai.com/apps-sdk/concepts/design-guidelines (twee lettergroottes in het werkgebied) ·
+  https://vercel.com/geist/table.
+
+5.14 Rail en geschiedenis
+- Kop 48 px: merkteken + "Richtprijs-AI" (14/600 inkt) links, knop "Rail inklappen" (icoon, tooltip) rechts.
+  Daaronder knop "Nieuwe berekening" (secundair, volle breedte, 36 px, plus-icoon) en het zoekveld (vanaf 8
+  berekeningen).
+- Lijst gegroepeerd op datum met koppen 12 g8: Vandaag · Gisteren · Deze week · Ouder. Rij 48 px, padding 8 12,
+  radius 6: regel 1 titel (14 inkt, afgekapt), regel 2 "€ 24.230 · {adres}" (13 g8, afgekapt).
+  Hover g2, geselecteerd g3, bij hover een "…"-knop rechts met "Verwijderen". Bron:
+  https://www.setproduct.com/blog/ai-chat-interface-ui-design ("Left sidebar for thread history with titles,
+  timestamps") · https://linear.app/blog/behind-the-latest-design-refresh (gedempte rail, kleinere iconen).
+- Onderaan vast: "Voorbeeld" (laadt #voorbeeld) en "Instellingen" (tandwiel + label). Ingeklapt (56 px): plus,
+  zoeken, klok, tandwiel als iconen met tooltip = label.
+- Data: GET /api/berekeningen (id, titel, adres, datum, prijs, vak); vak toont als 12 g8 chip achter de titel als
+  er meer dan één vak in de lijst voorkomt.
+
+5.15 Toast en banner
+- Toast: onderaan het midden van de werkruimte, achtergrond donker vlak #0c2b1b, tekst g1 14, radius 6, padding
+  8 16, 3 s, maximaal 30 tekens, minder dan vier woorden: "Opgeslagen" · "Gekopieerd" · "Berekening verwijderd".
+  Geen toast bij stille opslag van instellingen. Bron: https://docs.stripe.com/stripe-apps/patterns/communicating-state.
+- Banner: onder de gesprekskop, 1 px rand g4, radius 12, padding 16, titel 14/600 + tekst 14 + knop; blijft tot
+  de oorzaak weg is; alleen voor "De lokale server antwoordt niet". Bron: idem.
+- Bevestiging (verwijderen, versie herstellen): klein dialoogvenster gecentreerd, 360 px, titel 16/600, één zin,
+  twee knoppen (destructief rechts in rood #a3271b-tekst op g1). Dit is geen zwevend werkpaneel maar de
+  universele bevestiging.
+
+5.16 Print (Afdrukken, 1 tot 2 A4)
+- @media print verbergt rail, composer, trail, tabs, acties, uitleg en wat-als. Marges 15 mm, lettergrootte 10 pt
+  (koppen 12 pt, prijs 24 pt), zwart op wit, tabular-nums.
+- Volgorde: koptekst (titel van de AI · adres · datum · "v1" · "Richtprijs-AI") · prijsblok (incl. btw groot,
+  excl. btw en per m², ploeg, werkdagen, manuren) · kenmerken als tabel in twee kolommen (label, waarde met
+  eenheid, bronwoord) · meting in één regel · posten per fase (Werk · Hoeveelheid · Manuren · Materiaal € · Bron;
+  fase-groepen met page-break-inside: avoid) · kostenopbouw (8 regels) · aannames · te controleren bij het
+  plaatsbezoek · voet met de caveat-regel en de datum van de datatabel.
+- Klaar-test: het voorbeeld (14 posten) past op 2 pagina's in Chrome, A4 staand.
+
+5.17 Iconen en beweging
+- Iconen outline, 16 px, lijndikte 1,5, monochroom in de tekstkleur; alleen: plus, zoeken, klok, tandwiel,
+  chevron, vinkje, spinner, vierkant (stop), kruis, driehoek, pin, printer, kopiëren, bewaren, menu, link. Elk
+  icoon heeft een zichtbaar label of (ingeklapte rail) een tooltip met hetzelfde label. Bronnen:
+  https://developers.openai.com/apps-sdk/concepts/design-guidelines ("monochromatic and outlined") ·
+  https://www.figma.com/blog/our-approach-to-designing-ui3/ ("visible labels match aria-labels").
+- Beweging: spinner (1 s per omwenteling), shimmer op de actieve staptekst (2 s), caret (1 s), skelet-shimmer
+  (2 s). Niets anders beweegt: geen slide, geen fade, geen tel-animatie op de prijs; de prijs verschijnt in één
+  frame. Bij prefers-reduced-motion blijven alleen de spinner en het vinkje. Bron:
+  https://www.figma.com/blog/our-approach-to-designing-ui3/ ("Speed is a feature") · memory "robuust, niet
+  AI-playful".
+
+5.18 Toetsen en bereikbaarheid
+- Enter / Shift+Enter / Esc zoals 5.1. Tab-volgorde: rail → gesprekskop → gesprek → composer → paneelkop → paneel.
+- Focusring 2 px merk met 2 px offset op alles wat klikbaar is. Contrast: tekst ≥ 4,5:1, iconen en grote tekst
+  ≥ 3:1 (gemeten waarden in 6.3). Bron: https://stripe.com/blog/accessible-color-systems.
+- De trail-samenvatting en de statusregel zijn role=status; de uitleg aria-live=polite.
+
+
+6. TYPOGRAFIE, RASTER, KLEUR, LEGE STATEN, MICRO-COPY
+------------------------------------------------------
+
+6.1 Typografie (twee families, acht maten, drie gewichten)
+- Archivo (600, 700) alleen voor: de kop van het lege scherm (28), de prijs (48 pc / 40 telefoon), de kerncijfers
+  en meetwaarden (20). IBM Plex Sans (400, 600) voor al de rest. Bron: https://linear.app/blog/how-we-redesigned-the-linear-ui
+  ("Inter Display ... for our headings ... regular Inter for the rest").
+- Maten en gebruik:
+  12 / 16  bronchips, eenheden in kopregels, tabelkopregel, datumkoppen in de rail, labels boven kerncijfers
+  13 / 18  secundaire regels (toelichting, bronregel, duur, caveat, subregels)
+  14 / 20  werktekst: tabelcellen, veldlabels, knoppen, chips in de composer, rail-rijen, tabs, trail-labels
+  16 / 24  composer, gebruikersbericht, uitleg van de AI, de regel onder de kop van het lege scherm
+  20 / 24  kerncijfers, meetwaarden, titel van een bevestiging
+  28 / 32  kop van het lege scherm
+  40 / 44  prijs op de telefoon
+  48 / 52  prijs op pc
+  Alle andere maten uit app.css (12,5 · 13,5 · 14,5 · 15 · 17 · 19 · 21 · clamp 30-44 · clamp 44-72) vervallen.
+  Bron: https://vercel.com/geist/text (label-14 "Most common text style of all"; copy-13 secundair; label-12
+  tertiair).
+- Cijfers overal tabular-nums; de euro als "€ 24.230" (spatie na het teken, punt als duizendtal, nl-BE zoals
+  ui.js al doet).
+
+6.2 Raster en afstanden
+- Afstanden alleen uit 2 · 4 · 8 · 16 · 24 · 32 · 48. Label → veld 4 · veld → veld 16 · binnenkant kaart 16 ·
+  kaart → kaart 24 · sectie → sectie 32 · paginarand 24 (telefoon 16) · tabelrij 8 boven en onder · trail-rijen 8
+  · lijstregels 8 · alinea's in de uitleg 16 · kop → inhoud 8. Bronnen: https://docs.stripe.com/stripe-apps/style
+  (2/4/8/16/24/32/48) · https://www.notion.com/blog/updating-the-design-of-notion-pages (afstand naar de buur).
+- Radius: 6 (invoer, knop, chip, toast, rail-rij) · 12 (kaarten, gebruikersbericht, banner, dialoog) · 16
+  (composer). Bron: https://vercel.com/geist/materials (6 / 12 / 16).
+- Schaduw: geen op vlakken op de pagina; alleen de lade van de rail (onder 1100 px), het "…"-menu, de toast en het
+  dialoogvenster krijgen 0 4 16 rgba(33,31,26,0.12). Bron: https://vercel.com/geist/materials (vlakken "On the
+  page", zwevend "Above the page").
+- Lijnen: één 1 px lijn g4 per sectie, geen kader rond elke sectie, geen kader in een kader, geen decoratieve
+  rasterlijnen. Bron: https://linear.app/blog/behind-the-latest-design-refresh ("fewer separators").
+
+6.3 Kleur (licht), gemeten contrast op 7 oktober 2026
+  g1  #fffdf8  hoofdvlak (gesprek, paneel, invoer)          — het merk-"vlak"
+  g2  #f4f1e8  rail, gebruikersbericht, hover op rijen       — het merk-"papier"
+  g3  #ebe6da  geselecteerde rij, neutrale chips, balkspoor
+  g4  #dcd5c6  lijnen en randen                              — de huidige --lijn
+  g5  #c9c1b0  hover-rand
+  g6  #aaa294  uitgeschakelde tekst
+  g7  #8a8378  placeholder, stille iconen (3,69:1 op g1; 3,01:1 op g3 — alleen iconen en placeholder)
+  g8  #6a645b  secundaire tekst (5,76:1 op g1; 5,18:1 op g2; 4,70:1 op g3)
+  g9  #56514a  tekst (7,73:1 op g1)                          — het merk-"tekst"
+  g10 #211f1a  inkt: koppen, cijfers, namen (16,19:1 op g1)   — het merk-"inkt"
+  merk #1e5b3a  hoofdknop (wit erop 8,04:1), actieve stap, focus, links, tab-onderstreep, chip "Gemeten" en
+                "Datatabel" (op #e2eee5: 6,73:1), vulling van de balken
+  ai   #85560a  op #f5e9cf (5,23:1): alleen de chips "AI-schatting" en "Standaard" en het AI-deel van de balk
+  fout #a3271b  (7,21:1 op g1): fouttekst, kruis-icoon, destructieve knoptekst; geen rood vlak
+  donker #0c2b1b  alleen de toast en de tooltip (tekst g1: 15,00:1); nooit als prijsvlak
+  Donkere modus: dezelfde rollen met de bestaande tokens uit app.css: vlak #111a15, papier #0a110e, lijn
+  #27352d, tekst #c3cbc2 (10,69:1 op het vlak), stil #939d93 (6,33:1), inkt #eef2ec (15,69:1), merk #4ec27e
+  (7,90:1; tekst #06140c erop 8,39:1), ai #e8bd62 op #3a2e10 (7,53:1), fout #ff8f82. De toast wordt #eef2ec met
+  inkt #111a15.
+  Bronnen: https://vercel.com/geist/colors (tien stappen met vaste rollen: 1-3 vlak, 4-6 rand, 9-10 tekst) ·
+  https://stripe.com/blog/accessible-color-systems (4,5:1 en 3,0:1) ·
+  https://linear.app/blog/how-we-redesigned-the-linear-ui (warm, weinig verzadiging, weinig accent).
+- Regel: merk staat nergens als achtergrond van een vlak of een tekstblok; amber staat nergens buiten de twee
+  chips en de balk. Bron: https://developers.openai.com/apps-sdk/concepts/design-guidelines ("Use brand accent
+  colors on primary buttons"; "Avoid custom gradients or patterns").
+
+6.4 Lege staten
+- Rail zonder berekeningen: "Nog geen berekeningen." (14 inkt) + "Elke berekening komt hier, met adres en prijs."
+  (13 g8); geen knop (de knop "Nieuwe berekening" staat erboven).
+- Zoekveld zonder treffers: "Geen berekening met 'dorp'." + link "Zoekopdracht wissen".
+- Paneel vóór stap 2: het skelet (4.2); nooit de zin "De berekening loopt."
+- Werkblad zonder overgeslagen posten: de regel "Niet meegerekend …" blijft weg (geen lege zin).
+- Datatabel-zoekveld zonder treffers: "Geen post met 'zink' in Hellend dak." + link "Zoek in alle vakken".
+  Bron: https://vercel.com/geist/empty-state (icoon 32, titel, één zin met nieuwe informatie, maximaal twee
+  knoppen met label Werkwoord + Naamwoord).
+
+6.5 Micro-copy (u-vorm; letterlijk overnemen)
+- Lege start: "Richtprijs-AI" · "Adres en klus. De richtprijs staat er binnen 60 seconden."
+- Composer: placeholder adres "Adres in Vlaanderen (optioneel): Straat 12, Gemeente" · placeholder klus "Hellend
+  dak 140 m², oude pannen eraf, 12 cm isolatie, nieuwe pannen, 2 dakramen." · vastgezet "Pas de klus aan, bv. met
+  3 dakramen in plaats van 2".
+- Voorbeeldchips (invoerteksten, geen uitkomsten): (1) de voorbeeldklus uit 0.2, als chip afgekapt tot "Zadeldak
+  halfopen woning: pannen, onderdak, sarking 12 cm, 2 dakramen…" · (2) "Halfopen woning. Voorgevel 8 m breed en
+  6 m hoog isoleren met 14 cm EPS en crepi. 3 ramen en 1 deur." · (3) "Plat dak 60 m² op een aanbouw: oude
+  roofing eraf, 12 cm PIR, EPDM, 2 afvoeren, 1 koepel." (de maten in 2 en 3 volgen RP.STANDAARDEN: 14 cm EPS,
+  12 cm PIR, EPDM).
+- Knoppen: "Bereken richtprijs" · "Stop" · "Bereken" · "Opnieuw berekenen" · "Opnieuw proberen" · "Schrijf
+  opnieuw" · "Korter" · "Uitgebreider" · "Kopieer" · "Herbereken met deze kenmerken" · "Herstel" · "Terug naar 94"
+  · "Terug naar startwaarde" · "Toepassen" · "Opslaan" / "Opgeslagen" · "Afdrukken" · "Nieuwe berekening" ·
+  "Verwijderen" / "Behouden" · "Herstel v1" / "Behoud v2" · "Naar het laatste" · "Bekijk resultaat" · "Terug naar
+  de berekening" · "Adres aanpassen" · "Meer".
+- Trail: "Gebouw opmeten op {adres}" · "Gemeten: dakvlak {n} m², {bebouwing}, nok {n} m" · "Meting
+  overgeslagen: geen adres" · "Geen gebouw gevonden op dit adres · gerekend met de maten uit de klus" · "Posten
+  schrijven uit de klus" · "{n} posten" · "Posten geschreven: {n} posten in {n} fases" · "Uitleg schrijven bij
+  € {prijs}" · "Uitleg geschreven" · "Klaar in {n} s · 3 stappen" · "Gestopt na stap {n} · {n} posten binnen" ·
+  "{n} s · vorige keer {n} s".
+- Paneel: tabs "Overzicht · Werkblad · Materiaal · Kenmerken" · "incl. 6 % btw" · "€ 22.859 excl. btw · € 243 per
+  m² dakvlak" · caveat "Richtprijs uit de kaartmeting, uw tarieven en de datatabel van 6 oktober 2026. 3 punten
+  controleert u bij het plaatsbezoek." · "97 % van de kostprijs uit de datatabel · 3 % AI-schatting" · "Waar het
+  geld zit" · "14 kleinere posten samen" · "Wat de prijs verschuift" · "Kostenopbouw" · "Niet gevraagd, wel nodig"
+  · "Niet meegerekend, omdat de AI geen cijfers gaf: …" · "Tussenstand € {n} · {n} posten".
+- Bronwoorden: "Gemeten" · "Uit de klus" · "Berekend" · "Standaard" · "Aangepast" · "Datatabel" · "AI-schatting".
+- Verouderd: "Geschreven bij € 24.230; de prijs is nu € {n}." · "v1 · tarieven gewijzigd" · "{n} kenmerken
+  aangepast".
+- Fouten: "De lokale server antwoordt niet." + "Start start.cmd opnieuw." · "De AI gaf geen bruikbare posten." ·
+  "Uitleg niet volledig aangekomen." · "Er lopen al 3 vragen. Wacht tot er één klaar is." · "Beschrijf de klus
+  met de soort werk en de maten." · "Geef straat, huisnummer en gemeente."
+- Toasts: "Opgeslagen" · "Gekopieerd" · "Berekening verwijderd".
+- Verboden woorden op het scherm: "Laden", "Bezig", "Even geduld", "Er ging iets mis", "Aan het denken",
+  "ongeveer", "mogelijk", "waarschijnlijk", "eventueel", drie puntjes achter een voltooid werkwoord.
+
+
+7. NIET DOEN (uit het onderzoek)
+--------------------------------
+ 1. Een typ-animatie die de stream vertraagt: "Users prefer fast and honest over slow and theatrical"
+    (https://www.setproduct.com/blog/ai-chat-interface-ui-design).
+ 2. De AI-tekst in bubbels: "Bubbles signal 'messenger' and undermine the tool framing" (idem).
+ 3. Een lange uitkomst in de gespreksstroom of in tien secties onder elkaar in plaats van een paneel ernaast
+    (https://support.claude.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them).
+ 4. Een stopknop die van plaats verandert, verdwijnt vóór de laatste stap, of naast de hoofdknop staat
+    (https://www.shapeof.ai/patterns/controls).
+ 5. Een stille pauze of één tekstregel als enige voortgang bij 20 tot 60 s werk: "A blank pause reads like
+    failure" (https://www.aiuxplayground.com/guides/designing-better-ai-chat-part-1).
+ 6. "Laden", "Bezig", "Working", "Processing…" en "De berekening loopt." als status
+    (https://www.smashingmagazine.com/2026/05/practical-interface-patterns-ai-transparency/ ·
+    https://developer.apple.com/tutorials/data/design/human-interface-guidelines/generative-ai.json ·
+    https://cloudscape.design/patterns/genai/genai-loading-states/).
+ 7. Een percentagebalk voor stappen met onvoorspelbare duur: hij hangt op de laatste procenten
+    (https://www.nngroup.com/articles/progress-indicators/ ·
+    https://www.smashingmagazine.com/2026/05/practical-interface-patterns-ai-transparency/).
+ 8. Een spinner als enig signaal langer dan 10 s (https://www.nngroup.com/articles/progress-indicators/) of een
+    laadstaat korter dan 1 s (https://cloudscape.design/gen-ai/patterns/progressive-steps/).
+ 9. innerHTML wissen en herbouwen per chunk; de cursor flikkert en de layout springt
+    (https://www.smashingmagazine.com/2026/05/designing-stable-interfaces-streaming-content/).
+10. Auto-scroll die tegen de lezer vecht terwijl hij omhoog scrolt (idem ·
+    https://www.setproduct.com/blog/ai-chat-interface-ui-design).
+11. Ruwe JSON of ruwe logs op het scherm: "you must sanitize and abstract these raw logs before display"
+    (https://www.smashingmagazine.com/2026/05/practical-interface-patterns-ai-transparency/).
+12. Zekerheid als percentage, balk of vork: numerieke zekerheid vraagt kansbegrip
+    (https://pair.withgoogle.com/chapter/explainability-trust/).
+13. Eén algemene AI-disclaimer die overal staat: "Assume they will be ignored" (https://www.shapeof.ai/patterns/caveat).
+14. AI-glow, gradients, verzadigde paarse paletten of merkkleur als vlak: "Don't use the Carbon for AI styling as
+    decoration" (https://carbondesignsystem.com/guidelines/carbon-for-ai/) · "Avoid custom gradients or patterns"
+    (https://developers.openai.com/apps-sdk/concepts/design-guidelines).
+15. Regeneratie die het vorige antwoord overschrijft (https://www.shapeof.ai/patterns/controls).
+16. De generieke fout "Er ging iets mis" zonder onderdeel, oorzaak en herstelknop; fouten in een popup ver van de
+    plek waar de gebruiker kijkt (https://www.nngroup.com/articles/prompt-controls-genai/ ·
+    https://docs.lovable.dev/features/projects/chat).
+17. Zwevende panelen over de inhoud: "They cramped the canvas" en "they slowed people down"
+    (https://www.figma.com/blog/our-approach-to-designing-ui3/).
+18. Icoonknoppen zonder label of tooltip (idem · https://www.nngroup.com/articles/prompt-controls-genai/).
+19. Alle tarieven, standaarden en de datatabel zichtbaar op het lege scherm: "The bar earns density only after
+    you pick a generative mode" (https://aiuxplayground.com/teardowns/chatgpt/composer).
+20. Suggestiechips die de composer blokkeren of niet weg kunnen (https://www.setproduct.com/blog/ai-chat-interface-ui-design).
+21. Lege cellen als blanco, "N/A" of "null"; kolomkoppen als zinnen (https://vercel.com/geist/table).
+22. Meer dan twee acties in één kaart; geneste scrollvakken; dubbele invoer
+    (https://developers.openai.com/apps-sdk/concepts/design-guidelines).
+23. Toasts langer dan 30 tekens of met een verplichte actie (https://docs.stripe.com/stripe-apps/patterns/communicating-state).
+24. Laadpuntjes achter een voltooid werkwoord, twee animaties op één regel (https://vercel.com/geist/loading-dots).
+25. Afstanden en lettergroottes buiten de schaal (https://docs.stripe.com/stripe-apps/style · https://vercel.com/geist/text).
+26. Te veel iconen, gekleurde icoonachtergronden, te veel scheidingslijnen, koud blauwgrijs
+    (https://linear.app/blog/behind-the-latest-design-refresh).
+27. Knoppen zonder functie (microfoon, bijlagen, modus-kiezer) omdat ChatGPT ze heeft; elke knop doet iets in
+    deze app (https://www.microsoft.com/en-us/haxtoolkit/library/ G1: maak duidelijk wat het systeem kan).
+28. Alles in één ronde herbouwen; Linear schoof de navigatie bewust door als "an unnecessary risk"
+    (https://linear.app/blog/how-we-redesigned-the-linear-ui). Volgorde voor ons: ronde 1 = drie zones, composer,
+    trail, prijskaart, paneel met vier tabs; ronde 2 = instellingen-weergave, versies, telefoon-segmenten; ronde 3
+    = print en rail-zoekveld.
+
+
+8. KLAAR-TEST VOOR EEN ONTWERP OP BASIS VAN DIT BRIEF
+-----------------------------------------------------
+- Screenshots op 1440, 1280 en 390 px van: leeg, bezig (stap 2 met 7 posten), klaar, fout (server weg), verouderd,
+  geschiedenis geladen; elk screenshot zelf bekeken vóór "kijk maar".
+- Gemeten: de eerste trail-rij staat binnen 1 s na de klik op het scherm (timestamp in de console).
+- grep op ui.js: geen "innerHTML = ''" in het pad van de uitleg-stream; grep op de teksten: "Laden", "Bezig",
+  "Er ging iets mis", "De berekening loopt" komen nul keer voor.
+- grep op app.css: alleen font-sizes uit 6.1 en afstanden uit 6.2; geen box-shadow op .kaart, .paneel, .rij.
+- Eén accentkleur: merk komt nergens als background op een tekstblok voor; amber alleen in .chip--ai, .chip--std
+  en .balk .a.
+- Contrast: g8 op g1, g2 en g3 ≥ 4,5:1 (gemeten 5,76 / 5,18 / 4,70).
+- Print van het voorbeeld: 2 pagina's A4 staand in Chrome.
+- Op 390 px: composer 44 px, hoofdknop 44 px, geen horizontale scroll, prijs boven de vouw na een berekening.
+
+
+9. BRONNEN (alle op 7 oktober 2026 geopend)
+-------------------------------------------
+https://www.assistant-ui.com/examples/chatgpt
+https://www.setproduct.com/blog/ai-chat-interface-ui-design
+https://aiuxplayground.com/teardowns/chatgpt/composer
+https://www.aiuxplayground.com/guides/designing-better-ai-chat-part-1
+https://support.claude.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them
+https://support.claude.com/en/articles/10574485
+https://docs.lovable.dev/features/projects/chat
+https://docs.lovable.dev/features/projects/editor
+https://linear.app/developers/agent-interaction
+https://cloudscape.design/gen-ai/patterns/progressive-steps/
+https://cloudscape.design/patterns/genai/genai-loading-states/
+https://www.smashingmagazine.com/2026/05/practical-interface-patterns-ai-transparency/
+https://www.smashingmagazine.com/2026/05/designing-stable-interfaces-streaming-content/
+https://elements.ai-sdk.dev/components/chain-of-thought
+https://elements.ai-sdk.dev/components/reasoning
+https://elements.ai-sdk.dev/components/prompt-input
+https://elements.ai-sdk.dev/components/shimmer
+https://www.shapeof.ai/patterns/controls
+https://www.shapeof.ai/patterns/caveat
+https://www.shapeof.ai/patterns/stream-of-thought
+https://www.shapeof.ai/patterns/follow-up
+https://www.nngroup.com/articles/response-times-3-important-limits/
+https://www.nngroup.com/articles/skeleton-screens/
+https://www.nngroup.com/articles/prompt-controls-genai/
+https://www.nngroup.com/articles/progress-indicators/
+https://pair.withgoogle.com/chapter/explainability-trust/
+https://vercel.com/geist/text
+https://vercel.com/geist/colors
+https://vercel.com/geist/materials
+https://vercel.com/geist/table
+https://vercel.com/geist/empty-state
+https://vercel.com/geist/loading-dots
+https://docs.stripe.com/stripe-apps/style
+https://docs.stripe.com/stripe-apps/patterns/communicating-state
+https://docs.stripe.com/stripe-apps/patterns/action-buttons
+https://linear.app/blog/how-we-redesigned-the-linear-ui
+https://linear.app/blog/behind-the-latest-design-refresh
+https://www.figma.com/blog/our-approach-to-designing-ui3/
+https://www.figma.com/blog/behind-our-redesign-ui3/
+https://carbondesignsystem.com/guidelines/carbon-for-ai/
+https://developers.openai.com/apps-sdk/concepts/design-guidelines
+https://www.jasonspielman.com/notebooklm
+https://stripe.com/blog/accessible-color-systems
+https://www.notion.com/blog/updating-the-design-of-notion-pages
+https://developer.apple.com/tutorials/data/design/human-interface-guidelines/generative-ai.json
+https://developers.raycast.com/information/best-practices
+https://www.microsoft.com/en-us/haxtoolkit/library/
+https://www.pcworld.com/article/2648110/microsofts-new-copilot-interface-looks-a-lot-like-one-you-already-know.html
+https://cursor.com/docs/agent/overview
+https://www.parallelhq.com/blog/llm-chat-ux-patterns
+
+
+10. LATER, NIET IN DEZE RONDE (vraagt een wijziging aan de prompt in motor.js of aan de server)
+---------------------------------------------------------------------------------------------
+- Een vraagkaart vóór stap 2 als een kenmerk ontbreekt dat meer dan 10 % van de prijs beweegt (Cursor Plan-modus,
+  Linear "Elicitation"): vraagt dat de AI een vraagregel kan sturen en de stroom pauzeert.
+- Nummers [n] in de uitleg die naar een post in het werkblad springen (Perplexity): vraagt een regel in
+  RP.bouwUitlegPrompt.
+- "Prijs klopt / klopt niet" per post met één getal, geschreven naar een logbestand voor de datatabel (HAX G15).
+- "Stuur naar het CRM" (GoHighLevel) als handoff-knop naast "Afdrukken".
