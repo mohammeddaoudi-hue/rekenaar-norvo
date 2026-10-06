@@ -60,9 +60,10 @@ toets('kenmerken ingevuld met bron', Object.keys(m.kenmerken || {}).length >= 10
 toets('vak herkend als hellend dak', r.vak === 'Hellend dak' && r.vlakNaam === 'dakvlak', r.vak + ' / ' + r.vlakNaam);
 toets('minstens 9 posten uit de datatabel', r.regels.filter((x) => x.bron === 'data').length >= 9, String(r.regels.filter((x) => x.bron === 'data').length));
 toets('geen onbekende codes', r.overgeslagen.length === 0);
-toets('dakvlak tussen 90 en 98 m2 (rekenkundig 94)', m.dakvlak_m2 >= 90 && m.dakvlak_m2 <= 98, String(m.dakvlak_m2));
+/* Zonder overstek is het dakvlak 94 m²; met de standaard-overstek (0,3 m goot, 0,2 m vrije gevel) 8,2 x 9,6 / cos 40° = 103 m². */
+toets('dakvlak tussen 94 en 106 m2 (94 zonder overstek, 103 met)', m.dakvlak_m2 >= 94 && m.dakvlak_m2 <= 106, String(m.dakvlak_m2));
 const ref = RP.bereken(RP.VOORBEELD.meetstaat, {}).kosten.incl;
-toets('prijs binnen 10% van de handmatige meetstaat', Math.abs(r.kosten.incl - ref) / ref <= 0.10, Math.round(r.kosten.incl) + ' tegen ' + Math.round(ref));
+toets('prijs binnen 15% van de handmatige meetstaat (die rekent zonder overstek)', Math.abs(r.kosten.incl - ref) / ref <= 0.15, Math.round(r.kosten.incl) + ' tegen ' + Math.round(ref));
 
 /* Vraag 2: de uitleg, met controle dat elk bedrag uit de berekening komt */
 const vraag = RP.bouwUitlegPrompt(klus, null, m, {});
@@ -87,9 +88,11 @@ const tijd2 = await stroom(vraag, (d) => { tekst += d; });
 console.log('\nUITLEG VAN DE AI (' + tijd2.eerste + ' ms tot de eerste tekst, ' + tijd2.totaal + ' ms totaal):\n' + tekst.trim() + '\n');
 const punten = tekst.split('\n').filter((s) => s.trim());
 toets('1 tot 6 punten', punten.length >= 1 && punten.length <= 6, String(punten.length));
-const bekend = new Set((vraag.slice(vraag.indexOf('BEREKENING:')).match(/-?\d+(?:\.\d+)?/g) || []).map((s) => String(Math.abs(Math.round(Number(s))))));
-const bedragen = (tekst.match(/€\s?[\d.]+(?:,\d+)?/g) || []).map((s) => s.replace(/[€\s.]/g, '').replace(/,\d+$/, ''));
-const vreemd = bedragen.filter((b) => !bekend.has(b));
+/* Elk bedrag in de uitleg moet als getal in de berekening staan (€ 57,5 = het uurtarief 57.5; € 6.385 = 6385). */
+const bekend = new Set();
+for (const s of (vraag.slice(vraag.indexOf('BEREKENING:')).match(/-?\d+(?:\.\d+)?/g) || [])) { const n = Math.abs(Number(s)); bekend.add(String(Math.round(n))); bekend.add(String(Math.floor(n))); bekend.add(String(n)); }
+const bedragen = (tekst.match(/€\s?[\d.]+(?:,\d+)?/g) || []).map((s) => Number(s.replace(/[€\s.]/g, '').replace(',', '.')));
+const vreemd = bedragen.filter((n) => !bekend.has(String(n)) && !bekend.has(String(Math.round(n))));
 toets('elk bedrag in de uitleg staat in de berekening', bedragen.length > 0 && vreemd.length === 0, bedragen.length + ' bedragen, niet teruggevonden: ' + (vreemd.join(', ') || 'geen'));
 toets('geen verboden woorden', !/\b(mogelijk|waarschijnlijk|ongeveer|eventueel|uiteraard|kortom)\b/i.test(tekst));
 
