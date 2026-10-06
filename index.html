@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Richtprijs-AI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Richtprijs-AI</h1>
+    <p class="lead">Geef het adres en beschrijf de klus. De app meet het gebouw op uit de kaartdata van Vlaanderen, de AI zet de klus om in stappen en hoeveelheden, de datatabel prijst en de rekencode telt op.</p>
+  </header>
+
+  <section class="blok" aria-label="De klus">
+    <div class="veld">
+      <label for="adres">Adres van het gebouw (Vlaanderen)</label>
+      <input id="adres" type="text" autocomplete="off" spellcheck="false" placeholder="Straat 12, Gemeente">
+    </div>
+    <div class="veld">
+      <label for="klus">De klus</label>
+      <textarea id="klus" spellcheck="false"></textarea>
+    </div>
+    <div class="acties">
+      <button class="knop" id="bereken" type="button">Bereken richtprijs</button>
+      <button class="knop knop--stil" id="stop" type="button" hidden>Stop</button>
+      <p id="status" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="blok" id="gemeten" hidden></section>
+
+  <section class="blok" id="kenmerken-blok" aria-labelledby="k-ken" hidden>
+    <h2 id="k-ken">Kenmerken van deze klus</h2>
+    <p class="klein">Ingevuld uit de beschrijving, de meting op het adres en de standaarden van de sector. Pas aan wat anders is en reken opnieuw.</p>
+    <div class="tarieven" id="kenmerken"></div>
+    <button class="knop knop--klein" id="herbereken" type="button" hidden>Herbereken met deze kenmerken</button>
+  </section>
+
+  <section class="paneel" id="uitkomst"></section>
+
+  <section class="blok na" aria-labelledby="k-hoe" hidden>
+    <h2 id="k-hoe">Hoe deze prijs tot stand komt</h2>
+    <h3>Waar het geld zit</h3>
+    <div class="geld" id="geld"></div>
+    <h3>Wat de prijs verschuift</h3>
+    <dl class="watals" id="watals"></dl>
+    <h3>Uitleg van de AI bij deze berekening</h3>
+    <div id="uitleg"></div>
+    <button class="knop knop--stil knop--klein" id="uitleg-opnieuw" type="button" hidden>Schrijf de uitleg opnieuw</button>
+  </section>
+
+  <section class="blok" aria-labelledby="k-tar">
+    <h2 id="k-tar">Tarieven van de aannemer</h2>
+    <p class="klein">Wijzig een waarde en de prijs rekent meteen mee.</p>
+    <div class="tarieven">
+      <div><label for="t-uurtarief">Uurtarief arbeid (€/u, excl. btw)</label><input id="t-uurtarief" type="number" inputmode="decimal" min="1" step="0.5"></div>
+      <div><label for="t-uren">Uren per werkdag</label><input id="t-uren" type="number" inputmode="decimal" min="1" max="12" step="0.5"></div>
+      <div><label for="t-ploeg">Ploeg (man)</label><input id="t-ploeg" type="number" inputmode="numeric" min="1" max="12" step="1"></div>
+      <div><label for="t-marge">Marge op materiaal (%)</label><input id="t-marge" type="number" inputmode="decimal" min="0" step="0.5"></div>
+      <div><label for="t-onvoorzien">Onvoorzien (%)</label><input id="t-onvoorzien" type="number" inputmode="decimal" min="0" step="0.5"></div>
+      <div><label for="t-btw">Btw</label><select id="t-btw"><option value="6">6% (woning ouder dan 10 jaar)</option><option value="21">21%</option></select></div>
+    </div>
+  </section>
+
+  <section class="blok" aria-labelledby="k-std">
+    <h2 id="k-std">Standaarden van de sector</h2>
+    <p class="klein">Wat de app aanneemt als de beschrijving en de meting niets zeggen. Aanpasbaar; blijft bewaard op deze pc en geldt voor de volgende berekening.</p>
+    <div class="tarieven" id="standaarden"></div>
+  </section>
+
+  <section class="blok na" aria-labelledby="k-werk" hidden>
+    <h2 id="k-werk">Werkblad per stap</h2>
+    <div id="werkblad"></div>
+  </section>
+
+  <section class="blok na" aria-labelledby="k-mat" hidden>
+    <h2 id="k-mat">Materiaallijst</h2>
+    <div id="materialen"></div>
+  </section>
+
+  <div class="twee na" hidden>
+    <section class="blok" aria-labelledby="k-eq">
+      <h2 id="k-eq">Materieel en afvoer</h2>
+      <div id="materieel"></div>
+    </section>
+    <section class="blok" aria-labelledby="k-kost">
+      <h2 id="k-kost">Kostenopbouw</h2>
+      <dl class="kosten" id="kosten"></dl>
+    </section>
+  </div>
+
+  <div class="twee na" hidden>
+    <section class="blok" aria-labelledby="k-aan">
+      <h2 id="k-aan">Aannames van de AI</h2>
+      <ul class="punten" id="aannames"></ul>
+    </section>
+    <section class="blok" aria-labelledby="k-pb">
+      <h2 id="k-pb">Te controleren bij het plaatsbezoek</h2>
+      <ul class="punten" id="plaatsbezoek"></ul>
+    </section>
+  </div>
+
+  <details>
+    <summary id="data-kop">Datatabel</summary>
+    <div class="data" id="data"></div>
+  </details>
+</div>
+
+<script src="data/basis.js"></script>
+<script src="data/dak.js"></script>
+<script src="data/gevel.js"></script>
+<script src="data/plat.js"></script>
+<script src="data/binnen.js"></script>
+<script src="motor.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
