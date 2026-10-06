@@ -24,6 +24,7 @@ const CLAUDE = process.env.CLAUDE_EXE || (fs.existsSync(eigenClaude) ? eigenClau
 const LEEG = fs.mkdtempSync(path.join(os.tmpdir(), 'richtprijs-'));
 const SYSTEEM = 'Je bent een rekenhulp voor Vlaamse aannemers. Je volgt het gevraagde antwoordformaat exact en schrijft niets buiten dat formaat.';
 const START = Date.now();
+const FOTOS = new Map();
 let poort = Number(process.env.PORT) || 4791;
 let lopend = 0;
 
@@ -102,6 +103,29 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === '/api/ping') return json(res, 200, { app: 'richtprijs-ai', model: MODEL, sinds: START });
     if (!url.pathname.startsWith('/api/')) return json(res, 404, { fout: 'Niet gevonden.' });
+    /* Luchtfoto van Vlaanderen (open data, WMS OMWRGBMRVL) voor het meetbeeld: een <img> stuurt geen eigen kop mee,
+       dus hier alleen de host-controle. Alleen een vierkant van 20 tot 400 m binnen Vlaanderen; de laatste 60 beelden in het geheugen. */
+    if (req.method === 'GET' && url.pathname === '/api/luchtfoto') {
+      const hosts = ['localhost:' + poort, '127.0.0.1:' + poort];
+      if (!hosts.includes(req.headers.host)) return json(res, 403, { fout: 'Alleen de eigen pagina.' });
+      const b = String(url.searchParams.get('bbox') || '').split(',').map(Number);
+      const px = Math.min(1024, Math.max(128, Math.round(Number(url.searchParams.get('px')) || 640)));
+      const zijde = b.length === 4 ? b[2] - b[0] : 0;
+      if (b.length !== 4 || !b.every(Number.isFinite) || zijde < 20 || zijde > 400 || Math.abs((b[3] - b[1]) - zijde) > 0.5 || b[0] < 20000 || b[2] > 260000 || b[1] < 150000 || b[3] > 250000) return json(res, 400, { fout: 'Geen geldig kaartvierkant.' });
+      const sleutel = b.map((n) => n.toFixed(1)).join(',') + '|' + px;
+      let beeld = FOTOS.get(sleutel);
+      if (!beeld) {
+        try {
+          const r = await fetch('https://geo.api.vlaanderen.be/OMWRGBMRVL/wms?service=WMS&version=1.3.0&request=GetMap&layers=Ortho&styles=&crs=EPSG:31370&format=image/png&width=' + px + '&height=' + px + '&bbox=' + b.join(','), { signal: AbortSignal.timeout(25000) });
+          if (!r.ok || !String(r.headers.get('content-type')).startsWith('image/')) return json(res, 502, { fout: 'De luchtfotodienst van Vlaanderen antwoordt niet.' });
+          beeld = Buffer.from(await r.arrayBuffer());
+          FOTOS.set(sleutel, beeld);
+          if (FOTOS.size > 60) FOTOS.delete(FOTOS.keys().next().value);
+        } catch (e) { return json(res, 502, { fout: 'De luchtfotodienst van Vlaanderen antwoordt niet.' }); }
+      }
+      res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'private, max-age=86400' });
+      return res.end(beeld);
+    }
     if (!eigen(req)) return json(res, 403, { fout: 'Alleen de eigen pagina mag deze dienst gebruiken.' });
 
     /* Instellingen van de aannemer (tarieven, standaarden, eigen cijfers in de datatabel): één JSON-bestand naast de app. */

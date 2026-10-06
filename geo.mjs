@@ -193,9 +193,31 @@ export async function meetAdres(vraag, opVoortgang = () => {}) {
     if (!rechthoekig && vorm !== 'plat') waarschuwingen.push('Samengesteld gebouw: noklengte en overspanning zijn niet af te leiden uit de contour; werk met het gemeten dakvlak.');
   }
 
+  /* Voor het meetbeeld in de pagina: de contour, de buren, de maatlijnen en de hoogtecellen, plus het vierkant voor de luchtfoto. */
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const zijde = Math.max(50, Math.max(maxX - minX, maxY - minY) * 1.8);
+  const minU = Math.min(...pu), maxU = Math.max(...pu), minV = Math.min(...pv), maxV = Math.max(...pv);
+  const punt = (uu, vv) => [rond(uu * u[0] + vv * v[0], 2), rond(uu * u[1] + vv * v[1], 2)];
+  const beeld = {
+    bbox: [rond(cx - zijde / 2, 1), rond(cy - zijde / 2, 1), rond(cx + zijde / 2, 1), rond(cy + zijde / 2, 1)],
+    zijde: rond(zijde, 1),
+    centrum: [rond(cx, 1), rond(cy, 1)],
+    adrespunt: [rond(p[0], 2), rond(p[1], 2)],
+    contour: ring.map((q) => [rond(q[0], 2), rond(q[1], 2)]),
+    buren: [...tegen].filter(([g]) => g.type === 'hoofdgebouw').map(([g]) => g.ring.map((q) => [rond(q[0], 2), rond(q[1], 2)])),
+    andere: gebouwen.filter((g) => g !== doel && !tegen.has(g)).slice(0, 60).map((g) => g.ring.map((q) => [rond(q[0], 2), rond(q[1], 2)])),
+    maten: [
+      { naam: 'lengte', waarde: rond(maatU), van: punt(minU, minV - 2.5), tot: punt(maxU, minV - 2.5) },
+      { naam: 'breedte', waarde: rond(maatV), van: punt(maxU + 2.5, minV), tot: punt(maxU + 2.5, maxV) },
+    ],
+    cellen: gemeten.map((q) => [rond(q.c[0], 1), rond(q.c[1], 1), rond(q.h, 1)]),
+    raster: stap,
+  };
+
   return {
     adres: hit.FormattedAddress,
     gebouw: { type: doel.type, oppervlakte: rond(A), omtrek: rond(O), lengte: rond(Math.max(maatU, maatV)), breedte: rond(Math.min(maatU, maatV)), opname: doel.opname || '', afstandTotAdres: rond(afstandTotAdres) },
+    beeld,
     bebouwing: { type: buren.length === 0 ? 'open' : buren.length === 1 ? 'halfopen' : 'gesloten', buren: buren.length, gemeneMuur: rond(gemeneMuur), aanbouw: rond(aanbouw), vrijeGevel: rond(O - gemeneMuur - aanbouw) },
     dak,
     waarschuwingen,

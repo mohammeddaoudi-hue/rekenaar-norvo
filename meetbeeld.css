@@ -1,0 +1,51 @@
+/* Meetbeeld: luchtfoto + contour + maten + scan. Werkt los van de rest van de pagina (eigen klassen, geen tokens nodig). */
+.meetbeeld{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:8px;background:#1b2a22;isolation:isolate}
+.meetbeeld__foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transform-origin:50% 50%;transform:scale(1);transition:transform 1100ms cubic-bezier(.2,.7,.2,1)}
+.meetbeeld.is-start .meetbeeld__foto{transform:scale(1.45)}
+.meetbeeld__laag{position:absolute;inset:0;width:100%;height:100%;display:block;transform-origin:50% 50%;transition:transform 1100ms cubic-bezier(.2,.7,.2,1)}
+.meetbeeld.is-start .meetbeeld__laag{transform:scale(1.45)}
+
+.mb-ander{fill:none;stroke:rgba(255,255,255,.28);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.mb-buur{fill:rgba(255,255,255,.06);stroke:rgba(255,255,255,.55);stroke-width:1.5;stroke-dasharray:6 5;vector-effect:non-scaling-stroke}
+.mb-zoom{fill:rgba(78,194,126,.14);stroke:rgba(255,255,255,.9);stroke-width:5;vector-effect:non-scaling-stroke;stroke-linejoin:round;opacity:0;transition:opacity 300ms ease 300ms}
+.mb-contour{fill:none;stroke:#4ec27e;stroke-width:2.5;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-dasharray:var(--lengte);stroke-dashoffset:var(--lengte);transition:stroke-dashoffset 900ms ease-in-out 350ms}
+.meetbeeld.is-meten .mb-zoom,.meetbeeld.is-klaar .mb-zoom{opacity:1}
+.meetbeeld.is-meten .mb-contour,.meetbeeld.is-klaar .mb-contour{stroke-dashoffset:0}
+
+.mb-cellen{opacity:0;transition:opacity 500ms ease 1500ms}
+.meetbeeld.is-meten .mb-cellen,.meetbeeld.is-klaar .mb-cellen{opacity:1}
+.mb-cel{fill:#4ec27e}
+
+.mb-scan{opacity:0}
+.mb-scanlijn{fill:#ffffff;filter:drop-shadow(0 0 6px rgba(255,255,255,.9))}
+.meetbeeld.is-meten .mb-scan{animation:mb-scan 1100ms ease-in-out 1250ms 1 both}
+@keyframes mb-scan{0%{opacity:0;transform:translateY(var(--van))}8%{opacity:1}92%{opacity:1}100%{opacity:0;transform:translateY(var(--tot))}}
+
+.mb-maten{opacity:0;transition:opacity 400ms ease 2300ms}
+.meetbeeld.is-meten .mb-maten,.meetbeeld.is-klaar .mb-maten{opacity:1}
+.mb-maat{stroke:#ffffff;stroke-width:1.5;vector-effect:non-scaling-stroke;stroke-linecap:round}
+.mb-label{fill:rgba(12,43,27,.92)}
+.mb-labeltekst{fill:#ffffff;font:600 22px/1 'IBM Plex Sans','Segoe UI',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+
+.mb-pin{opacity:0;transition:opacity 300ms ease 200ms}
+.meetbeeld.is-meten .mb-pin,.meetbeeld.is-klaar .mb-pin{opacity:1}
+.mb-pinkern{fill:#ffffff;stroke:#0c2b1b;stroke-width:2;vector-effect:non-scaling-stroke}
+.mb-pinring{fill:none;stroke:#ffffff;stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:.7}
+
+.meetbeeld__tekst{position:absolute;left:12px;right:12px;bottom:12px;display:grid;gap:2px;padding:10px 12px;border-radius:6px;background:rgba(12,43,27,.88);color:#f1f5ef;font:13px/1.4 'IBM Plex Sans','Segoe UI',system-ui,sans-serif;font-variant-numeric:tabular-nums;opacity:0;transform:translateY(6px);transition:opacity 400ms ease 2400ms,transform 400ms ease 2400ms}
+.meetbeeld__tekst b{font-weight:600;font-size:13.5px}
+.meetbeeld__tekst span{color:#cfe3d6}
+.meetbeeld.is-meten .meetbeeld__tekst,.meetbeeld.is-klaar .meetbeeld__tekst{opacity:1;transform:none}
+.meetbeeld__bron{position:absolute;top:10px;right:12px;padding:3px 8px;border-radius:4px;background:rgba(12,43,27,.7);color:#cfe3d6;font:11px/1.3 'IBM Plex Sans','Segoe UI',system-ui,sans-serif}
+
+.meetbeeld--compact .meetbeeld__tekst{display:none}
+.meetbeeld--compact .meetbeeld__bron{display:none}
+.meetbeeld--compact .mb-labeltekst{font-size:30px}
+.meetbeeld--compact .mb-label{}
+
+/* Stil (prefers-reduced-motion of animatie uit): alles staat meteen. */
+.meetbeeld--stil .meetbeeld__foto,.meetbeeld--stil .meetbeeld__laag{transition:none;transform:none}
+.meetbeeld--stil .mb-zoom,.meetbeeld--stil .mb-contour,.meetbeeld--stil .mb-cellen,.meetbeeld--stil .mb-maten,.meetbeeld--stil .mb-pin,.meetbeeld--stil .meetbeeld__tekst{transition:none}
+.meetbeeld--stil .mb-contour{stroke-dashoffset:0}
+.meetbeeld--stil .mb-scan{display:none}
+@media (prefers-reduced-motion: reduce){.meetbeeld *{transition:none!important;animation:none!important}.meetbeeld .mb-contour{stroke-dashoffset:0}}
