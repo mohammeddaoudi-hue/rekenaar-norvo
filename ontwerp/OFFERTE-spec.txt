@@ -1,0 +1,183 @@
+RICHTPRIJS-AI — SPECIFICATIE OFFERTE-OMVORMING
+================================================
+
+Status: versie 1, 7 oktober 2026. Vervangt: niets (eerste spec voor de offerte). Voor: de bouwer. Niet voor de eigenaar.
+Opdracht van de eigenaar, letterlijk: "redeneren en perfect nadenken over hoe ziet een offerte in belgische bouwsector eruit,
+want niet alle dingen bij kostprijsberekening is een offerte".
+
+Hoe deze spec werkt
+- Elke keuze eindigt met een bron: een url die op 7 oktober 2026 geopend en nagelezen is (lijst in deel 8), of "eigen kennis".
+- Elk bedrag in de voorbeelden komt uit motor.js (RP.analyse op RP.VOORBEELD.meetstaat, gedraaid op 7 oktober 2026 met de
+  starttarieven: uurtarief 57,50, 8 uur per dag, marge 15 %, onvoorzien 5 %, btw 6 %). De uitkomst van die run:
+  excl. btw 22.792,48 · btw 6 % 1.367,55 · incl. btw 24.160,03 · 6 werkdagen · 2 weken huur · 3 man. Verzin geen andere cijfers.
+  (Het patroon-brief van 7 oktober noemt 24.230; dat was een oudere motor.js. De motor wint.)
+- Codewoorden uit motor.js: r = RP.bereken(...) (via a.r), a = RP.analyse(m, tarieven), regel = element van r.regels,
+  a.inPrijs(regel) = arbeidKost × fOnv + (matKost + huurKost) × fMat = wat de regel in de prijs excl. btw kost,
+  a.fMat = (1 + marge) × fOnv, r.materieel = rijen met soort huur | dag | container | bigbag | afvoer | werfwagen,
+  r.kosten.excl/btw/incl, m.aannames, m.plaatsbezoek, r.overgeslagen, DATA.posten[code].keuze.
+- Taal op het document: Nederlands, Vlaams register, "u". Geen hedge-woorden. Geen emoji's. Geen "Richtprijs-AI" of
+  "Norvo" op het document: de offerte is het contractdocument van de aannemer (eigen kennis).
+
+
+1. WAT EEN OFFERTE IS EN WAT NIET
+---------------------------------
+
+ 1. Een offerte is een bindend aanbod van de aannemer aan de klant: tekent de klant "voor akkoord", dan is de offerte de
+    overeenkomst. Daarom staat alles wat de klant bindt (prijs, termijn, betaling, voorwaarden) in de offerte zelf.
+    Bron: https://www.teamleader.eu/nl/blog/is-een-offerte-bindend ("De overeenkomst ontstaat doordat een aanbod, bijvoorbeeld
+    een offerte, wordt aanvaard").
+ 2. De kostprijsberekening is het intern werkblad van de aannemer: hoe hij aan zijn prijs komt. De offerte is wat de klant
+    koopt: een resultaat per post tegen één prijs per post. Dezelfde data, twee documenten, nooit gemengd (eigen kennis;
+    forumpraktijk: https://www.bouwinfo.be/bouwforum/threads/offerte-stukken-duurder-dan-werkelijk-gepresteerde-uren.334545/
+    "Je hebt je akkoord gegeven voor een vaste prijs voor een bepaalde klus. Is het werk nu op 1 dag of op 7 dagen uitgevoerd
+    doet hier niks ter zaken").
+ 3. De offerte toont de totstandkoming van de prijs als posten per hoofdstuk van werken met hoeveelheid, eenheid, eenheidsprijs
+    en totaal, plus het totaal excl. btw, het btw-tarief, het btw-bedrag en het totaal incl. btw.
+    Bron: https://www.vlaanderen.be/veka/energie-en-klimaatbeleid/europees-beleid-en-financiering/fosster-project/laat-je-vakmanschap-spreken-al-vanaf-de-offerte
+    ("Totale prijs excl. BTW, het BTW-tarief, het BTW-bedrag en de totale prijs incl. BTW").
+ 4. Voor een consument is de meegedeelde prijs de totale prijs inclusief btw, in euro, leesbaar en ondubbelzinnig. Het bedrag
+    incl. btw is het grootste cijfer op het document. Bron: https://news.economie.fgov.be/227005-mag-een-product-meer-kosten-in-de-winkel-dan-op-de-webshop/
+    ("de totale prijs die je moet betalen. Hij is inclusief btw en alle andere taksen of diensten die je verplicht extra moet betalen").
+ 5. Het document heet "Offerte". De woorden "richtprijs", "raming", "schatting" en "indicatief" komen er niet op voor: een raming
+    bindt niet en opent de deur naar een hogere factuur. Bron: https://www.vrt.be/vrtnws/nl/2024/04/03/verschil-offerte-raming-factuur/
+    (eigen kennis voor de woordkeuze).
+ 6. Deze interne gegevens komen NOOIT op de offerte:
+    - manuren per post (regel.uren), mandagen, r.uren, r.mandagen;
+    - het uurtarief (r.t.uurtarief, € 57,50) als tarief van een post; het verschijnt op precies één plaats: de clausule
+      Meerwerken, als regietarief (deel 2h);
+    - inkoopprijzen van materiaal (regel.mat[].prijs, regel.matKost), de marge (r.t.materiaalmarge, r.marge, r.kosten.margeBedrag),
+      de kolom "Materiaal" van het werkblad;
+    - onvoorzien (r.t.onvoorzien, r.kosten.onvoorzien) als regel of als percentage (deel 2j);
+    - afvalgewicht in kg of ton (regel.afvalKg, r.afvalKg, r.afvalPerSoort, x.afvalKg), stortprijs per ton, dichtheid, "naar
+      boven"-gewicht (regel.matKg, r.matKg);
+    - de huurprijs per week van de stelling en het aantal weken (r.weken) als getal naast een prijs;
+    - de bronlabels "Datatabel" en "AI-schatting" (regel.bron), r.aandeelData, de balk;
+    - de labels "Niet gevraagd, wel nodig", regel.gevraagd, regel.waarom (de reden blijft intern; de post zelf blijft);
+    - regel.toelichting (de rekenweg van de hoeveelheid, bv. "2 × 8 m × 5,87 m");
+    - de kenmerken met hun bronchips, de meting op het adres, de luchtfoto, de uitleg van de AI, "waar het geld zit", "wat de
+      prijs verschuift", de kostenopbouw (arbeid / materiaal / materieel / subtotaal / onvoorzien), de prijs per m²;
+    - m.plaatsbezoek als lijst "te controleren" (die wordt alleen als voorbehoud geprint, deel 2i);
+    - codes (dak.sarking120), DATA.stand, status "eigen", de datum van de datatabel, de ploeggrootte, het aantal werkdagen als
+      planningsgetal (de uitvoeringstermijn is een eigen veld, deel 3.8).
+    Bronnen: Bouwinfo 334545 (uren op papier lokken "sneller klaar = korting" uit), eigen kennis.
+ 7. Vertaalprincipe: elke regel van r.regels wordt één offerteregel; elke rij van r.materieel met een kost wordt één forfaitregel;
+    de kostprijs van een regel (a.inPrijs) wordt de verkoopprijs van die regel. Niets wordt weggelaten, niets wordt herrekend met
+    een andere formule: de som van alle offerteregels is r.kosten.excl, op de cent (deel 2a en 5).
+ 8. Werk dat de klant niet vroeg maar dat nodig is (regel.gevraagd = false) staat gewoon in de tabel. Een offerte zonder de nok,
+    de gevelpannen of de stelling is onvolledig en dus misleidend. Bron: https://news.economie.fgov.be/242035-transparantie-in-bouwcontracten-garanderen/
+    ("Het is net zo belangrijk om misleidende informatie te voorkomen").
+ 9. Wat de klant kan weglaten (DATA.posten[code].keuze bestaat) kan de aannemer "in optie" zetten: de post verhuist naar een
+    eigen blok onder het totaal en zit niet in het totaal. Bron: https://support.robaws.com/en/article/working-with-line-types-and-chapters-536ga0/
+    ("The price is not included in the total amount. Appears in grey and italics on the pdf").
+10. De offerte heeft drie staten: concept (bewerkbaar), uitgegeven (afgedrukt; bevroren kopie bewaard, deel 4.6) en vervallen
+    (na "geldig tot"). Een uitgegeven offerte verandert nooit meer; een wijziging is een nieuwe versie met een nieuw nummer
+    (2026-0001-v2). Eigen kennis.
+
+
+2. VERTAALREGELS KOSTPRIJS → OFFERTE
+------------------------------------
+
+Vaste volgorde van de bewerking (de bouwer implementeert ze als één pure functie offerteVan(m, tarieven, offerteInstellingen,
+offerteKeuzes) → { hoofdstukken, opties, totalen, teksten }; geen DOM, testbaar met laad.cjs):
+  stap 1  lijnen maken uit r.regels en r.materieel (2a-2d)
+  stap 2  opties eruit halen (2f)
+  stap 3  eenheidsprijzen en forfaits afronden (2a, 5)
+  stap 4  sluitpost zetten zodat de hoofdtabel exact r.kosten.excl − Σ opties is (2a)
+  stap 5  hoofdstukken en subtotalen (2e), btw en totalen (3.6), teksten (2g-2j)
+
+2a. Elke regel van r.regels wordt één offerteregel
+- omschrijving = de naam van de post zonder interne toevoegingen. Startwaarde: regel.naam, waaruit het programma een
+  haakjesgroep schrapt als die één van deze woorden bevat: "forfait", "interventie", "per lopende meter", "per paneel",
+  "per m² raam", "per m² glas", "per m² rolluik", "per lm omtrek", "hoeveelheid =". Gemeten op 7 oktober 2026 over alle 222
+  posten: "Herstelling losse of gebroken pannen (kleine interventie, forfait in uren)" → "Herstelling losse of gebroken pannen";
+  "Kepers of gordingen vervangen (per lopende meter nieuw hout)" → "Kepers of gordingen vervangen"; "Werfinrichting: werfkeet,
+  toilet en stroomaansluiting (forfait)" → zonder "(forfait)"; "Dakraam vervangen op een bestaande opening (zelfde maat, nieuw
+  gootstuk en manchet)" blijft volledig (dat is productinformatie). "Kleipannen leggen (klein formaat, 20,7 per m²)" blijft
+  staan: het formaat is productinformatie en het aantal per m² is geen prijsgegeven. De aannemer kan elke omschrijving in het
+  formulier overschrijven (deel 4.3); de overschreven tekst wordt bij de berekening bewaard. Bron voor "werk + materiaal/type +
+  maat" in de omschrijving: https://www.test-aankoop.be/woning-energie/isolatie/dossier/buitengevelisolatie/checklist-voor-offertes
+  ("merk- en productnaam", "dikte en de technische kenmerken (zgn. lambda- en R-waarde)"). Schrapregels: eigen kennis.
+- hoeveelheid = regel.hoeveelheid; eenheid = regel.eenheid (m², lm, st, m³). Posten met eenheid "u" of "dag" worden forfait (2d).
+- exact = a.inPrijs(regel). Onvoorzien zit erin (fOnv), de marge op materiaal en huur zit erin (fMat). Niets wordt bijgeteld.
+- eenheidsprijs excl. btw = exact ÷ hoeveelheid, afgerond op een stap die van de hoogte van de eenheidsprijs afhangt:
+    eenheidsprijs onder € 10          → stap € 0,10
+    van € 10 tot onder € 100          → stap € 0,50
+    van € 100 tot onder € 1.000       → stap € 1
+    vanaf € 1.000                     → stap € 5
+  Afronden = naar de dichtstbijzijnde stap (half omhoog). Reden voor de trappen: een vaste stap van € 0,50 geeft bij een post
+  van € 5,54 per m² (onderdakfolie) een fout van 9 %, bij een post van € 1.050 per stuk (dakraam) een schijnprecisie die geen
+  aannemer schrijft. Eigen kennis; de ronde praktijkprijzen staan op https://www.bobex.be/nl-be/dakwerken/dakwerken-offerte/
+  ("Verwijdering en afvoer dakpannen: € 25 per vierkante meter", "Plaatsing PIR-dakisolatie: € 45 per vierkante meter").
+- regeltotaal = afgeronde eenheidsprijs × hoeveelheid, afgerond op de cent. Nooit het exacte bedrag.
+- Sluitpost (zo blijft het offertetotaal exact gelijk aan het berekende totaal):
+  T = r.kosten.excl. T_hoofd = T − Σ regeltotaal van de optieregels (2f). D = T_hoofd − Σ regeltotaal van alle hoofdtabelregels
+  na afronding. De sluitpost is de forfaitregel (2d) met het grootste exacte bedrag; haar regeltotaal = haar afgeronde bedrag + D,
+  op de cent. Is er geen forfaitregel, dan is de sluitpost de regel met het grootste regeltotaal: haar eenheidsprijs wordt
+  (regeltotaal + D) ÷ hoeveelheid op de cent, en het restverschil (hoogstens hoeveelheid × € 0,005) blijft staan en wordt intern
+  getoond. Guard: zou de sluitpost door D onder 50 % van haar exacte bedrag zakken, dan deelt het programma alle stappen door 5
+  (0,50 → 0,10 → 0,02 ...) en rekent opnieuw; bij stap 0,01 stopt het. Het programma toont de aannemer intern (niet op de
+  offerte) "Afrondingsverschil opgevangen in post 1.1: + € 9,35" (= D). Eigen kennis.
+  Voorbeeldklus (run 7 oktober 2026): Σ hoofdtabel vóór sluitpost 22.785,25; D = + 7,23; sluitpost = Gevelstelling (exact
+  1.622,88, afgerond 1.625,00) → 1.632,23; totaal excl. btw 22.792,48 = r.kosten.excl. Kleine klus "goten reinigen 20 lm"
+  (exact 111,09, geen forfait): eenheidsprijs 5,55 → regeltotaal 111,00, restverschil 0,09 (0,08 %).
+- Alle offerteregels van de voorbeeldklus na deze regels (omschrijving · hoeveelheid · eenheidsprijs · regeltotaal):
+    Gevelstelling met dakrandbeveiliging plaatsen en afbreken      forfait              1.632,23 (sluitpost)
+    Pannenlift voor aan- en afvoer van materiaal                   forfait                435,00
+    Werfwagen, vervoer en verplaatsingen                           forfait                325,00
+    Afvoer en verwerking steenpuin: 1 container 10 m³              forfait                495,00
+    Afvoer en verwerking hout: 1 container 10 m³                   forfait                360,00
+    Oude pannen, latten en onderdak afbreken en naar de container brengen   94 m²   13,50   1.269,00
+    Onderdakfolie plaatsen                                         94 m²     5,50          517,00
+    Sarking-isolatie PIR 12 cm plaatsen                            94 m²    62,00        5.828,00
+    Tengellatten plaatsen                                          94 m²     4,90          460,60
+    Panlatten op maat plaatsen                                     94 m²    10,50          987,00
+    Kleipannen leggen (klein formaat, 20,7 per m²)                 94 m²    42,50        3.995,00
+    Nok afwerken met nokpannen en ondervorst                        8 lm    67,50          540,00
+    Vrije dakrand afwerken met gevelpannen                        11,7 lm   70,50          824,85
+    Zinken aansluiting op het dak van de buur                     11,7 lm   64,00          748,80
+    Schouw aansluiten met loodslabben                               1 st   519,00          519,00
+    Dakraam plaatsen met gootstuk                                   2 st 1.050,00        2.100,00
+    Zinken hanggoot vervangen                                      16 lm    70,00        1.120,00
+    Zinken regenafvoer vervangen                                   12 lm    53,00          636,00
+  Totaal excl. btw 22.792,48 · btw 6 % 1.367,55 · totaal incl. btw 24.160,03. Dit is de klaar-test van de bouwer (deel 7).
+
+2b. Regels met bron "ai" zijn gewone regels
+- Zelfde vertaling als 2a; omschrijving = p.naam zoals de AI hem gaf ("Zinken aansluiting op het dak van de buur"). Het label
+  "AI-schatting" blijft intern. De aannemer ziet in het formulier wel een amberkleurig puntje naast de regel, zodat hij weet dat
+  hij die prijs zelf moet beoordelen vóór hij uitgeeft (eigen kennis; ijk: de bronchips uit het patroon-brief 5.6).
+
+2c. Regels met gevraagd = false blijven in de offerte, zonder label
+- De post staat in zijn hoofdstuk als elke andere post. regel.waarom wordt NIET geprint. Reden: deel 1, punt 8. De aannemer
+  kan de post niet schrappen vanuit het offerteformulier (de berekening is de bron; schrappen gebeurt in de berekening).
+
+2d. Forfaits en de samenvoeging van r.materieel
+- Forfait = één bedrag zonder hoeveelheid en zonder eenheidsprijs; in de kolommen hoeveelheid/eenheid staat "forfait", de
+  kolom eenheidsprijs blijft leeg, de kolom aard toont "FH". Afronding op € 5, behalve de sluitpost (2a).
+- Deze regels van r.regels worden forfait:
+  (1) elke regel met fase "Werfinrichting" (dak.stelling, dak.zeil, alg.werfinrichting, alg.valbeveiliging, alg.parkeerverbod,
+      alg.inname, alg.kraan, alg.levering, alg.afdekken, alg.stofscherm, gevel- en platdak-stellingen);
+  (2) elke regel met eenheid "u" (dak.herstel.pannen, dak.goot.herstel, alg.inboedel, alg.opkuis) of "dag" (alg.inname, alg.kraan).
+  De stelling print als "Gevelstelling met dakrandbeveiliging plaatsen en afbreken · forfait": de m² stelling, de huur per
+  week en de 2 weken blijven intern; de huur zit in regel.huurKost en dus in a.inPrijs. Bron voor stelling en afvoer als eigen
+  posten: https://www.test-aankoop.be/woning-energie/isolatie/dossier/buitengevelisolatie/checklist-voor-offertes ("wat in de
+  prijs vervat zit en vooral ook wat niet"); forfait in plaats van m² stelling: eigen kennis.
+- r.materieel wordt zo vertaald (x = rij):
+  soort "huur"      → geen regel (zit al in de regel van de post die het materieel huurt; anders telt de huur dubbel).
+  soort "dag"       → één forfaitregel per rij, fase "Werfinrichting", bedrag = x.kost × a.fMat; omschrijving uit deze tabel:
+                      Pannenlift → "Pannenlift voor aan- en afvoer van materiaal" · Werfwagen en verplaatsing → "Werfwagen, vervoer
+                      en verplaatsingen" · Hoogwerker → "Hoogwerker, huur en transport" · Stofafzuiging en afdekking → ongewijzigd.
+                      Het aantal dagen blijft intern.
+  soort "container" → één forfaitregel per afvalsoort, fase "Werfinrichting", bedrag = x.kost × a.fMat; omschrijving
+                      "Afvoer en verwerking {soortnaam}: {n} container(s) 10 m³". soortnaam: puin → steenpuin · hout → hout ·
+                      rest → gemengd bouwafval · isolatie → isolatie · asbest → asbestcement (verpakt). Nooit kg, ton of prijs per ton.
+  soort "bigbag"    → idem, "Afvoer en verwerking {soortnaam}: {n} big bag(s)".
+  soort "werfwagen" (klein restje, kost 0) en soort "afvoer" (oud metaal naar de schroothandel, kost 0) → geen regel; één vaste zin
+                      in het blok Inbegrepen (3.7): "Afvoer van kleine restfracties en van oud metaal (zink, lood) naar de schroothandel."
+  Een rij met kost 0 wordt nooit een regel van € 0,00.
+- Het hoofdstuk waarin de forfaits staan heet "Werfinrichting" en, zodra er een afvoerregel in staat, "Werfinrichting en afvoer".
+  Reden: de klant ziet de algemene kosten (stelling, lift, vervoer, containers) in één blok vooraan; de werkposten volgen
+  zonder vermenging. Eigen kennis.
+- Opkuis: alg.opkuis (eenheid u) wordt forfait "Opkuis van de werf en oplevering" in zijn fase Afwerking. Staat alg.opkuis niet
+  in de berekening, dan dekt de zin "Opkuis van de werf na de werken" in het blok Inbegrepen het (eigen kennis).
+
+[[VERVOLG]]

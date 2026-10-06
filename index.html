@@ -4,110 +4,233 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Richtprijs-AI</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="meetbeeld.css">
 </head>
-<body>
-<div class="wrap">
-  <header>
-    <h1>Richtprijs-AI</h1>
-    <p class="lead">Geef het adres en beschrijf de klus. De app meet het gebouw op uit de kaartdata van Vlaanderen, de AI zet de klus om in stappen en hoeveelheden, de datatabel prijst en de rekencode telt op.</p>
-  </header>
+<body class="leeg rail-open">
+<!-- Iconen: één keer gedefinieerd, overal hergebruikt met <use>. -->
+<svg hidden aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-menu" viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12"/></symbol>
+  <symbol id="i-meer" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="12.5" cy="8" r="1"/></symbol>
+  <symbol id="i-rail" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 3v10"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+  <symbol id="i-klok" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></symbol>
+  <symbol id="i-tandwiel" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><circle cx="8" cy="8" r="5.2"/><path d="M8 1.5v1.3M8 13.2v1.3M1.5 8h1.3M13.2 8h1.3M3.4 3.4l.9.9M11.7 11.7l.9.9M3.4 12.6l.9-.9M11.7 4.3l.9-.9"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 16 16"><path d="M8 14s4.5-4.2 4.5-7.5a4.5 4.5 0 1 0-9 0C3.5 9.8 8 14 8 14z"/><circle cx="8" cy="6.5" r="1.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+  <symbol id="i-vink" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></symbol>
+  <symbol id="i-rond" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></symbol>
+  <symbol id="i-streep" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5.5 8h5"/></symbol>
+  <symbol id="i-kruis" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4"/></symbol>
+  <symbol id="i-driehoek" viewBox="0 0 16 16"><path d="M8 2.5l6 11H2z"/><path d="M8 6.5v3M8 11.5v.5"/></symbol>
+  <symbol id="i-spinner" viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 1-4.2 1.7"/></symbol>
+  <symbol id="i-omlaag" viewBox="0 0 16 16"><path d="M4 6.5l4 4 4-4"/></symbol>
+  <symbol id="i-omhoog" viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></symbol>
+  <symbol id="i-terug" viewBox="0 0 16 16"><path d="M10 4L6 8l4 4"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1.5"/></symbol>
+  <symbol id="i-bewaar" viewBox="0 0 16 16"><path d="M2.5 2.5h8.5l2.5 2.5v8.5h-11z"/><path d="M5 2.5v3.5h5V2.5M5 13.5V10h6v3.5"/></symbol>
+  <symbol id="i-kopie" viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8.5" height="8.5" rx="1"/><path d="M2.5 10.5V3.5a1 1 0 0 1 1-1h7"/></symbol>
+  <symbol id="i-print" viewBox="0 0 16 16"><path d="M4 6V2h8v4M4 12H2V6h12v6h-2"/><rect x="4" y="9.5" width="8" height="4.5"/></symbol>
+  <symbol id="i-offerte" viewBox="0 0 16 16"><path d="M3.5 2.5h6l3 3v8h-9z"/><path d="M9.5 2.5v3h3M5.5 8.5h5M5.5 11h5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7 11l-1 1a2.5 2.5 0 0 1-3.5-3.5l1-1M9 5l1-1a2.5 2.5 0 0 1 3.5 3.5l-1 1"/></symbol>
+  <symbol id="i-zoek" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></symbol>
+  <symbol id="i-prullenbak" viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5v-2h3v2M4 4.5l.7 9h6.6l.7-9"/></symbol>
+</svg>
 
-  <section class="blok" aria-label="De klus">
-    <div class="veld">
-      <label for="adres">Adres van het gebouw (Vlaanderen)</label>
-      <input id="adres" type="text" autocomplete="off" spellcheck="false" placeholder="Straat 12, Gemeente">
-    </div>
-    <div class="veld">
-      <label for="klus">De klus</label>
-      <textarea id="klus" spellcheck="false"></textarea>
-    </div>
-    <div class="acties">
-      <button class="knop" id="bereken" type="button">Bereken richtprijs</button>
-      <button class="knop knop--stil" id="stop" type="button" hidden>Stop</button>
-      <p id="status" role="status" aria-live="polite"></p>
-    </div>
-  </section>
-
-  <section class="blok" id="gemeten" hidden></section>
-
-  <section class="blok" id="kenmerken-blok" aria-labelledby="k-ken" hidden>
-    <h2 id="k-ken">Kenmerken van deze klus</h2>
-    <p class="klein">Ingevuld uit de beschrijving, de meting op het adres en de standaarden van de sector. Pas aan wat anders is en reken opnieuw.</p>
-    <div class="tarieven" id="kenmerken"></div>
-    <button class="knop knop--klein" id="herbereken" type="button" hidden>Herbereken met deze kenmerken</button>
-  </section>
-
-  <section class="paneel" id="uitkomst"></section>
-
-  <section class="blok na" aria-labelledby="k-hoe" hidden>
-    <h2 id="k-hoe">Hoe deze prijs tot stand komt</h2>
-    <h3>Waar het geld zit</h3>
-    <div class="geld" id="geld"></div>
-    <h3>Wat de prijs verschuift</h3>
-    <dl class="watals" id="watals"></dl>
-    <h3>Uitleg van de AI bij deze berekening</h3>
-    <div id="uitleg"></div>
-    <button class="knop knop--stil knop--klein" id="uitleg-opnieuw" type="button" hidden>Schrijf de uitleg opnieuw</button>
-  </section>
-
-  <section class="blok" aria-labelledby="k-tar">
-    <h2 id="k-tar">Tarieven van de aannemer</h2>
-    <p class="klein">Wijzig een waarde en de prijs rekent meteen mee.</p>
-    <div class="tarieven">
-      <div><label for="t-uurtarief">Uurtarief arbeid (€/u, excl. btw)</label><input id="t-uurtarief" type="number" inputmode="decimal" min="1" step="0.5"></div>
-      <div><label for="t-uren">Uren per werkdag</label><input id="t-uren" type="number" inputmode="decimal" min="1" max="12" step="0.5"></div>
-      <div><label for="t-ploeg">Ploeg (man)</label><input id="t-ploeg" type="number" inputmode="numeric" min="1" max="12" step="1"></div>
-      <div><label for="t-marge">Marge op materiaal (%)</label><input id="t-marge" type="number" inputmode="decimal" min="0" step="0.5"></div>
-      <div><label for="t-onvoorzien">Onvoorzien (%)</label><input id="t-onvoorzien" type="number" inputmode="decimal" min="0" step="0.5"></div>
-      <div><label for="t-btw">Btw</label><select id="t-btw"><option value="6">6% (woning ouder dan 10 jaar)</option><option value="21">21%</option></select></div>
-    </div>
-  </section>
-
-  <section class="blok" aria-labelledby="k-std">
-    <h2 id="k-std">Standaarden van de sector</h2>
-    <p class="klein">Wat de app aanneemt als de beschrijving en de meting niets zeggen. Aanpasbaar; blijft bewaard op deze pc en geldt voor de volgende berekening.</p>
-    <div class="tarieven" id="standaarden"></div>
-  </section>
-
-  <section class="blok na" aria-labelledby="k-werk" hidden>
-    <h2 id="k-werk">Werkblad per stap</h2>
-    <div id="werkblad"></div>
-  </section>
-
-  <section class="blok na" aria-labelledby="k-mat" hidden>
-    <h2 id="k-mat">Materiaallijst</h2>
-    <div id="materialen"></div>
-  </section>
-
-  <div class="twee na" hidden>
-    <section class="blok" aria-labelledby="k-eq">
-      <h2 id="k-eq">Materieel en afvoer</h2>
-      <div id="materieel"></div>
-    </section>
-    <section class="blok" aria-labelledby="k-kost">
-      <h2 id="k-kost">Kostenopbouw</h2>
-      <dl class="kosten" id="kosten"></dl>
-    </section>
-  </div>
-
-  <div class="twee na" hidden>
-    <section class="blok" aria-labelledby="k-aan">
-      <h2 id="k-aan">Aannames van de AI</h2>
-      <ul class="punten" id="aannames"></ul>
-    </section>
-    <section class="blok" aria-labelledby="k-pb">
-      <h2 id="k-pb">Te controleren bij het plaatsbezoek</h2>
-      <ul class="punten" id="plaatsbezoek"></ul>
-    </section>
-  </div>
-
-  <details>
-    <summary id="data-kop">Datatabel</summary>
-    <div class="data" id="data"></div>
-  </details>
+<div class="topbalk">
+  <button class="ikoonknop" type="button" data-rail title="Berekeningen" aria-label="Berekeningen"><svg class="ic"><use href="#i-menu"/></svg></button>
+  <span class="midden-titel" data-titel>Richtprijs-AI</span>
+  <button class="ikoonknop" type="button" data-menu title="Opslaan, Kopieer, Afdrukken, Verwijderen" aria-label="Meer acties"><svg class="ic vol"><use href="#i-meer"/></svg></button>
 </div>
+<div class="segment" role="tablist">
+  <button type="button" data-seg="berekening">Berekening</button>
+  <button type="button" data-seg="resultaat" id="seg-resultaat">Resultaat</button>
+</div>
+
+<div class="werk">
+  <aside class="rail" aria-label="Berekeningen en instellingen">
+    <div class="rail-open-inhoud">
+      <div class="rail-kop"><span class="merk" aria-hidden="true"></span><span class="rail-titel">Richtprijs-AI</span><button class="ikoonknop" type="button" data-rail title="Rail inklappen" aria-label="Rail inklappen"><svg class="ic"><use href="#i-rail"/></svg></button></div>
+      <button class="nieuw" type="button" data-nieuw><svg class="ic"><use href="#i-plus"/></svg><span>Nieuwe berekening</span></button>
+      <div class="rail-lijst" id="rail-lijst"></div>
+      <div class="rail-voet">
+        <button type="button" data-voorbeeld title="Laadt het voorbeeld"><svg class="ic"><use href="#i-klok"/></svg><span>Voorbeeld: zadeldak halfopen woning, 94 m²</span></button>
+        <button type="button" data-instellingen="open"><svg class="ic"><use href="#i-tandwiel"/></svg><span>Instellingen</span></button>
+      </div>
+    </div>
+    <div class="rail-dicht-inhoud">
+      <div class="rail-kop"><span class="merk" aria-hidden="true"></span></div>
+      <button class="ikoonknop" type="button" data-nieuw title="Nieuwe berekening" aria-label="Nieuwe berekening"><svg class="ic"><use href="#i-plus"/></svg></button>
+      <button class="ikoonknop" type="button" data-rail title="Eerdere berekeningen" aria-label="Eerdere berekeningen"><svg class="ic"><use href="#i-klok"/></svg></button>
+      <button class="ikoonknop onder" type="button" data-instellingen="open" title="Instellingen" aria-label="Instellingen"><svg class="ic"><use href="#i-tandwiel"/></svg></button>
+    </div>
+  </aside>
+
+  <main class="midden" aria-label="Berekening">
+    <div class="midden-kop">
+      <button class="ikoonknop menuknop" type="button" data-rail title="Berekeningen" aria-label="Berekeningen"><svg class="ic"><use href="#i-menu"/></svg></button>
+      <span class="midden-titel" data-titel></span>
+      <span class="chip" id="versie-kop" hidden>v1</span>
+    </div>
+    <div class="stroom" id="stroom">
+      <div class="banner" id="banner" hidden>
+        <b>De lokale server antwoordt niet.</b>
+        <span>Start start.cmd opnieuw.</span>
+        <button class="knop knop--36 knop--stil" type="button" id="banner-opnieuw">Opnieuw proberen</button>
+      </div>
+      <div class="leeg-blok">
+        <h1>Richtprijs-AI</h1>
+        <p class="regel16">Adres en klus. De richtprijs staat er binnen 60 seconden.</p>
+        <div class="opdracht" id="opdracht">
+          <div class="opdracht-open">
+            <div class="adresrij"><svg class="ic"><use href="#i-pin"/></svg><input id="adres" type="text" autocomplete="off" spellcheck="false" placeholder="Adres in Vlaanderen (optioneel): Straat 12, Gemeente" aria-label="Adres"></div>
+            <textarea id="klus" rows="3" spellcheck="false" placeholder="Hellend dak 140 m², oude pannen eraf, 12 cm isolatie, nieuwe pannen, 2 dakramen." aria-label="Klus"></textarea>
+            <p class="foutregel" id="klus-fout" hidden>Beschrijf de klus met de soort werk en de maten.</p>
+            <div class="asbest">
+              <span class="vraag" id="asbest-vraag">Asbest aanwezig in dak of gevel?</span>
+              <div class="keuze" role="radiogroup" aria-labelledby="asbest-vraag">
+                <label><input type="radio" name="asbest" value="ja"><span>Ja</span></label>
+                <label><input type="radio" name="asbest" value="nee"><span>Nee</span></label>
+                <label><input type="radio" name="asbest" value="onbekend" checked><span>Onbekend</span></label>
+              </div>
+            </div>
+            <div class="voet" id="opdracht-voet">
+              <span class="status-rust" id="opdracht-status"></span>
+              <button class="knop" id="bereken" type="button">Bereken richtprijs</button>
+            </div>
+          </div>
+          <div class="opdracht-dicht" id="opdracht-dicht">
+            <span class="samenvatting" id="samenvatting"></span>
+            <button class="knop knop--36 knop--stil" id="wijzig" type="button">Wijzig</button>
+          </div>
+        </div>
+        <div class="voorbeelden" id="voorbeelden"></div>
+        <div class="leeg-uitleg">
+          <p class="klein">Meet uit de kaart: grondoppervlak, bebouwing, dakvorm, dakvlak, nokhoogte.</p>
+          <p class="klein">Meet niet: binnenruimtes, staat van het dak, bereikbaarheid. Schrijf die in de klus.</p>
+        </div>
+      </div>
+      <button id="stop" type="button" hidden>Stop</button>
+      <div class="trail" id="trail" hidden></div>
+      <div class="prijs-compact" id="prijs-compact"></div>
+      <section class="toelichting" id="toelichting" aria-live="polite" aria-atomic="false" hidden>
+        <h2 class="toelichting-kop">Toelichting bij de prijs</h2>
+        <div class="strook" id="strook" hidden><span id="strook-tekst"></span><button class="tekstknop" type="button" data-uitleg-opnieuw><svg class="ic"><use href="#i-klok"/></svg>Schrijf opnieuw</button></div>
+        <div class="bronnen" id="bronnen"></div>
+        <ul class="punten" id="uitleg"></ul>
+        <p class="klein uitleg-staat" id="uitleg-staat" hidden></p>
+        <div class="lijstje" id="aannames-blok" hidden><h4>Aannames</h4><ul id="aannames"></ul></div>
+        <div class="lijstje" id="plaatsbezoek" hidden><h4>Te controleren bij het plaatsbezoek</h4><ul id="plaatsbezoek-lijst"></ul></div>
+        <div class="acties" id="uitleg-acties" hidden>
+          <button class="tekstknop" type="button" data-uitleg-opnieuw><svg class="ic"><use href="#i-klok"/></svg>Schrijf opnieuw</button>
+          <button class="tekstknop" type="button" data-kopieer="uitleg"><svg class="ic"><use href="#i-kopie"/></svg>Kopieer</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <section class="paneel" id="paneel" data-tab="overzicht" aria-label="Resultaat">
+    <div class="paneel-kop">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" data-tab-knop="overzicht">Overzicht</button>
+        <button type="button" role="tab" data-tab-knop="werkblad">Werkblad</button>
+        <button type="button" role="tab" data-tab-knop="materiaal">Materiaal</button>
+        <button type="button" role="tab" data-tab-knop="kenmerken">Kenmerken</button>
+      </div>
+      <div class="paneel-acties">
+        <span class="chip" id="versie-paneel" hidden>v1</span>
+        <span class="acties-breed">
+          <button class="tekstknop" type="button" id="opslaan" disabled><svg class="ic"><use href="#i-bewaar"/></svg><span>Opslaan</span></button>
+          <button class="tekstknop" type="button" data-kopieer="alles" disabled><svg class="ic"><use href="#i-kopie"/></svg>Kopieer</button>
+        </span>
+        <button class="tekstknop" type="button" data-print disabled><svg class="ic"><use href="#i-print"/></svg>Afdrukken</button>
+        <button class="tekstknop" type="button" id="offerte" disabled title="Offerte: volgende versie"><svg class="ic"><use href="#i-offerte"/></svg>Offerte</button>
+        <button class="ikoonknop acties-meer" type="button" data-menu title="Opslaan, Kopieer" aria-label="Meer acties"><svg class="ic vol"><use href="#i-meer"/></svg></button>
+      </div>
+    </div>
+    <div class="paneel-inhoud" id="paneel-inhoud">
+      <div class="tab tab--overzicht">
+        <section class="sectie" id="uitkomst"><p class="sr">Nog geen berekening.</p></section>
+        <section class="sectie" id="geld-sectie"></section>
+        <section class="sectie watals-sectie" id="watals-sectie"></section>
+        <section class="sectie" id="kosten-sectie"></section>
+      </div>
+      <div class="tab tab--werkblad">
+        <section class="sectie">
+          <div class="tabel kol-werk" id="werkblad"></div>
+          <p class="klein" id="overgeslagen" hidden></p>
+        </section>
+      </div>
+      <div class="tab tab--materiaal">
+        <section class="sectie" id="materialen-sectie"></section>
+        <section class="sectie" id="materieel-sectie"></section>
+      </div>
+      <div class="tab tab--kenmerken">
+        <section class="sectie">
+          <div class="sectie-kop"><h3>Kenmerken van de klus</h3></div>
+          <p class="klein">Ingevuld uit de klus, de meting en de standaarden. Pas aan wat anders is en herbereken.</p>
+          <div class="velden" id="kenmerken"></div>
+          <div class="plakbalk" id="plakbalk" hidden>
+            <span class="tekst" id="plakbalk-tekst"></span>
+            <button class="knop knop--36" type="button" id="herbereken">Herbereken met deze kenmerken</button>
+            <button class="knop knop--36 knop--stil" type="button" id="herstel">Herstel</button>
+          </div>
+        </section>
+        <section class="sectie">
+          <div class="sectie-kop"><h3>Gemeten op het adres</h3><span class="rechts" id="gemeten-adres"></span></div>
+          <div class="meetbeeld-wrap" id="meetbeeld" hidden></div>
+          <div id="gemeten" hidden></div>
+          <p class="klein" id="gemeten-leeg">Geen meting: er was geen adres.</p>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section class="instellingen" id="instellingen" aria-label="Instellingen">
+    <div class="inst-kop">
+      <button class="knop knop--36 knop--stil" type="button" data-instellingen="dicht"><svg class="ic"><use href="#i-terug"/></svg>Terug naar de berekening</button>
+      <h2>Instellingen</h2>
+    </div>
+    <div class="inst-body">
+      <nav class="inst-lijst" id="inst-lijst"><a class="is-actief" href="#tarieven">Tarieven</a><a href="#standaarden">Standaarden</a><a href="#datatabel">Datatabel</a></nav>
+      <div class="inst-inhoud">
+        <section class="inst-sectie" id="tarieven">
+          <div class="sectie-kop"><h3>Tarieven</h3><span class="rechts" id="tarieven-staat">Bewaard</span></div>
+          <p class="klein" style="margin-bottom:16px">Geldt meteen voor de open berekening. Bewaard op deze pc.</p>
+          <div class="velden" id="tarieven-velden"></div>
+        </section>
+        <section class="inst-sectie" id="standaarden">
+          <div class="sectie-kop"><h3>Standaarden van de sector</h3><span class="rechts" id="standaarden-aantal"></span></div>
+          <p class="klein">Wat de app aanneemt als de klus en de meting niets zeggen. Geldt voor de volgende berekening.</p>
+          <div id="standaarden-groepen"></div>
+        </section>
+        <section class="inst-sectie inst-sectie--breed" id="datatabel">
+          <div class="sectie-kop"><h3>Datatabel</h3><span class="rechts" id="datatabel-kop"></span></div>
+          <p class="klein">Norm en inkoopprijzen zonder btw. Uw eigen cijfer vervangt de startwaarde; de bron opent in een nieuw tabblad.</p>
+          <div class="zoek" style="margin-top:16px"><svg class="ic"><use href="#i-zoek"/></svg><input id="data-zoek" type="search" placeholder="Zoek op naam of code" aria-label="Zoek in de datatabel"></div>
+          <div class="vakken" id="vakken"></div>
+          <div id="posten"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="menu" id="menu" hidden>
+  <button type="button" data-menu-actie="opslaan"><svg class="ic"><use href="#i-bewaar"/></svg>Opslaan</button>
+  <button type="button" data-menu-actie="kopieer"><svg class="ic"><use href="#i-kopie"/></svg>Kopieer</button>
+  <button type="button" data-menu-actie="print"><svg class="ic"><use href="#i-print"/></svg>Afdrukken</button>
+  <button type="button" class="rood" data-menu-actie="verwijder"><svg class="ic"><use href="#i-prullenbak"/></svg>Verwijderen</button>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+<dialog class="bevestig" id="bevestig">
+  <h3 id="bevestig-titel"></h3>
+  <p id="bevestig-tekst"></p>
+  <div class="knoppen"><button class="knop knop--36 knop--stil" type="button" id="bevestig-nee">Behouden</button><button class="knop knop--36 knop--rood" type="button" id="bevestig-ja">Verwijderen</button></div>
+</dialog>
+<p id="status" role="status" aria-live="polite"></p>
 
 <script src="data/basis.js"></script>
 <script src="data/dak.js"></script>
@@ -118,6 +241,7 @@
 <script src="data/vloer.js"></script>
 <script src="data/alg.js"></script>
 <script src="motor.js"></script>
+<script src="meetbeeld.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>
