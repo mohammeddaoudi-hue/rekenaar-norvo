@@ -83,6 +83,9 @@ body.rail-open .rail-dicht-inhoud{display:none}
 .rail-rij > button.laad{flex:1;min-width:0;padding:8px 0;display:block}
 .rail-rij b{display:block;font-weight:400;color:var(--g10);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rail-rij span.sub{display:block;font-size:13px;line-height:18px;color:var(--g8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-rij .rail-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;min-width:0}
+.rail-rij .rail-chips .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.chip--grijs{background:var(--g3);color:var(--g8);font-weight:400}
 .rail-rij .meer{opacity:0}
 .rail-rij:hover .meer,.rail-rij:focus-within .meer,.rail-rij.is-actief .meer{opacity:1}
 .rail-leeg{padding:8px 12px}
@@ -107,6 +110,7 @@ body.leeg .midden-kop{border-bottom:0}
 .banner{border:1px solid var(--g4);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
 .banner b{display:block;font-weight:600;color:var(--g10)}
 .banner .knop{align-self:flex-start}
+.banner-knoppen{display:flex;flex-wrap:wrap;gap:8px}
 
 /* leeg blok: kop + opdrachtkaart gecentreerd; na de klik wordt het blok de volle kolom en blijft alleen de kaart over */
 .leeg-blok{width:100%;display:flex;flex-direction:column}
@@ -302,9 +306,11 @@ body:not(.leeg) .leeg-blok{position:sticky;top:0;z-index:3;background:var(--g1);
 .veld .in:focus-within{border-color:var(--g5)}
 .veld .in.is-fout,.veld .in.is-fout:focus-within{border-color:var(--fout)}
 .veld .in input,.veld .in select{border:0;background:none;width:100%;min-width:0;padding:0;color:var(--g10);height:34px}
+.veld .in:has(input:disabled){background:var(--g2)}
+.veld .in input:disabled{color:var(--g7)}
 .veld .in input:focus-visible,.veld .in select:focus-visible{outline:none}
 .veld .in .eenheid{color:var(--g8);flex:none;padding-left:8px}
-.veld .terug{display:block;margin-top:4px}
+.veld .terug,.veld .veld-hint{display:block;margin-top:4px}
 .plakbalk{position:sticky;bottom:0;margin:24px -24px -24px;padding:16px 24px;background:var(--g1);border-top:1px solid var(--g4);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .plakbalk .tekst{color:var(--g10);flex:1}
 .versie-balk{position:static;margin:0;padding:12px 24px;border-top:0;border-bottom:1px solid var(--g4);background:var(--g2);flex:none}
@@ -389,6 +395,8 @@ body.off-bevroren .off-body{grid-template-columns:minmax(0,1fr)}
 .off-velden textarea:focus-visible{outline:none;border-color:var(--g5)}
 .off-velden textarea.lang{min-height:320px;font-size:13px;line-height:18px}
 .off-vink{display:flex;align-items:flex-start;gap:8px;color:var(--g10);padding:4px 0;cursor:pointer}
+/* Een vinkje in een .veld is geen veldlabel: vakje en tekst links naast elkaar (de regel .veld label zet ze anders uit elkaar). */
+.veld .off-vink{justify-content:flex-start;align-items:flex-start;font-size:14px;line-height:20px;color:var(--g10);margin-bottom:0}
 .off-vink input{margin:3px 0 0;accent-color:var(--merk);flex:none}
 .off-vink small{display:block;font-size:13px;line-height:18px;color:var(--g8)}
 .off-vinken{display:flex;flex-direction:column;gap:2px}
@@ -423,56 +431,70 @@ body.off-bevroren .off-body{grid-template-columns:minmax(0,1fr)}
 .off-lijst .link{align-self:flex-start;margin-top:4px}
 .off-doc-wrap{overflow:auto;padding:24px;min-width:0;min-height:0}
 .off-doc-zoom{transform-origin:0 0;width:210mm}
-.doc{width:210mm;min-height:297mm;padding:18mm;margin:0;background:#fff;color:#000;font:10pt/1.35 Arial,Helvetica,sans-serif;font-variant-numeric:tabular-nums;box-shadow:0 4px 24px rgba(33,31,26,.14);-webkit-font-smoothing:auto}
+/* Het document: A4 met marges van 15 mm (spec deel 3); op het scherm één doorlopend blad, bij afdrukken de @page-regel uit #off-page-css.
+   Maten (opdracht 7 okt): tabel 9,5 pt, voorwaarden 8,5 pt in twee kolommen, 6 mm wit tussen de blokken. */
+.doc{width:210mm;min-height:297mm;padding:15mm;margin:0;background:#fff;color:#000;font:10pt/1.32 Arial,Helvetica,sans-serif;font-variant-numeric:tabular-nums;box-shadow:0 4px 24px rgba(33,31,26,.14);-webkit-font-smoothing:auto}
 .doc *{box-sizing:border-box}
-.doc h1{font:700 15pt/1.2 Arial,Helvetica,sans-serif;margin:0 0 2mm;color:#000}
-.doc h2{font:700 10.5pt/1.3 Arial,Helvetica,sans-serif;margin:4.5mm 0 1.2mm;color:#000;break-after:avoid}
-.doc p{margin:0 0 1.5mm}
-.doc ul,.doc ol{margin:0 0 1.5mm;padding-left:5mm}
-.doc li{margin:0 0 0.5mm}
+.doc h1{font:700 15pt/1.2 Arial,Helvetica,sans-serif;margin:0 0 1.5mm;color:#000}
+.doc h2{font:700 10.5pt/1.3 Arial,Helvetica,sans-serif;margin:0 0 1.2mm;color:#000;break-after:avoid}
+.doc p{margin:0 0 1.2mm}
+.doc p:last-child{margin-bottom:0}
+.doc ul,.doc ol{margin:0;padding-left:5mm}
+.doc li{margin:0 0 0.3mm}
 .doc .kop{display:flex;justify-content:space-between;align-items:flex-start;gap:10mm;margin-bottom:6mm}
 .doc .logo{height:18mm;width:auto;max-width:80mm;display:block;object-fit:contain}
 .doc .naamgroot{font:700 14pt/1.2 Arial,Helvetica,sans-serif}
-.doc .bedrijf{text-align:right;font-size:9pt;line-height:1.45;color:#222}
+.doc .bedrijf{text-align:right;font-size:8.5pt;line-height:1.4;color:#222}
 .doc .bedrijf b{font-size:10.5pt;color:#000}
 .doc .partijen{display:flex;justify-content:space-between;align-items:flex-start;gap:10mm;margin-bottom:6mm}
-.doc .klant{min-width:60mm;line-height:1.45}
+.doc .klant{min-width:60mm;line-height:1.4}
 .doc .label{font-size:7.5pt;text-transform:uppercase;letter-spacing:.06em;color:#555;margin-bottom:1mm}
 .doc table.meta{border-collapse:collapse;font-size:9.5pt}
 .doc table.meta td{padding:0.5mm 0 0.5mm 6mm;vertical-align:top;border-bottom:0.5pt solid #ddd}
 .doc table.meta td:first-child{color:#444;padding-left:0}
-.doc .omschrijving{margin:0 0 4mm}
-.doc table.posttabel{width:100%;table-layout:fixed;border-collapse:collapse;font-size:10pt;margin:2mm 0 2mm}
-.doc .posttabel th{text-align:left;font-weight:700;border-bottom:0.5pt solid #000;padding:1mm 0.8mm;vertical-align:bottom;font-size:8pt;line-height:1.2;white-space:normal}
-.doc .posttabel td{padding:1mm 1.2mm;vertical-align:top;border-bottom:0.5pt solid #d0d0d0;overflow-wrap:anywhere}
+.doc .titel{font-weight:700}
+.doc .omschrijving{margin:0}
+.doc table.posttabel{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5pt;line-height:1.28;margin:4mm 0 0}
+.doc .posttabel th{text-align:left;font-weight:700;border-bottom:0.5pt solid #000;padding:0.8mm 1mm;vertical-align:bottom;font-size:8pt;line-height:1.2;white-space:normal}
+.doc .posttabel td{padding:0.8mm 1mm;vertical-align:top;border-bottom:0.5pt solid #d0d0d0;overflow-wrap:anywhere}
 .doc .posttabel .g{text-align:right;white-space:nowrap}
 .doc .posttabel th.g{text-align:right;white-space:normal}
 .doc .posttabel .nr{white-space:nowrap;color:#333}
-.doc .posttabel tr.hoofdstuk td{font-weight:700;border-top:0.5pt solid #000;border-bottom:0;padding-top:2.4mm}
-.doc .posttabel tr.sub td{font-weight:700;border-bottom:0.5pt solid #000;padding-bottom:1.6mm}
+/* Eenheid staat links naast de rechts uitgelijnde hoeveelheid: wat meer lucht ertussen. */
+.doc .posttabel th:nth-child(4),.doc .posttabel td:nth-child(4){padding-left:2.2mm}
+.doc .posttabel tr.hoofdstuk td{font-weight:700;border-top:0.5pt solid #000;border-bottom:0;padding-top:1.8mm}
+.doc .posttabel tr.sub td{font-weight:700;border-bottom:0.5pt solid #000;padding-bottom:1.2mm}
 .doc .posttabel tr.optie td{color:#333;font-style:italic}
 .doc .posttabel tr{break-inside:avoid}
 .doc .posttabel thead{display:table-header-group}
-.doc table.totalen{margin-left:auto;width:85mm;border-collapse:collapse;margin-top:3mm;break-inside:avoid}
-.doc .totalen td{padding:1.4mm 1.5mm;border-bottom:0.5pt solid #d0d0d0}
+.doc table.totalen{margin-left:auto;width:88mm;border-collapse:collapse;margin-top:2mm;break-inside:avoid}
+.doc .totalen td{padding:1mm 1.5mm;border-bottom:0.5pt solid #d0d0d0}
 .doc .totalen td.g{text-align:right;white-space:nowrap}
-.doc .totalen tr.eind td{font-weight:700;font-size:12pt;border-top:0.5pt solid #000;border-bottom:1pt solid #000;padding:2mm 1.5mm}
-.doc .klein{font-size:8.5pt;line-height:1.35;color:#333}
-.doc .blok{break-inside:avoid}
+.doc .totalen tr.eind td{font-weight:700;font-size:12pt;border-top:0.5pt solid #000;border-bottom:1pt solid #000;padding:1.6mm 1.5mm}
+.doc .onder-tabel{margin-top:3mm}
+.doc .klein{font-size:8.5pt;line-height:1.3;color:#333}
+/* Witruimte tussen de blokken: 6 mm. Een blok breekt niet over twee pagina's, behalve de lange opsomming. */
+.doc .blok{margin-top:6mm;break-inside:avoid}
 .doc .blok--lang{break-inside:auto}
-.doc .blok--lang li{break-inside:avoid}
-.doc table.schijven{border-collapse:collapse;margin:0 0 2mm}
-.doc .schijven td{padding:0.8mm 6mm 0.8mm 0}
+/* Opmerkingen en uitsluitingen als doorlopende opsomming: één alinea, de punten genummerd achter elkaar. */
+.doc .doorlopend{orphans:2;widows:2}
+.doc .doorlopend b{font-weight:700}
+/* Voorwaarden (op de offerte en de algemene voorwaarden): 8,5 pt in twee kolommen. */
+.doc .kolommen{column-count:2;column-gap:6mm;font-size:8.5pt;line-height:1.3;orphans:2;widows:2}
+.doc .kolommen p{margin:0 0 1.2mm}
+.doc table.schijven{border-collapse:collapse;margin:0 0 1.2mm}
+.doc .schijven td{padding:0.4mm 6mm 0.4mm 0}
 .doc .schijven td.g{text-align:right;padding-right:0;white-space:nowrap}
-.doc .vak{margin-top:2mm}
-.doc .hand{display:flex;gap:8mm;margin-top:4mm;break-inside:avoid}
-.doc .hand > div{flex:1;border:0.5pt solid #000;padding:3mm;min-height:34mm}
-.doc .hand b{display:block;margin-bottom:3mm}
-.doc .hand p{margin:0 0 5mm;color:#333}
-.doc .av{font-size:9pt;line-height:1.35;break-before:page}
-.doc .av h2{margin-top:0}
-.doc .av p{margin:0 0 1.8mm}
-.doc .av .paraaf{margin-top:6mm}
+.doc .vak{margin-top:1.2mm}
+.doc .hand{display:flex;gap:8mm;margin-top:3mm;break-inside:avoid}
+.doc .hand > div{flex:1;border:0.5pt solid #000;padding:2.5mm 3mm;min-height:30mm}
+.doc .hand b{display:block;margin-bottom:2.5mm}
+.doc .hand p{margin:0 0 4mm;color:#333}
+/* Algemene voorwaarden op een eigen pagina; de bijlage herroeping (alleen bij ondertekening bij de klant thuis) ook. */
+.doc .av{break-before:page;margin-top:12mm}
+.doc .av .paraaf{margin-top:4mm;font-size:8.5pt}
+/* De bijlage staat onder een knipstreep; past ze niet meer op de pagina van de voorwaarden, dan schuift ze in haar geheel door. */
+.doc .bijlage{break-inside:avoid;margin-top:8mm;padding-top:6mm;border-top:0.5pt dashed #000}
 .doc .bijlage .lijn{margin:0 0 4mm;border-bottom:0.5pt solid #000;padding-bottom:1mm}
 .doc .leeg{color:#999}
 .doc .doc-leeg{padding:40mm 0;text-align:center;color:#666}
@@ -570,6 +592,7 @@ body.off-bevroren .off-body{grid-template-columns:minmax(0,1fr)}
   body.offerte-open .topbalk{display:none}
   .off-kop{height:auto;flex-wrap:wrap;gap:8px;padding:8px 16px}
   .off-kop h2{flex:1}
+  .off-kop #off-staat{white-space:normal;flex-basis:100%}
   .off-nog{margin-left:0;flex-basis:100%}
   .off-segment{display:grid;position:static}
   body.offerte-open .off-segment{display:grid}
@@ -619,24 +642,54 @@ body.off-bevroren .off-body{grid-template-columns:minmax(0,1fr)}
 
 /* ---------- print ---------- */
 @media print{
-  .rail,.opdracht,.trail,.tabs,.paneel-acties,.topbalk,.segment,.plakbalk,.instellingen,.watals-sectie,.prijs-compact,.banner,.toast,.menu,.toelichting .punten,.toelichting .acties,.toelichting .bronnen,.toelichting-kop,.strook,.uitleg-staat,.leeg-uitleg,.voorbeelden,.leeg-blok h1,.leeg-blok .regel16,.tariefchips,.rekenpad,.tab--materiaal,#geld-sectie,.balk,.legende,.fase .ic,.naam-knop .ic,.meetbeeld-wrap{display:none!important}
-  body{background:#fff;color:#000;font-size:10pt}
-  /* Volgorde op papier: prijs en paneel eerst, daarna aannames en plaatsbezoek uit de middenkolom. */
+  /* Afdrukken van de richtprijs (knop Afdrukken): prijskaart, kerncijfers, Waar het geld zit, Kostenopbouw, het werkblad als
+     compacte tabel (naam, hoeveelheid, manuren, materiaal €, bron), aannames en plaatsbezoek; hoogstens 2 pagina's A4 voor het
+     voorbeeld. Let op: op papier is de pagina smaller dan 900 px, dus de telefoonregels gelden ook; deze regels zetten ze recht. */
+  @page{size:A4;margin:14mm}
+  .rail,.topbalk,.segment,.midden-kop,.leeg-blok,#stop,.trail,.prijs-compact,.banner,.naar-laatste,.toast,.menu,.bevestig,#status,
+  .paneel-kop,.versie-balk,.plakbalk,.instellingen,.watals-sectie,.tab--materiaal,.tab--kenmerken,
+  .tariefchips,.balk,.legende,.rekenpad,.fase .ic,.naam-knop .ic,.rij .n small,.rij .naamtekst .chip,.meetbeeld-wrap,
+  .toelichting-kop,.toelichting .strook,.toelichting .bronnen,.toelichting .punten,.toelichting .uitleg-staat,.toelichting .acties{display:none!important}
+  html,body,.werk,.midden,.stroom,.paneel,.paneel-inhoud{background:#fff;color:#000}
+  body{font-size:10pt;line-height:1.3}
+  /* Volgorde op papier: het paneel (overzicht, werkblad) eerst, daarna aannames en plaatsbezoek uit de middenkolom. */
   .werk{display:flex;flex-direction:column;height:auto;overflow:visible}
-  .midden,.paneel{display:block!important;border:0}
+  .midden,.paneel{display:block!important;border:0;position:static}
   .paneel{order:1}
   .midden{order:2}
-  .midden-kop{border:0;height:auto;padding:0}
-  .stroom{overflow:visible;padding:0}
+  .stroom{display:block;overflow:visible;padding:0}
   .paneel-inhoud{overflow:visible;padding:0}
-  .tab{display:block!important}
-  .prijs b{font-size:24pt}
+  .tab--overzicht,.tab--werkblad{display:block!important}
+  .sectie,.sectie:first-child{padding:8pt 0}
+  .sectie-kop{margin-bottom:4pt}
+  .prijskaart{gap:3pt}
+  .prijs b{font-size:24pt;line-height:28pt}
+  .tegels{margin-top:8pt;padding-top:6pt;grid-template-columns:repeat(5,minmax(0,1fr))}
+  .tegel b{font-size:13pt;line-height:16pt;margin-top:1pt}
+  .geld{gap:3pt}
+  .geld .r{grid-template-columns:minmax(0,1.7fr) minmax(30mm,1fr) 24mm 12mm;min-height:0}
+  .geld .n{grid-column:auto}
+  .geld .b,.geld .b i{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .kosten{max-width:none}
+  .kosten .r{padding:2pt 0}
+  /* Werkblad als compacte tabel: Werk · Hoeveelheid · Manuren · Materiaal, huur € · Bron (Naar boven en Afval weg). */
+  .tab--werkblad .sectie::before{content:"Werkblad";display:block;font-weight:600;color:#000;margin-bottom:4pt}
+  .kol-werk{--kol:minmax(0,1fr) 24mm 17mm 26mm 24mm}
+  .paneel .tabel .tabel-kop,.paneel .tabel .rij{display:grid;grid-template-columns:var(--kol);gap:6pt}
+  .paneel .tabel .tabel-kop > :nth-child(5),.paneel .tabel .tabel-kop > :nth-child(6),.kol-werk .rij > :nth-child(5),.kol-werk .rij > :nth-child(6){display:none}
+  .paneel .tabel .rij .n{grid-column:auto}
+  .paneel .tabel .rij .g{text-align:right;white-space:nowrap}
+  .paneel .tabel .rij .g::before{content:none}
+  .tabel-kop{font-size:8pt;padding-bottom:3pt}
+  .rij{padding:2pt 0;font-size:9pt;line-height:12pt}
+  .rij .chip{font-size:8pt;height:auto;line-height:12pt;padding:0;background:none}
+  .fase{height:auto;padding:5pt 0 2pt;font-size:9pt;flex-wrap:nowrap}
+  .fase span.som{margin-left:auto;flex-basis:auto}
+  .fase.is-dicht + .fase-rijen{display:block}
   .fase,.rij{break-inside:avoid}
-  .sectie{padding:12pt 0}
-  .tab--materiaal,.tab--kenmerken .plakbalk{display:none!important}
-  .velden{grid-template-columns:repeat(3,minmax(0,1fr));gap:6pt 12pt}
-  .veld .in{height:auto;border:0;padding:0}
-  .veld label{margin:0}
+  .toelichting{gap:0}
+  .lijstje h4{margin:8pt 0 3pt}
+  .lijstje ul{gap:2pt}
   /* Offerte: alleen het document, op A4 met de marges uit @page (18 mm); de voettekst komt uit de @page-regel in #off-page-css. */
   body.offerte-open .rail,body.offerte-open .midden,body.offerte-open .paneel,body.offerte-open .instellingen,body.offerte-open .off-kop,body.offerte-open .off-segment,body.offerte-open .off-form,body.offerte-open #status{display:none!important}
   body.offerte-open .werk{display:block;height:auto;overflow:visible}
@@ -645,4 +698,6 @@ body.off-bevroren .off-body{grid-template-columns:minmax(0,1fr)}
   body.offerte-open .off-doc-wrap{display:block!important;overflow:visible;padding:0;background:#fff}
   body.offerte-open .off-doc-zoom{transform:none!important;height:auto!important;width:auto!important}
   body.offerte-open .doc{width:auto;min-height:0;padding:0;box-shadow:none;margin:0}
+  /* Op papier begint de pagina van de voorwaarden zonder extra wit bovenaan (de 12 mm scheiden op het scherm de pagina's). */
+  body.offerte-open .doc .av{margin-top:0}
 }

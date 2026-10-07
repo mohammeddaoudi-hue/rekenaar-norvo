@@ -54,7 +54,7 @@
     bestelbon: 'Deze ondertekende offerte geldt als bestelbon.',
     optiesZin: 'Kruis aan wat u wenst; een aangekruiste optie wordt bij ondertekening deel van de opdracht en van de prijs.',
     vhZin: 'VH = vermoedelijke hoeveelheid: na de werken wordt de werkelijk uitgevoerde hoeveelheid opgemeten en verrekend aan de vermelde eenheidsprijs. FH = forfaitaire hoeveelheid: vaste prijs voor de vermelde hoeveelheid.',
-    akkoord: 'Door ondertekening aanvaardt de klant deze offerte, het betalingsschema en de algemene voorwaarden op de laatste pagina; deze offerte geldt als bestelbon en wordt de aannemingsovereenkomst.',
+    akkoord: 'Door ondertekening aanvaardt de klant deze offerte, het betalingsschema en de algemene voorwaarden bij deze offerte; deze offerte geldt als bestelbon en wordt de aannemingsovereenkomst.',
   };
   const BTW6 = 'Btw-tarief: Bij gebrek aan schriftelijke betwisting binnen een termijn van één maand vanaf de ontvangst van de factuur, wordt de klant geacht te erkennen dat: (1) de werken worden verricht aan een woning waarvan de eerste ingebruikneming heeft plaatsgevonden in een kalenderjaar dat ten minste tien jaar voorafgaat aan de datum van de eerste factuur met betrekking tot die werken, (2) de woning, na uitvoering van die werken, uitsluitend of hoofdzakelijk als privéwoning wordt gebruikt en (3) de werken worden verstrekt en gefactureerd aan een eindverbruiker. Wanneer minstens één van die voorwaarden niet is voldaan, zal het normale btw-tarief van 21 % van toepassing zijn en is de afnemer ten aanzien van die voorwaarden aansprakelijk voor de betaling van de verschuldigde belasting, interesten en geldboeten.';
   const ASBEST_ZIN = {
@@ -220,7 +220,8 @@
     const vak = r.vak;
     const uitsluitingenStart = [];
     for (const z of m.aannames || []) uitsluitingenStart.push('Uitgangspunt: ' + z);
-    for (const z of r.overgeslagen || []) uitsluitingenStart.push('Niet inbegrepen: ' + String(z).replace(/\s*\(hoeveelheid[^)]*\)\s*$/, '') + ' (geen hoeveelheid gekend; wordt apart geprijsd).');
+    /* Een kale code zonder naam (onbekende post uit de AI) zegt de klant niets: die blijft in het werkblad, niet op de offerte. */
+    for (const z of (r.overgeslagen || []).filter((x) => !/^[a-z]+(\.[\w-]+)+$/i.test(String(x)))) uitsluitingenStart.push('Niet inbegrepen: ' + String(z).replace(/\s*\(hoeveelheid[^)]*\)\s*$/, '') + ' (geen hoeveelheid gekend; wordt apart geprijsd).');
     if (!opgemeten) for (const z of m.plaatsbezoek || []) uitsluitingenStart.push('Voorbehoud: ' + z + (/[.!?]$/.test(z) ? '' : '.') + ' Wordt na vaststelling als meerwerk geprijsd (zie Meerwerken).');
     for (const u of inst.uitsluitingen) if (u && u.aan !== false && Array.isArray(u.vakken) && (u.vakken.includes('*') || u.vakken.includes(vak)) && u.tekst) uitsluitingenStart.push('Niet inbegrepen: ' + u.tekst);
     const kt = k.teksten || {};
@@ -249,7 +250,8 @@
 
     /* 3.12 herroeping. */
     const particulier = !(k.klant && k.klant.type === 'onderneming');
-    const thuis = ko.thuis !== false && ko.thuis !== 'nee';
+    /* Herroepingsrecht en bijlage alleen als het vinkje "Ondertekend bij de klant thuis" aanstaat (opdracht 7 okt; startwaarde uit). */
+    const thuis = ko.thuis === true || ko.thuis === 'ja';
     const dringend = ko.aard === 'dringend';
     const herroeping = particulier && thuis;
     const herroepingTekst = dringend
@@ -365,14 +367,29 @@
   const n0 = new Intl.NumberFormat('nl-BE', { maximumFractionDigits: 0 });
   const n1 = new Intl.NumberFormat('nl-BE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const n2 = new Intl.NumberFormat('nl-BE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  /* Normen (manuur per eenheid) met ten minste 2 en hoogstens 4 decimalen: 0,012 blijft 0,012. */
+  const nNorm = new Intl.NumberFormat('nl-BE', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
   const eur = (x) => '€ ' + n0.format(Math.round(x));
   const eur2 = (x) => '€ ' + n2.format(x);
-  const getal = (x) => (Number.isFinite(Number(x)) ? (Math.abs(x - Math.round(x)) < 1e-9 ? n0.format(x) : n1.format(x)) : String(x == null ? '' : x));
+  /* Een getal nooit grover dan de bron: standaard tot 2 decimalen, in de datatabel tot 4 (per 0,0125, kg 0,004), zonder nullen
+     achteraan (1,05 blijft 1,05; 94 blijft 94). */
+  const nTot = {};
+  const getal = (x, decimalen) => {
+    if (!Number.isFinite(Number(x))) return String(x == null ? '' : x);
+    const d = decimalen > 0 ? decimalen : 2;
+    if (!nTot[d]) nTot[d] = new Intl.NumberFormat('nl-BE', { maximumFractionDigits: d });
+    return nTot[d].format(Number(x));
+  };
   const gewicht = (kg) => (kg >= 1000 ? n1.format(kg / 1000) + ' ton' : n0.format(Math.round(kg)) + ' kg');
   const dagen = (d) => n1.format(d) + (Math.abs(d - 1) < 0.05 ? ' werkdag' : ' werkdagen');
   const streep = (x, f) => (x > 0 ? f(x) : '—');
   const kopie = (x) => JSON.parse(JSON.stringify(x));
-  const sec = (t0) => Math.round((Date.now() - t0) / 1000);
+  /* Duur in seconden sinds t0, op 0,1 s en ten minste 0,1: zo blijft "korter dan een seconde" te onderscheiden van een onbekende duur (0). */
+  const sec = (t0) => Math.max(0.1, Math.round((Date.now() - t0) / 100) / 10);
+  /* Seconden op het scherm: altijd een geheel getal vanaf 1; korter dan een seconde = "minder dan 1 s"; 0 of onbekend = niets. */
+  const secTekst = (x) => (!(Number(x) > 0) ? '' : Number(x) < 1 ? 'minder dan 1 s' : Math.round(Number(x)) + ' s');
+  /* Een lopende teller telt vanaf 1 s (nooit "0 s"). */
+  const secLoopt = (t0) => Math.max(1, Math.round((Date.now() - t0) / 1000)) + ' s';
   const KOP = { 'x-richtprijs': '1' };
   const JSON_KOP = Object.assign({ 'content-type': 'application/json' }, KOP);
   const ic = (naam, extra) => '<svg class="ic' + (extra ? ' ' + extra : '') + '" aria-hidden="true"><use href="#i-' + naam + '"/></svg>';
@@ -440,30 +457,56 @@
     if (tarieven.btw !== 21) tarieven.btw = 6;
     standaarden = RP.standaardWaarden(inst.standaarden || {});
   }
-  async function laadInstellingen() {
+  /* zonderServer: /api/instellingen gaf bij het laden geen antwoord (statische demo zoals GitHub Pages, of start.cmd draait niet).
+     Dan gelden de startwaarden, toont de rail geen geschiedenis en bewaart de pagina niets: zo overschrijven startwaarden nooit
+     het instellingenbestand van de aannemer als de server later wel antwoordt. Bereken toont dan de banner. */
+  let zonderServer = false;
+  async function laadInstellingen(vers) {
+    if (vers) inst = { tarieven: {}, standaarden: {}, posten: {}, offerte: {} };
     try {
       const a = await fetch('/api/instellingen', { headers: KOP });
-      if (a.ok) { const o = await a.json(); if (o && typeof o === 'object' && !Array.isArray(o)) inst = Object.assign(inst, o); }
-    } catch (e) { /* server weg: de startwaarden gelden */ }
+      if (!a.ok) throw new Error('Instellingen: status ' + a.status);
+      const o = await a.json();
+      if (o && typeof o === 'object' && !Array.isArray(o)) inst = Object.assign(inst, o);
+      zonderServer = false;
+    } catch (e) { zonderServer = true; }
     for (const k of ['tarieven', 'standaarden', 'posten', 'offerte']) if (!inst[k] || typeof inst[k] !== 'object') inst[k] = {};
     pasInstellingenToe();
+    $('tarieven-staat').textContent = zonderServer ? 'Niet bewaard: geen lokale server' : 'Bewaard';
+  }
+  /* Antwoordt de lokale server (en is het deze app)? Voor de demo zonder server en de knop Opnieuw proberen. */
+  async function serverLeeft() {
+    try { const a = await fetch('/api/ping', { headers: KOP }); if (!a.ok) return false; const j = await a.json(); return !!j && j.app === 'richtprijs-ai'; } catch (e) { return false; }
+  }
+  /* De server antwoordt (weer) na een lading zonder server: de instellingen van de aannemer opnieuw lezen in plaats van de startwaarden. */
+  async function serverTerug() {
+    await laadInstellingen(true);
+    if (zonderServer) return false;
+    tekenInstellingen(); teken(); tekenUitlegRest(); laadLijst();
+    return true;
   }
   let bewaarTimer = null;
   function bewaarInstellingen() {
     clearTimeout(bewaarTimer);
+    if (zonderServer) { $('tarieven-staat').textContent = 'Niet bewaard: geen lokale server'; return; }
     $('tarieven-staat').textContent = '';
-    bewaarTimer = setTimeout(async () => {
-      try {
-        /* De pagina bezit tarieven, standaarden, posten en offerte (aannemergegevens, vaste teksten, volgnummer). Andere sleutels
-           in hetzelfde bestand worden eerst opnieuw gelezen en blijven staan. */
-        let basis = {};
-        try { const g = await fetch('/api/instellingen', { headers: KOP }); if (g.ok) basis = await g.json(); } catch (e) { basis = {}; }
-        if (!basis || typeof basis !== 'object' || Array.isArray(basis)) basis = {};
-        const uit = Object.assign({}, basis, { tarieven: inst.tarieven, standaarden: inst.standaarden, posten: inst.posten, offerte: inst.offerte });
-        const a = await fetch('/api/instellingen', { method: 'POST', headers: JSON_KOP, body: JSON.stringify(uit) });
-        $('tarieven-staat').textContent = a.ok ? 'Bewaard' : 'Niet bewaard';
-      } catch (e) { $('tarieven-staat').textContent = 'Niet bewaard: de server antwoordt niet'; }
-    }, 400);
+    bewaarTimer = setTimeout(schrijfInstellingen, 400);
+  }
+  /* Schrijft meteen (zonder de wachttijd van 400 ms); geeft true als de server het bestand bewaarde. */
+  async function schrijfInstellingen() {
+    clearTimeout(bewaarTimer); bewaarTimer = null;
+    if (zonderServer) { $('tarieven-staat').textContent = 'Niet bewaard: geen lokale server'; return false; }
+    try {
+      /* De pagina bezit tarieven, standaarden, posten en offerte (aannemergegevens, vaste teksten, volgnummer). Andere sleutels
+         in hetzelfde bestand worden eerst opnieuw gelezen en blijven staan. */
+      let basis = {};
+      try { const g = await fetch('/api/instellingen', { headers: KOP }); if (g.ok) basis = await g.json(); } catch (e) { basis = {}; }
+      if (!basis || typeof basis !== 'object' || Array.isArray(basis)) basis = {};
+      const uit = Object.assign({}, basis, { tarieven: inst.tarieven, standaarden: inst.standaarden, posten: inst.posten, offerte: inst.offerte });
+      const a = await fetch('/api/instellingen', { method: 'POST', headers: JSON_KOP, body: JSON.stringify(uit) });
+      $('tarieven-staat').textContent = a.ok ? 'Bewaard' : 'Niet bewaard';
+      return a.ok;
+    } catch (e) { $('tarieven-staat').textContent = 'Niet bewaard: de server antwoordt niet'; return false; }
   }
   function zetTarief(k, v) {
     if (k === 'ploeg') { S.ploeg = Math.max(1, Math.round(v)); }
@@ -563,6 +606,8 @@
 
   /* ---------- rail: eerdere berekeningen ---------- */
   async function laadLijst() {
+    /* Zonder server (demo) is er geen geschiedenis: geen aanvraag die toch mislukt. */
+    if (zonderServer) { lijst = []; tekenRail(); return; }
     try { const a = await fetch('/api/berekeningen', { headers: KOP }); if (a.ok) lijst = await a.json(); } catch (e) { /* server weg: de lijst blijft zoals ze was */ }
     if (!Array.isArray(lijst)) lijst = [];
     tekenRail();
@@ -574,13 +619,21 @@
     const diff = Math.round((dag(new Date()) - dag(d)) / 86400000);
     return diff <= 0 ? 'Vandaag' : diff === 1 ? 'Gisteren' : diff < 7 ? 'Deze week' : 'Ouder';
   }
+  /* Chip "Offerte {nummer}" uit het veld offerte van GET /api/berekeningen ({ nummer, uitgegeven, geldigTot } of null):
+     groen met "uitgegeven" als ze uitgegeven is; grijs met "vervallen" als "geldig tot" voorbij is (spec 4.6). */
+  function railOfferte(of) {
+    if (!of || typeof of !== 'object' || !of.nummer) return '';
+    const vervallen = /^\d{4}-\d{2}-\d{2}$/.test(String(of.geldigTot || '')) && of.geldigTot < RP.OFFERTE.isoDag(new Date());
+    const tekst = 'Offerte ' + of.nummer + (vervallen ? ' · vervallen' : of.uitgegeven ? ' · uitgegeven' : '');
+    return '<span class="rail-chips">' + chip(tekst, vervallen ? 'grijs' : 'merk') + '</span>';
+  }
   let railZoek = '';
   function tekenRail() {
     const el = $('rail-lijst');
     /* Het zoekveld verschijnt vanaf 8 berekeningen en zoekt in titel en adres. */
     $('rail-zoek').hidden = lijst.length < 8;
     if (lijst.length < 8 && railZoek) { railZoek = ''; $('rail-zoek-veld').value = ''; }
-    if (!lijst.length) { el.innerHTML = '<div class="rail-leeg"><b>Nog geen berekeningen.</b><span class="klein">Elke berekening komt hier, met adres en prijs.</span></div>'; return; }
+    if (!lijst.length) { el.innerHTML = zonderServer ? '' : '<div class="rail-leeg"><b>Nog geen berekeningen.</b><span class="klein">Elke berekening komt hier, met adres en prijs.</span></div>'; return; }
     const q = railZoek.trim().toLowerCase();
     const zichtbaar = q ? lijst.filter((x) => (x.titel || '').toLowerCase().includes(q) || (x.adres || '').toLowerCase().includes(q)) : lijst;
     if (!zichtbaar.length) { el.innerHTML = '<div class="rail-leeg"><b>Geen berekening met ‘' + esc(railZoek.trim()) + '’.</b><button class="link" type="button" data-rail-zoek-wis>Zoekopdracht wissen</button></div>'; return; }
@@ -592,8 +645,8 @@
       const actief = x.id === S.id;
       const sub = [x.prijs ? eur(x.prijs) : '', x.adres || (vakken.size <= 1 ? x.vak : '')].filter(Boolean).join(' · ');
       h += '<div class="rail-rij' + (actief ? ' is-actief' : '') + '">' +
-        '<button class="laad" type="button" data-laad="' + esc(x.id) + '"' + (actief ? ' aria-current="true"' : '') + '><b>' + esc(x.titel || 'Berekening') + (vakken.size > 1 && x.vak ? ' ' + chip(x.vak) : '') + '</b><span class="sub">' + esc(sub) + '</span></button>' +
-        '<button class="ikoonknop meer" type="button" data-verwijder="' + esc(x.id) + '" title="Verwijderen" aria-label="Verwijderen">' + ic('meer', 'vol') + '</button></div>';
+        '<button class="laad" type="button" data-laad="' + esc(x.id) + '"' + (actief ? ' aria-current="true"' : '') + '><b>' + esc(x.titel || 'Berekening') + (vakken.size > 1 && x.vak ? ' ' + chip(x.vak) : '') + '</b><span class="sub">' + esc(sub) + '</span>' + railOfferte(x.offerte) + '</button>' +
+        '<button class="ikoonknop meer" type="button" data-verwijder="' + esc(x.id) + '" title="Verwijderen" aria-label="Verwijderen">' + ic('prullenbak') + '</button></div>';
     }
     el.innerHTML = h;
   }
@@ -653,7 +706,22 @@
     return (S.onvolledig ? '<b class="inkt">Onvolledig: ' + (S.fase === 'gestopt' ? 'gestopt' : 'afgebroken') + ' na ' + (r ? r.regels.length : 0) + (r && r.regels.length === 1 ? ' post' : ' posten') + '.</b> ' : '') +
       'Richtprijs uit ' + (S.gemeten ? 'de kaartmeting' : 'de maten in de klus') + ', uw tarieven en de datatabel van ' + esc(DATA.stand) + '.' +
       (n ? ' <a href="#plaatsbezoek" data-naar="plaatsbezoek">' + n + (n === 1 ? ' punt' : ' punten') + '</a> controleert u bij het plaatsbezoek.' : '') +
-      (ov ? ' <button class="link" type="button" data-tab-knop="werkblad">' + ov + (ov === 1 ? ' post' : ' posten') + ' zonder hoeveelheid</button> niet meegerekend.' : '');
+      (ov ? ' <button class="link" type="button" data-tab-knop="werkblad">' + ov + (ov === 1 ? ' post' : ' posten') + '</button> niet meegerekend.' : '');
+  }
+  /* Kostenopbouw in hele euro's die optellen. Subtotaal, prijs excl. en incl. btw zijn exact afgerond; Arbeid, Materiaal en Materieel
+     worden afgekapt en de ontbrekende euro's gaan naar de delen met de grootste rest (grootste-restmethode), zodat ze samen precies
+     het Subtotaal zijn en elk deel hoogstens € 1 van zijn eigen afronding afwijkt. Onvoorzien en btw sluiten als verschil. */
+  function verdeelAfgerond(waarden, totaal) {
+    const uit = waarden.map((w) => Math.floor(w));
+    let rest = totaal - uit.reduce((s, x) => s + x, 0);
+    const volgorde = waarden.map((w, i) => [w - Math.floor(w), i]).sort((p, q) => q[0] - p[0]);
+    for (let j = 0; rest > 0 && j < volgorde.length; j++, rest--) uit[volgorde[j][1]]++;
+    return uit;
+  }
+  function kostenAfgerond(k) {
+    const sub = Math.round(k.subtotaal), excl = Math.round(k.excl), incl = Math.round(k.incl);
+    const [arbeid, materiaal, materieel] = verdeelAfgerond([k.arbeid, k.materiaal, k.materieel], sub);
+    return { arbeid, materiaal, materieel, subtotaal: sub, onvoorzien: excl - sub, excl, btw: incl - excl, incl };
   }
   function tekenOverzicht(a, skelet) {
     const uit = $('uitkomst');
@@ -661,8 +729,10 @@
       if (!S.m || S.fase === 'leeg') { uit.innerHTML = '<p class="sr">Nog geen berekening.</p>'; $('geld-sectie').innerHTML = ''; }
       else if (!S.loopt) {
         /* Gestopt of mislukt vóór er posten waren: geen skelet dat blijft glimmen, maar de reden. */
+        const ovs = overgeslagenNu();
         uit.innerHTML = '<div class="prijskaart"><div class="titel"><span>' + esc(S.titel || S.m.titel || 'Richtprijs') + '</span>' + chip('v' + S.versie) + chip('Geen prijs') + '</div>' +
-          '<p class="caveat">' + esc(S.fase === 'gestopt' ? 'Gestopt vóór er posten binnen waren.' : (S.foutTekst || 'Geen bruikbare posten uit de klus.')) + ' Zie de stappen bij de berekening.</p></div>';
+          '<p class="caveat">' + esc(S.fase === 'gestopt' ? 'Gestopt vóór er posten binnen waren.' : (S.foutTekst || 'Geen bruikbare posten uit de klus.')) + ' Zie de stappen bij de berekening.</p>' +
+          (ovs.length ? '<p class="caveat">Niet meegerekend: ' + esc(ovs.join(', ')) + '.</p>' : '') + '</div>';
         $('geld-sectie').innerHTML = '';
       } else {
         uit.innerHTML = '<div class="skelet-prijs"><span class="skelet" style="width:240px;height:20px"></span><span class="skelet" style="width:280px;height:52px;margin-top:8px"></span>' +
@@ -681,7 +751,8 @@
     const pd = Math.round(r.aandeelData * 100), pa = 100 - pd;
     uit.innerHTML = '<div class="prijskaart"><div class="titel"><span>' + esc(S.titel || m.titel || 'Richtprijs') + '</span>' + chips.join('') + '</div>' +
       '<div class="prijs">' + (S.oudePrijs && Math.round(S.oudePrijs) !== Math.round(k.incl) ? '<span class="oud">' + eur(S.oudePrijs) + '</span>' : '') + '<b>' + eur(k.incl) + '</b><span>incl. ' + r.t.btw + ' % btw</span></div>' +
-      '<div class="prijs-onder">' + eur(k.excl) + ' excl. btw' + (r.perM2 ? ' · ' + eur(r.perM2) + ' per m² ' + esc(r.vlakNaam) : '') + '</div>' +
+      /* Een onvolledige berekening (gestopt of afgebroken) krijgt geen prijs per m²: een deelsom per m² misleidt. */
+      '<div class="prijs-onder">' + eur(k.excl) + ' excl. btw' + (r.perM2 && !S.onvolledig ? ' · ' + eur(r.perM2) + ' per m² ' + esc(r.vlakNaam) : '') + '</div>' +
       '<p class="caveat">' + caveat(m, r) + '</p>' + tariefChips(r) + '</div>' +
       '<div class="tegels"><div class="tegel"><small>Ploeg</small><b>' + r.ploeg + ' man</b></div><div class="tegel"><small>Werkdagen</small><b>' + r.werkdagen + '</b></div>' +
       '<div class="tegel"><small>Manuren</small><b>' + n1.format(r.uren) + '</b><span>' + n1.format(r.mandagen) + ' mandagen</span></div>' +
@@ -705,12 +776,13 @@
     }).join('') + '</div>' : '';
 
     const kr = (l, v, som) => '<div class="r' + (som ? ' som' : '') + '"><span class="l">' + l + '</span><span class="v">' + eur(v) + '</span></div>';
+    const ka = kostenAfgerond(k);
     $('kosten-sectie').innerHTML = '<div class="sectie-kop"><h3>Kostenopbouw</h3></div><div class="kosten">' +
-      kr('Arbeid: ' + n1.format(r.uren) + ' manuren × ' + eur2(r.t.uurtarief), k.arbeid) +
-      kr('Materiaal: inkoop ' + eur(k.materiaalInkoop) + ' + ' + getal(r.t.materiaalmarge) + ' % marge', k.materiaal) +
-      kr('Materieel en afvoer: inkoop ' + eur(k.materieelInkoop) + ' + ' + getal(r.t.materiaalmarge) + ' % marge', k.materieel) +
-      kr('Subtotaal', k.subtotaal, true) + kr('Onvoorzien ' + getal(r.t.onvoorzien) + ' %', k.onvoorzien) + kr('Prijs excl. btw', k.excl, true) +
-      kr('Btw ' + r.t.btw + ' %', k.btw) + kr('Prijs incl. btw', k.incl, true) + '</div>';
+      kr('Arbeid: ' + n1.format(r.uren) + ' manuren × ' + eur2(r.t.uurtarief), ka.arbeid) +
+      kr('Materiaal: inkoop ' + eur(k.materiaalInkoop) + ' + ' + getal(r.t.materiaalmarge) + ' % marge', ka.materiaal) +
+      kr('Materieel en afvoer: inkoop ' + eur(k.materieelInkoop) + ' + ' + getal(r.t.materiaalmarge) + ' % marge', ka.materieel) +
+      kr('Subtotaal', ka.subtotaal, true) + kr('Onvoorzien ' + getal(r.t.onvoorzien) + ' %', ka.onvoorzien) + kr('Prijs excl. btw', ka.excl, true) +
+      kr('Btw ' + r.t.btw + ' %', ka.btw) + kr('Prijs incl. btw', ka.incl, true) + '</div>';
   }
 
   const WERK_KOP = '<div class="tabel-kop rij--kop"><span>Werk</span><span class="g">Hoeveelheid</span><span class="g">Manuren</span><span class="g">Materiaal, huur €</span><span class="g">Naar boven kg</span><span class="g">Afval kg</span><span class="g">Bron</span></div>';
@@ -731,9 +803,19 @@
       '<div class="g" data-l="Afval kg">' + streep(x.afvalKg, (v) => n0.format(Math.round(v))) + '</div><div class="g" data-l="Bron">' + bronChip(x.bron) + '</div>' +
       (open ? '<div class="rekenpad">' + rekenpad(x) + '</div>' : '') + '</div>';
   }
+  /* Posten die de motor oversloeg (geen leesbare hoeveelheid, onbekende code), leesbaar gemaakt: een kale code wordt "onbekende post …". */
+  const overgeslagenTekst = (lijst) => (lijst || []).map((s) => (/^[a-z]+(\.[\w-]+)+$/i.test(String(s)) ? 'onbekende post ' + s : String(s)));
+  /* Ook zonder één bruikbare post (laatsteA leeg) tonen wat overgeslagen werd, zodra de berekening niet meer loopt. */
+  const overgeslagenNu = () => (S.m && !S.loopt && S.m.posten && S.m.posten.length ? overgeslagenTekst(RP.bereken(S.m, huidig()).overgeslagen) : []);
   function tekenWerkblad(a, skelet) {
     const el = $('werkblad'), ov = $('overgeslagen');
-    if (!a) { el.innerHTML = skelet ? WERK_KOP + SKELET_RIJ : ''; ov.hidden = true; return; }
+    if (!a) {
+      el.innerHTML = skelet ? WERK_KOP + SKELET_RIJ : '';
+      const ovs = skelet ? [] : overgeslagenNu();
+      ov.hidden = !ovs.length;
+      ov.textContent = ovs.length ? 'Niet meegerekend: ' + ovs.join(', ') + '.' : '';
+      return;
+    }
     const r = a.r;
     /* De toetsenbordfocus blijft op dezelfde knop staan na het hertekenen (rekenpad openen, fase inklappen). */
     const act = document.activeElement, focus = act && el.contains(act) ? (act.getAttribute('data-rekenpad') != null ? '[data-rekenpad="' + CSS.escape(act.getAttribute('data-rekenpad')) + '"]' : act.getAttribute('data-fase') != null ? '[data-fase="' + CSS.escape(act.getAttribute('data-fase')) + '"]' : '') : '';
@@ -747,7 +829,7 @@
     el.innerHTML = h;
     if (focus) { const k = el.querySelector(focus); if (k) k.focus(); }
     ov.hidden = !r.overgeslagen.length || skelet;
-    ov.textContent = r.overgeslagen.length ? 'Niet meegerekend, zonder hoeveelheid: ' + r.overgeslagen.join(', ') + '.' : '';
+    ov.textContent = r.overgeslagen.length ? 'Niet meegerekend: ' + overgeslagenTekst(r.overgeslagen).join(', ') + '.' : '';
   }
 
   function tekenMateriaal(a, skelet) {
@@ -758,11 +840,13 @@
       r.materialen.map((x) => '<div class="rij"><div class="n">' + esc(x.naam) + '</div><div class="g" data-l="Aantal">' + getal(x.aantal) + ' ' + esc(x.eenheid) + '</div><div class="g" data-l="Prijs €">' + n2.format(x.prijs) + '</div><div class="g" data-l="Totaal €">' + streep(x.kost, (v) => n0.format(Math.round(v))) + '</div><div class="g" data-l="Gewicht kg">' + streep(x.kg, (v) => n0.format(Math.round(v))) + '</div><div class="g" data-l="Bron">' + bronChip(x.bron) + '</div></div>').join('') +
       (r.materialen.length ? '' : '<p class="klein" style="padding-top:8px">Geen materiaal in deze klus.</p>') + '</div>';
     const SOORT = { puin: 'Puin', hout: 'Hout', rest: 'Rest', isolatie: 'Isolatie', metaal: 'Metaal', asbest: 'Asbest' };
+    /* De afvalsoort in een zin: 'rest' is gemengd afval (geen soortcode in de tekst). */
+    const SOORT_WOORD = { puin: 'steenpuin', hout: 'hout', rest: 'gemengd afval', isolatie: 'isolatie', metaal: 'metaal', asbest: 'asbest' };
     /* Restjes in de werfwagen en metaal naar de schroothandel zijn geen stuks met een prijs: zonder aantal en eenheid. */
     const zonderAantal = (x) => x.soort === 'werfwagen' || x.soort === 'afvoer';
     const afvoerNaam = (x) => (x.soort2 === 'werfwagen' ? 'mee in de werfwagen' : x.soort2 === 'afvoer' ? 'naar de schroothandel' : x.aantal + ' ' + x.naam.toLowerCase() + (x.soort2 === 'container' ? ' (' + x.ton + ' ton per container)' : ''));
     eq.innerHTML = '<div class="sectie-kop"><h3>Materieel en afvoer</h3><span class="rechts">inkoop excl. btw</span></div><div class="tabel kol-eq"><div class="tabel-kop"><span>Post</span><span class="g">Aantal</span><span class="g">Prijs €</span><span class="g">Totaal €</span></div>' +
-      r.materieel.map((x) => '<div class="rij"><div class="n">' + esc(zonderAantal(x) ? (x.soort === 'werfwagen' ? 'Klein restje ' + (x.afvalSoort || 'rest') + ': mee in de werfwagen' : x.naam) : x.naam) + '</div><div class="g" data-l="Aantal">' + (zonderAantal(x) ? '—' : getal(x.aantal) + ' ' + esc(x.eenheid)) + '</div><div class="g" data-l="Prijs €">' + (zonderAantal(x) ? '—' : n2.format(x.prijs)) + '</div><div class="g" data-l="Totaal €">' + streep(x.kost, (v) => n0.format(Math.round(v))) + '</div></div>').join('') + '</div>' +
+      r.materieel.map((x) => '<div class="rij"><div class="n">' + esc(zonderAantal(x) ? (x.soort === 'werfwagen' ? 'Klein restje ' + (SOORT_WOORD[x.afvalSoort] || SOORT_WOORD.rest) + ': mee in de werfwagen' : x.naam) : x.naam) + '</div><div class="g" data-l="Aantal">' + (zonderAantal(x) ? '—' : getal(x.aantal) + ' ' + esc(x.eenheid)) + '</div><div class="g" data-l="Prijs €">' + (zonderAantal(x) ? '—' : n2.format(x.prijs)) + '</div><div class="g" data-l="Totaal €">' + streep(x.kost, (v) => n0.format(Math.round(v))) + '</div></div>').join('') + '</div>' +
       (r.afvoer.length ? '<div class="afval"><h4>Afval per soort</h4>' + r.afvoer.map((x) => '<p>' + esc((SOORT[x.soort] || x.soort) + ' ' + n0.format(Math.round(x.kg)) + ' kg: ' + afvoerNaam(x)) + '</p>').join('') + '</div>' : '');
   }
 
@@ -773,7 +857,7 @@
     const r = a.r, k = r.kosten;
     seg.textContent = 'Resultaat · ' + eur(k.incl) + (S.onvolledig ? ' · onvolledig' : '');
     el.innerHTML = '<div class="prijs"><b>' + eur(k.incl) + '</b>' + (S.onvolledig ? chip('Onvolledig') : '') + '</div><div class="prijs-onder">incl. ' + r.t.btw + ' % btw · ' + eur(k.excl) + ' excl.</div><p class="caveat">' + caveat(S.m, r) + '</p>' +
-      '<div class="mini"><div><small>Ploeg</small><b>' + r.ploeg + ' man</b></div><div><small>Werkdagen</small><b>' + r.werkdagen + '</b></div><div><small>Manuren</small><b>' + n0.format(Math.round(r.uren)) + '</b></div></div>' +
+      '<div class="mini"><div><small>Ploeg</small><b>' + r.ploeg + ' man</b></div><div><small>Werkdagen</small><b>' + r.werkdagen + '</b></div><div><small>Manuren</small><b>' + n1.format(r.uren) + '</b></div></div>' +
       '<button class="knop knop--stil" type="button" data-seg="resultaat">Bekijk resultaat</button>';
   }
 
@@ -897,10 +981,10 @@
   const STAP_ICOON = { wacht: 'rond', actief: 'spinner', klaar: 'vink', over: 'streep', gestopt: 'streep', fout: 'kruis', waarschuwing: 'driehoek' };
   const vorigeDuur = () => opslag.lees('richtprijs-stapduur', []);
   function duurTekst(s, i) {
-    if (s.staat === 'actief') { const v = vorigeDuur()[i]; return sec(s.t0) + ' s' + (v ? ' · vorige keer ' + v + ' s' : ''); }
+    if (s.staat === 'actief') { const v = vorigeDuur()[i]; return secLoopt(s.t0) + (v > 0 ? ' · vorige keer ' + secTekst(v) : ''); }
     if (s.staat === 'wacht') return '';
     if (s.staat === 'over') return '—';
-    return s.duur ? s.duur + ' s' : '';
+    return secTekst(s.duur);
   }
   function rij(i, staat, label, duur, detail) {
     const s = S.trail[i];
@@ -1015,7 +1099,7 @@
     const toon = !!m && S.fase !== 'leeg' && (S.uitleg.staat !== 'geen' || S.fase === 'klaar' || S.fase === 'gestopt' || S.fase === 'fout');
     t.hidden = !toon;
     if (!toon) return;
-    $('bronnen').innerHTML = (S.gemeten ? chip('Kaartmeting Digitaal Vlaanderen') : '') + chip('Datatabel ' + DATA.stand) + chip('Uw tarieven');
+    $('bronnen').innerHTML = (S.gemeten ? chip('Kaartmeting Digitaal Vlaanderen') : '') + chip('Datatabel ' + DATA.stand + (eigenCijfers() ? ' met eigen cijfers' : '')) + chip('Uw tarieven');
     const u = S.uitleg;
     const prijsNu = laatsteA ? Math.round(laatsteA.r.kosten.incl) : 0;
     const oud = u.staat === 'klaar' && u.prijsBij && prijsNu && Math.round(u.prijsBij) !== prijsNu;
@@ -1136,8 +1220,22 @@
   /* Het label van stap 1 als de meting niets opleverde: de reden uit S.meetFout. */
   const meetFoutLabel = () => (/antwoordt niet/.test(S.meetFout) ? 'De kaartdienst antwoordt niet · gerekend met de maten uit de klus' : S.meetFout === 'Meting gestopt.' ? 'Meting gestopt · gerekend met de maten uit de klus' : 'Geen gebouw gevonden op dit adres · gerekend met de maten uit de klus');
 
+  /* De banner: lokaal "Start start.cmd opnieuw"; in de demo zonder server de uitleg dat alleen het voorbeeld werkt. */
+  function toonBanner() {
+    $('banner-tekst').textContent = zonderServer ? 'Zonder server toont deze demo alleen het voorbeeld. Een eigen klus berekenen, meten en bewaren gebeurt via de lokale server (start.cmd op de pc).' : 'Start start.cmd opnieuw.';
+    $('banner-voorbeeld').hidden = !zonderServer;
+    $('banner').hidden = false;
+  }
+  let startBezig = false;
   async function start(vast) {
-    if (S.loopt) return;
+    if (S.loopt || startBezig) return;
+    /* Geladen zonder server (statische demo of start.cmd niet gestart): eerst kijken of de server er nu is; anders de banner. */
+    if (zonderServer) {
+      startBezig = true;
+      let terug = false;
+      try { terug = (await serverLeeft()) && (await serverTerug()); } finally { startBezig = false; }
+      if (!terug) { toonBanner(); status('De lokale server antwoordt niet.', true); return; }
+    }
     const klus = $('klus').value.trim();
     const adres = $('adres').value.trim();
     if (klus.length < 25) { $('klus-fout').hidden = false; $('klus').focus(); return; }
@@ -1226,8 +1324,8 @@
       S.fase = 'klaar';
       bezig(false);
       bewaarStapDuur();
-      status('Klaar in ' + S.duur + ' s.');
-      S.trailKop = 'Klaar in ' + S.duur + ' s · 3 stappen';
+      status('Klaar in ' + secTekst(S.duur) + '.');
+      S.trailKop = 'Klaar in ' + secTekst(S.duur) + ' · 3 stappen';
       tekenTrail();
       setTimeout(() => { if (!S.loopt && S.fase === 'klaar') { S.trailDicht = true; tekenTrail(); } }, 1000);
       opslaan(true);
@@ -1242,26 +1340,26 @@
         /* De prijs staat vast en is al bewaard: alleen de uitleg ontbreekt. Geen volle her-run, wel "Opnieuw schrijven". */
         S.fase = 'klaar';
         if (s) rij(2, gestopt ? 'gestopt' : 'fout', gestopt ? 'Uitleg gestopt' : serverWeg ? 'De lokale server antwoordt niet' : 'Uitleg niet volledig aangekomen', s.t0 ? sec(s.t0) : 0);
-        S.trailKop = (gestopt ? 'Gestopt zonder uitleg' : 'Klaar zonder uitleg') + ' · ' + sec(t0) + ' s';
-        if (serverWeg) $('banner').hidden = false;
+        S.trailKop = (gestopt ? 'Gestopt zonder uitleg' : 'Klaar zonder uitleg') + ' · ' + secTekst(sec(t0));
+        if (serverWeg) toonBanner();
         status(gestopt ? 'Gestopt. De prijs is klaar, zonder uitleg.' : 'Uitleg niet volledig aangekomen. ' + ((e && e.message) || ''), !gestopt);
         opslaan(true);
       } else if (gestopt) {
         S.fase = 'gestopt'; S.onvolledig = nPosten > 0;
         if (nr === 1) S.meetFout = 'Meting gestopt.';
         if (s) rij(nr - 1, 'gestopt', 'Gestopt in stap ' + nr + (nr === 2 ? ' · ' + nPosten + (nPosten === 1 ? ' post' : ' posten') + ' binnen' : ''), s.t0 ? sec(s.t0) : 0);
-        S.trailKop = 'Gestopt na ' + sec(t0) + ' s';
+        S.trailKop = 'Gestopt na ' + secTekst(sec(t0));
         status('Gestopt.');
       } else if (serverWeg) {
         S.fase = 'fout'; S.onvolledig = nPosten > 0; S.foutTekst = 'De lokale server antwoordt niet.';
-        $('banner').hidden = false;
+        toonBanner();
         if (s) rij(nr - 1, 'fout', 'De lokale server antwoordt niet', s.t0 ? sec(s.t0) : 0);
-        S.trailKop = 'Afgebroken na ' + sec(t0) + ' s';
+        S.trailKop = 'Afgebroken na ' + secTekst(sec(t0));
         status('De lokale server antwoordt niet. Start start.cmd opnieuw.', true);
       } else {
         S.fase = 'fout'; S.onvolledig = nPosten > 0; S.foutTekst = (e && e.message) || 'Geen bruikbare posten uit de klus.';
         if (s) rij(nr - 1, 'fout', S.foutTekst, s.t0 ? sec(s.t0) : 0);
-        S.trailKop = 'Afgebroken na ' + sec(t0) + ' s';
+        S.trailKop = 'Afgebroken na ' + secTekst(sec(t0));
         status(S.foutTekst, true);
       }
       tekenTrail();
@@ -1281,7 +1379,7 @@
     bezig(true);
     ctl = new AbortController();
     const tu = Date.now();
-    try { await schrijfUitleg(); bezig(false); status('Uitleg bijgewerkt in ' + sec(tu) + ' s.'); }
+    try { await schrijfUitleg(); bezig(false); status('Uitleg bijgewerkt in ' + secTekst(sec(tu)) + '.'); }
     catch (e) { bezig(false); status(e && e.name === 'AbortError' ? 'Gestopt.' : 'Uitleg niet volledig aangekomen.', !(e && e.name === 'AbortError')); }
     S.fase = faseVoor === 'uitleg' ? 'klaar' : faseVoor;
     teken();
@@ -1303,7 +1401,7 @@
       meetstaat: S.m, gemeten: S.gemeten, meetFout: S.meetFout, meetDuur: S.meetDuur, tarieven: huidig(), ploeg: S.ploeg, btw: S.btw, onvolledig: S.onvolledig,
       /* Een afgebroken uitleg wordt niet bewaard: na het openen zou hij als volledig gelden. */
       uitleg: S.uitleg.staat === 'klaar' ? S.uitleg.tekst : '', uitlegPrijs: S.uitleg.staat === 'klaar' ? S.uitleg.prijsBij : 0, duur: S.duur, stappen: S.trail.map((s) => s.duur || 0),
-      offerte: S.offerte || undefined, versies: S.versies.length ? S.versies : undefined };
+      offerte: S.offerte ? offOpslagVorm(S.offerte) : undefined, versies: S.versies.length ? S.versies : undefined };
     try {
       const a = await fetch('/api/berekeningen', { method: 'POST', headers: JSON_KOP, body: JSON.stringify(o) });
       const j = await a.json();
@@ -1338,7 +1436,7 @@
       S.uitleg.tekst ? { staat: 'klaar', label: 'Uitleg geschreven', duur: st[2] || 0 } : { staat: 'over', label: 'Geen uitleg' },
     ];
     S.trailDicht = true; S.stapNr = 3;
-    S.trailKop = o.voorbeeld ? 'Voorbeeld · 3 stappen' : 'Berekend op ' + datumTekst(S.datum) + (S.duur ? ' · ' + S.duur + ' s' : '');
+    S.trailKop = o.voorbeeld ? 'Voorbeeld · 3 stappen' : 'Berekend op ' + datumTekst(S.datum) + (S.duur > 0 ? ' · ' + secTekst(S.duur) : '');
     kaartDicht(true); zetLeeg(false); body.classList.add('paneel-open'); body.classList.remove('lade', 'rail-open'); zetTab('overzicht'); zetSeg(false);
     $('banner').hidden = true;
     teken();
@@ -1396,12 +1494,13 @@
     if (!alleenUitleg && r) {
       const k = r.kosten;
       regels.push(S.titel || S.m.titel || 'Richtprijs', S.adres ? 'Adres: ' + S.adres : 'Geen adres', 'Datum: ' + (datumTekst(S.datum) || datumTekst(new Date().toISOString())), 'Versie v' + S.versie + (S.voorbeeld ? ' (voorbeeld)' : ''), '');
-      regels.push('Richtprijs: ' + eur(k.incl) + ' incl. ' + r.t.btw + ' % btw (' + eur(k.excl) + ' excl. btw' + (r.perM2 ? ', ' + eur(r.perM2) + ' per m² ' + r.vlakNaam : '') + ')');
+      regels.push('Richtprijs: ' + eur(k.incl) + ' incl. ' + r.t.btw + ' % btw (' + eur(k.excl) + ' excl. btw' + (r.perM2 && !S.onvolledig ? ', ' + eur(r.perM2) + ' per m² ' + r.vlakNaam : '') + ')');
       if (S.onvolledig) regels.push('ONVOLLEDIG: de posten kwamen niet volledig binnen (' + r.regels.length + ' posten).');
       regels.push('Ploeg ' + r.ploeg + ' man · ' + r.werkdagen + ' werkdagen · ' + n1.format(r.uren) + ' manuren · ' + gewicht(r.matKg) + ' naar boven · ' + gewicht(r.afvalKg) + ' afval', '');
       regels.push('POSTEN');
       for (const f of r.fases) { regels.push(f.naam + ' (' + n1.format(f.uren) + ' manuren)'); for (const x of f.regels) regels.push('- ' + x.naam + ' · ' + getal(x.hoeveelheid) + ' ' + x.eenheid + ' · ' + n1.format(x.uren) + ' manuren · materiaal ' + eur(x.matKost + x.huurKost) + ' · ' + (x.bron === 'data' ? 'datatabel' : 'AI-schatting') + (x.gevraagd ? '' : ' · niet gevraagd, wel nodig: ' + x.waarom)); }
-      regels.push('', 'KOSTENOPBOUW', 'Arbeid: ' + n1.format(r.uren) + ' manuren × ' + eur2(r.t.uurtarief) + ' = ' + eur(k.arbeid), 'Materiaal: inkoop ' + eur(k.materiaalInkoop) + ' + ' + getal(r.t.materiaalmarge) + ' % marge = ' + eur(k.materiaal), 'Materieel en afvoer: inkoop ' + eur(k.materieelInkoop) + ' + ' + getal(r.t.materiaalmarge) + ' % marge = ' + eur(k.materieel), 'Subtotaal: ' + eur(k.subtotaal), 'Onvoorzien ' + getal(r.t.onvoorzien) + ' %: ' + eur(k.onvoorzien), 'Prijs excl. btw: ' + eur(k.excl), 'Btw ' + r.t.btw + ' %: ' + eur(k.btw), 'Prijs incl. btw: ' + eur(k.incl), '');
+      const ka = kostenAfgerond(k);
+      regels.push('', 'KOSTENOPBOUW', 'Arbeid: ' + n1.format(r.uren) + ' manuren × ' + eur2(r.t.uurtarief) + ' = ' + eur(ka.arbeid), 'Materiaal: inkoop ' + eur(k.materiaalInkoop) + ' + ' + getal(r.t.materiaalmarge) + ' % marge = ' + eur(ka.materiaal), 'Materieel en afvoer: inkoop ' + eur(k.materieelInkoop) + ' + ' + getal(r.t.materiaalmarge) + ' % marge = ' + eur(ka.materieel), 'Subtotaal: ' + eur(ka.subtotaal), 'Onvoorzien ' + getal(r.t.onvoorzien) + ' %: ' + eur(ka.onvoorzien), 'Prijs excl. btw: ' + eur(ka.excl), 'Btw ' + r.t.btw + ' %: ' + eur(ka.btw), 'Prijs incl. btw: ' + eur(ka.incl), '');
     }
     if (uitleg.length) regels.push('TOELICHTING', ...uitleg.map((s) => '- ' + s), '');
     if (S.m && S.m.aannames.length) regels.push('AANNAMES', ...S.m.aannames.map((s) => '- ' + s), '');
@@ -1444,7 +1543,10 @@
       if (t.select) return '<div class="veld"><label for="t-btw"><span>Btw</span></label><div class="in"><select id="t-btw" data-tarief="btw"><option value="6"' + (tarieven.btw === 6 ? ' selected' : '') + '>6 % (woning ouder dan 10 jaar)</option><option value="21"' + (tarieven.btw === 21 ? ' selected' : '') + '>21 %</option></select></div>' + (tarieven.btw !== start.btw ? '<button class="link terug" type="button" data-tarief-terug="btw">Terug naar ' + start.btw + ' %</button>' : '') + '</div>';
       const v = t.k === 'ploeg' ? ploegNu : tarieven[t.k];
       const anders = t.k === 'ploeg' ? !!(S.ploeg && S.m && S.ploeg !== (S.m.ploeg || 3)) : v !== start[t.k];
-      return '<div class="veld"><label for="t-' + t.k + '"><span>' + t.label + '</span></label><div class="in"><input id="t-' + t.k + '" data-tarief="' + t.k + '" type="text" inputmode="decimal" autocomplete="off" value="' + esc(t.toon(v)) + '"><span class="eenheid">' + t.eenheid + '</span></div>' +
+      /* De ploeg hoort bij de open berekening; zonder open berekening staat het veld uit en wijst het naar de standaardploeg. */
+      const uit = t.k === 'ploeg' && !laatsteA;
+      return '<div class="veld"><label for="t-' + t.k + '"><span>' + t.label + '</span></label><div class="in"><input id="t-' + t.k + '" data-tarief="' + t.k + '" type="text" inputmode="decimal" autocomplete="off" value="' + esc(t.toon(v)) + '"' + (uit ? ' disabled' : '') + '><span class="eenheid">' + t.eenheid + '</span></div>' +
+        (uit ? '<p class="klein veld-hint">Geen open berekening: de standaardploeg staat onder Standaarden.</p>' : '') +
         (anders ? '<button class="link terug" type="button" data-tarief-terug="' + t.k + '">Terug naar ' + esc(t.k === 'ploeg' ? ((S.m && S.m.ploeg) || 3) + ' man' : (t.k === 'uurtarief' ? eur2(start[t.k]) : t.toon(start[t.k]) + ' ' + t.eenheid)) + '</button>' : '') + '</div>';
     }).join('');
     if (focus && $(focus)) { const e = $(focus); e.focus(); if (e.setSelectionRange) e.setSelectionRange(e.value.length, e.value.length); }
@@ -1510,10 +1612,10 @@
       const start = RP.DATA_START.posten[code];
       const over = inst.posten[code] || {};
       const open = S.openPosten.has(code);
-      let h = '<div class="post" data-code="' + esc(code) + '"><button class="kop" type="button" data-post-toggle="' + esc(code) + '" aria-expanded="' + open + '"><span><b>' + esc(p.naam) + '</b><small>' + n2.format(p.uur) + ' manuur per ' + esc(p.eenheid) + ' · 1 man doet ' + getal(p.uur > 0 ? Math.round(upd / p.uur * 10) / 10 : 0) + ' ' + esc(p.eenheid) + ' per werkdag · ' + esc(code) + '</small></span>' + ic(open ? 'omhoog' : 'omlaag') + '</button>';
+      let h = '<div class="post" data-code="' + esc(code) + '"><button class="kop" type="button" data-post-toggle="' + esc(code) + '" aria-expanded="' + open + '"><span><b>' + esc(p.naam) + '</b><small>' + nNorm.format(p.uur) + ' manuur per ' + esc(p.eenheid) + ' · 1 man doet ' + getal(p.uur > 0 ? Math.round(upd / p.uur * 10) / 10 : 0) + ' ' + esc(p.eenheid) + ' per werkdag · ' + esc(code) + '</small></span>' + ic(open ? 'omhoog' : 'omlaag') + '</button>';
       if (open) {
         const normEigen = over.uur != null && Number(over.uur) !== start.uur;
-        h += '<div class="open"><div class="norm"><span class="klein">Norm</span><span class="in"><input type="text" inputmode="decimal" aria-label="Norm in manuur per ' + esc(p.eenheid) + '" data-norm="' + esc(code) + '" value="' + esc(n2.format(p.uur)) + '"></span><span class="klein">manuur per ' + esc(p.eenheid) + '</span>' + (normEigen ? chip('Eigen cijfer') + '<button class="link" type="button" data-norm-terug="' + esc(code) + '">Terug naar startwaarde (' + n2.format(start.uur) + ')</button>' : chip('Startwaarde')) + '</div>';
+        h += '<div class="open"><div class="norm"><span class="klein">Norm</span><span class="in"><input type="text" inputmode="decimal" aria-label="Norm in manuur per ' + esc(p.eenheid) + '" data-norm="' + esc(code) + '" value="' + esc(nNorm.format(p.uur)) + '"></span><span class="klein">manuur per ' + esc(p.eenheid) + '</span>' + (normEigen ? chip('Eigen cijfer') + '<button class="link" type="button" data-norm-terug="' + esc(code) + '">Terug naar startwaarde (' + nNorm.format(start.uur) + ')</button>' : chip('Startwaarde')) + '</div>';
         if (p.mat.length) {
           h += '<div class="tabel kol-data"><div class="tabel-kop"><span>Materiaal</span><span class="g">Per</span><span class="g">Eenheid</span><span class="g">Prijs €</span><span class="g">Kg</span><span class="g">Label</span></div>';
           p.mat.forEach((x, i) => {
@@ -1521,12 +1623,12 @@
             const eigen = over.mat && over.mat[x.naam] && over.mat[x.naam].prijs != null && Number(over.mat[x.naam].prijs) !== sx.prijs;
             const label = eigen ? chip('Eigen cijfer') + '<button class="link" type="button" data-prijs-terug="' + esc(code) + '" data-mat="' + esc(x.naam) + '">Terug naar startwaarde (' + n2.format(sx.prijs) + ')</button>'
               : (x.bron && x.bron.url ? '<a class="chip" href="' + esc(x.bron.url) + '" target="_blank" rel="noopener" title="' + esc(x.bron.wat || 'Bron') + '">' + ic('link') + 'Bron</a>' : chip('Startwaarde'));
-            h += '<div class="rij"><div class="n">' + esc(x.naam) + (x.huur ? ' ' + chip(x.perWeek ? 'Huur per week' : 'Huur') : '') + '</div><div class="g" data-l="Per">' + getal(x.per) + '</div><div class="g" data-l="Eenheid">' + esc(x.eenheid) + '</div><div class="g" data-l="Prijs €"><span class="in"><input type="text" inputmode="decimal" aria-label="Prijs van ' + esc(x.naam) + '" data-prijs="' + esc(code) + '" data-mat="' + esc(x.naam) + '" value="' + esc(n2.format(x.prijs)) + '"></span></div><div class="g" data-l="Kg">' + (x.kg ? getal(x.kg) : '—') + '</div><div class="g" data-l="Label">' + label + '</div></div>';
+            h += '<div class="rij"><div class="n">' + esc(x.naam) + (x.huur ? ' ' + chip(x.perWeek ? 'Huur per week' : 'Huur') : '') + '</div><div class="g" data-l="Per">' + getal(x.per, 4) + '</div><div class="g" data-l="Eenheid">' + esc(x.eenheid) + '</div><div class="g" data-l="Prijs €"><span class="in"><input type="text" inputmode="decimal" aria-label="Prijs van ' + esc(x.naam) + '" data-prijs="' + esc(code) + '" data-mat="' + esc(x.naam) + '" value="' + esc(n2.format(x.prijs)) + '"></span></div><div class="g" data-l="Kg">' + (x.kg ? getal(x.kg, 4) : '—') + '</div><div class="g" data-l="Label">' + label + '</div></div>';
           });
           h += '</div>';
         }
         const afval = (p.afval || (p.afvalKg ? [{ soort: 'rest', kg: p.afvalKg }] : [])).filter((a) => a.kg > 0);
-        if (afval.length) h += '<p class="klein">Afval per ' + esc(p.eenheid) + ': ' + afval.map((a) => getal(a.kg) + ' kg ' + esc(a.soort)).join(' · ') + '</p>';
+        if (afval.length) h += '<p class="klein">Afval per ' + esc(p.eenheid) + ': ' + afval.map((a) => getal(a.kg, 4) + ' kg ' + esc(a.soort)).join(' · ') + '</p>';
         h += '</div>';
       }
       return h + '</div>';
@@ -1545,7 +1647,7 @@
   const OFF = RP.OFFERTE;
   let laatsteO = null;
   const offLeeg = () => ({ status: 'concept', klant: { type: 'particulier', naam: '', straat: '', gemeente: '', email: '', telefoon: '' }, werf: { adres: '', gelijk: false }, woning: { jaar: '', prive: true, eindverbruiker: true },
-    offerte: { nummer: '', datum: '', geldigTot: '', titel: '', omschrijving: '', aard: 'gepland', thuis: true, opgemeten: false, opgemetenOp: '', architect: false, aannemers: 1, premiewerk: false, alleenHoofdstukken: false },
+    offerte: { nummer: '', datum: '', geldigTot: '', titel: '', omschrijving: '', aard: 'gepland', thuis: false, opgemeten: false, opgemetenOp: '', architect: false, aannemers: 1, premiewerk: false, alleenHoofdstukken: false },
     regels: {}, uitvoering: { start: '', werkdagen: '' }, betaling: {}, teksten: { opmerking: '' }, uitgegeven: null, versies: [] });
   function offMaak() {
     const k = offLeeg();
@@ -1563,24 +1665,50 @@
     n.versies = k && Array.isArray(k.versies) ? k.versies : [];
     return n;
   }
-  /* Nummer "{jaar}-{volgnummer}" bij de eerste opening; de teller staat in instellingen.offerte en loopt per jaar. Het voorbeeld verbruikt geen nummer. */
-  function offNummer() {
+  /* Nummer "{jaar}-{volgnummer}" pas bij de uitgifte (spec 4.5): een concept dat nooit wordt uitgegeven verbruikt geen nummer.
+     De teller staat in instellingen.offerte en loopt per jaar; hij wordt eerst opnieuw van de server gelezen (een andere tab kan
+     intussen een nummer uitgegeven hebben) en meteen bewaard. Een berekening die al een nummer heeft, houdt het. */
+  async function offNieuwNummer() {
     const jaar = new Date().getFullYear();
     const io = inst.offerte;
-    if (S.voorbeeld) { S.offerte.offerte.nummer = jaar + '-' + String((Number(io.volgnummer) || 0) + 1).padStart(4, '0'); return; }
-    if (Number(io.volgnummerJaar) !== jaar) { io.volgnummer = 0; io.volgnummerJaar = jaar; }
-    io.volgnummer = (Number(io.volgnummer) || 0) + 1;
-    S.offerte.offerte.nummer = jaar + '-' + String(io.volgnummer).padStart(4, '0');
-    bewaarInstellingen();
-    opslaan(true);
+    let n = Number(io.volgnummerJaar) === jaar ? Number(io.volgnummer) || 0 : 0;
+    try {
+      const g = await fetch('/api/instellingen', { headers: KOP });
+      const so = g.ok ? ((await g.json()) || {}).offerte : null;
+      if (so && Number(so.volgnummerJaar) === jaar) n = Math.max(n, Number(so.volgnummer) || 0);
+    } catch (e) { /* de lokale teller geldt */ }
+    io.volgnummer = n + 1; io.volgnummerJaar = jaar;
+    const ok = await schrijfInstellingen();
+    if (!ok) { io.volgnummer = n; return ''; }
+    return jaar + '-' + String(n + 1).padStart(4, '0');
   }
+  /* GET /api/berekeningen leest nummer, uitgegeven en geldigTot bovenaan het bewaarde offerte-object (server.mjs): die velden
+     spiegelen hier de stand, zodat de rail "Offerte {nummer}" en "vervallen" kan tonen zonder elke berekening te openen. */
+  function offOpslagVorm(k) {
+    const u = k.status === 'uitgegeven' && k.uitgegeven ? k.uitgegeven : null;
+    const ko = k.offerte || {};
+    const dagen = Number(OFF.vulInstellingen(inst.offerte, tarieven.uurtarief).geldigheidDagen) || 30;
+    const geldigTot = u ? (u.geldigTot || ko.geldigTot || (u.datum ? OFF.plusDagen(u.datum, dagen) : '')) : (ko.geldigTot || (ko.datum ? OFF.plusDagen(ko.datum, dagen) : ''));
+    return Object.assign({}, k, { nummer: u ? u.nummer : (ko.nummer || ''), geldigTot });
+  }
+  /* Het nummer dat dit concept bij de uitgifte krijgt, als het al vastligt (een eerder uitgegeven versie of een oudere berekening). */
+  function offNummerStraks(k) {
+    if (!k || !k.offerte.nummer) return '';
+    const versie = k.versies.length + 1;
+    return k.offerte.nummer + (versie > 1 ? '-v' + versie : '');
+  }
+  /* De demo zonder server heeft geen instellingen.json: het voorbeeld toont dan de offerte van de eerste gebruiker (AB Bouw), met de
+     gegevens uit instellingen.json van 7 oktober 2026 en het logo via het relatieve pad assets/ab-bouw-logo.png. Wat de bezoeker in het
+     formulier wijzigt, gaat erboven; bewaard wordt er niets. Met server gelden altijd de eigen instellingen van de aannemer. */
+  const AANNEMER_DEMO = { naam: 'AB Bouw Groep', adres: 'August Van Landeghemstraat 63, 2830 Willebroek', ondernemingsnummer: '1010.850.361', btw: 'BE 1010.850.361', telefoon: '0460 20 77 88', email: 'info@abgroep.be', website: 'abgroep.be', logo: 'assets/ab-bouw-logo.png' };
+  const instOfferte = () => (zonderServer ? Object.assign({}, inst.offerte, { aannemer: Object.assign({}, AANNEMER_DEMO, inst.offerte.aannemer || {}) }) : inst.offerte);
   function offerteModel() {
     if (!S.m || !S.offerte) return null;
-    try { return RP.offerteVan(S.m, huidig(), inst.offerte, Object.assign({}, S.offerte, { asbest: S.asbest })); } catch (e) { return null; }
+    try { return RP.offerteVan(S.m, huidig(), instOfferte(), Object.assign({}, S.offerte, { asbest: S.asbest })); } catch (e) { return null; }
   }
   const cssTekst = (s) => String(s).replace(/[\\"]/g, '\\$&').replace(/\n/g, ' ');
   function zetPageCss(A) {
-    $('off-page-css').textContent = A ? '@page{size:A4;margin:18mm;@bottom-center{content:"' + cssTekst((A.naam || '') + (A.btw ? ' · BTW ' + A.btw : '') + ' · pagina ') + '" counter(page) " van " counter(pages);font:8pt Arial,Helvetica,sans-serif;color:#444}}' : '';
+    $('off-page-css').textContent = A ? '@page{size:A4;margin:15mm 15mm 16mm;@bottom-center{content:"' + cssTekst((A.naam || '') + (A.btw ? ' · BTW ' + A.btw : '') + ' · pagina ') + '" counter(page) " van " counter(pages);font:8pt Arial,Helvetica,sans-serif;color:#444}}' : '';
   }
   function offZoom() {
     const wrap = $('off-doc-wrap'), zoom = $('off-doc-zoom'), doc = $('off-doc');
@@ -1599,13 +1727,13 @@
     body.classList.toggle('offerte-open', aan);
     body.classList.remove('lade', 'instellingen-open', 'offseg-document');
     if (!aan) { zetPageCss(null); tekenKnoppen(); return; }
-    zetSeg(false); window.scrollTo(0, 0);
+    zetSeg(false);
     if (!S.offerte) S.offerte = offMaak();
-    if (!S.offerte.offerte.nummer) offNummer();
     tekenOfferte(true);
-    $('off-form').scrollTop = 0;
-    const eerste = $('off-nog-lijst').hidden ? null : $('off-nog-lijst');
-    if (eerste) eerste.scrollIntoView({ block: 'start' });
+    /* De weergave opent bovenaan, met de kop (Terug naar de berekening) in beeld; de lijst "Nog in te vullen" staat als eerste
+       blok van het formulier al direct onder de kop, dus geen sprong ernaartoe (op de telefoon schoof de kop zo uit beeld). */
+    $('off-form').scrollTop = 0; $('off-doc-wrap').scrollTop = 0;
+    window.scrollTo(0, 0);
   }
 
   /* --- het document (A4) --- */
@@ -1617,14 +1745,16 @@
     const regelRij = (l, optie) => '<tr' + (optie ? ' class="optie"' : '') + '><td class="nr">' + esc(l.nr || '') + '</td><td>' + esc(l.omschrijving) + '</td>' +
       (l.forfait ? '<td class="g">forfait</td><td></td>' : '<td class="g">' + H(l.hoeveelheid) + '</td><td>' + esc(l.eenheid) + '</td>') +
       '<td>' + esc(l.aard) + '</td><td class="g">' + (l.forfait || v.alleenHoofdstukken ? '' : E(l.eenheidsprijs)) + '</td><td class="g">' + (v.alleenHoofdstukken && !optie ? '' : E(l.totaal)) + '</td></tr>';
-    /* Kolombreedtes uit de spec (3.3), herschaald naar 174 mm tekstbreedte; de omschrijving krijgt de rest. */
-    const KOP = '<colgroup><col style="width:8mm"><col><col style="width:21mm"><col style="width:15mm"><col style="width:10mm"><col style="width:22mm"><col style="width:22mm"></colgroup><thead><tr><th>Nr</th><th>Omschrijving</th><th class="g">Hoeveelheid</th><th>Eenheid</th><th>Aard</th><th class="g">Eenheidsprijs excl.&nbsp;btw</th><th class="g">Totaal excl.&nbsp;btw</th></tr></thead>';
+    /* Kolombreedtes (spec 3.3) op 180 mm tekstbreedte (A4 met 15 mm marge); de omschrijving krijgt de rest (90 mm). */
+    const KOP = '<colgroup><col style="width:8mm"><col><col style="width:17mm"><col style="width:14mm"><col style="width:9mm"><col style="width:20mm"><col style="width:22mm"></colgroup><thead><tr><th>Nr</th><th>Omschrijving</th><th class="g">Hoeveelheid</th><th>Eenheid</th><th>Aard</th><th class="g">Eenheidsprijs excl.&nbsp;btw</th><th class="g">Totaal excl.&nbsp;btw</th></tr></thead>';
     const LEEG5 = '<td></td><td></td><td></td><td></td><td></td>';
+    /* Kop: logo links, rechts de verplichte vermeldingen van de aannemer in vijf regels. */
+    const regel = (...delen) => delen.filter(Boolean).map(esc).join(' · ');
     let h = '<div class="kop">' + (A.logo ? '<img class="logo" src="' + esc(A.logo) + '" alt="">' : '<div class="naamgroot">' + esc(A.naam) + '</div>') +
-      '<div class="bedrijf"><b>' + esc(o.naamVol) + '</b><br>' + esc(A.adres) + '<br>Ondernemingsnummer ' + esc(A.ondernemingsnummer) + '<br>BTW ' + esc(A.btw) + (A.rpr ? '<br>' + esc(A.rpr) : '') + '<br>' + esc([A.telefoon, A.email].filter(Boolean).join(' · ')) + (A.iban ? '<br>IBAN ' + esc(A.iban) : '') + '</div></div>';
-    h += '<div class="partijen"><div class="klant"><div class="label">Klant</div><b>' + esc(k.naam || '') + '</b><br>' + esc(k.straat || '') + '<br>' + esc(k.gemeente || '') + (k.email ? '<br>' + esc(k.email) : '') + (k.telefoon ? '<br>' + esc(k.telefoon) : '') + '</div>' +
-      '<table class="meta"><tr><td>Offertenummer</td><td>' + esc(nummer || o.kop.nummer || '') + '</td></tr><tr><td>Datum</td><td>' + esc(D(o.kop.datum)) + '</td></tr><tr><td>Geldig tot</td><td>' + esc(D(o.kop.geldigTot)) + '</td></tr><tr><td>Werfadres</td><td>' + esc(o.werf.adres || '') + '</td></tr></table></div>';
-    h += '<h1>Offerte</h1><p><b>' + esc(o.kop.titel) + '</b></p><p class="omschrijving">' + esc(o.kop.omschrijving) + '</p>';
+      '<div class="bedrijf"><b>' + esc(o.naamVol) + '</b><br>' + esc(A.adres) + '<br>' + regel('Ondernemingsnummer ' + (A.ondernemingsnummer || ''), A.btw ? 'BTW ' + A.btw : '') + (A.rpr || A.iban ? '<br>' + regel(A.rpr, A.iban ? 'IBAN ' + A.iban : '') : '') + '<br>' + regel(A.telefoon, A.email, A.website) + '</div></div>';
+    h += '<div class="partijen"><div class="klant"><div class="label">Klant</div><b>' + esc(k.naam || '') + '</b><br>' + esc(k.straat || '') + '<br>' + esc(k.gemeente || '') + (k.email || k.telefoon ? '<br>' + regel(k.email, k.telefoon) : '') + '</div>' +
+      '<table class="meta"><tr><td>Offertenummer</td><td>' + esc(nummer || 'Concept') + '</td></tr><tr><td>Datum</td><td>' + esc(D(o.kop.datum)) + '</td></tr><tr><td>Geldig tot</td><td>' + esc(D(o.kop.geldigTot)) + '</td></tr><tr><td>Werfadres</td><td>' + esc(o.werf.adres || '') + '</td></tr></table></div>';
+    h += '<h1>Offerte</h1><p class="titel">' + esc(o.kop.titel) + '</p><p class="omschrijving">' + esc(o.kop.omschrijving) + '</p>';
     h += '<table class="posttabel">' + KOP + '<tbody>';
     for (const hs of o.hoofdstukken) {
       h += '<tr class="hoofdstuk"><td class="nr">' + hs.nr + '</td><td>' + esc(hs.naam) + '</td>' + LEEG5 + '</tr>';
@@ -1633,31 +1763,35 @@
     }
     h += '</tbody></table>';
     h += '<table class="totalen"><tr><td>Totaal excl. btw</td><td class="g">' + E(t.excl) + '</td></tr><tr><td>' + (t.btwTarief === 6 ? 'Btw 6 % (renovatie van een woning ouder dan 10 jaar)' : 'Btw ' + t.btwTarief + ' %') + '</td><td class="g">' + E(t.btw) + '</td></tr><tr class="eind"><td>Totaal te betalen incl. btw</td><td class="g">' + E(t.incl) + '</td></tr></table>';
-    if (o.heeftVH) h += '<p class="klein">' + esc(T.vhZin) + '</p>';
-    if (T.btw6) h += '<p class="klein">' + esc(T.btw6) + (o.woning.jaar ? ' Woning in gebruik sinds ' + esc(o.woning.jaar) + '.' : '') + '</p>';
+    const onder = [];
+    if (o.heeftVH) onder.push('<p class="klein">' + esc(T.vhZin) + '</p>');
+    if (T.btw6) onder.push('<p class="klein">' + esc(T.btw6) + (o.woning.jaar ? ' Woning in gebruik sinds ' + esc(o.woning.jaar) + '.' : '') + '</p>');
+    if (onder.length) h += '<div class="onder-tabel">' + onder.join('') + '</div>';
     if (o.opties.length) {
       h += '<div class="blok"><h2>Opties (niet inbegrepen in het totaal)</h2><p>' + esc(T.optiesZin) + '</p><table class="posttabel"><thead><tr><th>Gewenst</th><th>Omschrijving</th><th class="g">Hoeveelheid</th><th>Eenheid</th><th>Aard</th><th class="g">Eenheidsprijs excl. btw</th><th class="g">Prijs excl. btw</th><th class="g">Prijs incl. btw</th></tr></thead><tbody>';
       for (const l of o.opties) h += '<tr class="optie"><td>☐</td><td>' + esc(l.omschrijving) + '</td><td class="g">' + H(l.hoeveelheid) + '</td><td>' + esc(l.eenheid) + '</td><td>FH</td><td class="g">' + E(l.eenheidsprijs) + '</td><td class="g">' + E(l.totaal) + '</td><td class="g">' + E(l.incl) + '</td></tr>';
       h += '</tbody></table></div>';
     }
     h += '<div class="blok"><h2>Inbegrepen</h2><ul>' + T.inbegrepen.map(li).join('') + '</ul></div>';
-    if (T.uitsluitingen.length) h += '<div class="blok blok--lang"><h2>Opmerkingen en uitsluitingen</h2><ol>' + T.uitsluitingen.map(li).join('') + '</ol></div>';
+    /* Opmerkingen en uitsluitingen als doorlopende opsomming: genummerd, achter elkaar in één alinea. */
+    if (T.uitsluitingen.length) h += '<div class="blok blok--lang"><h2>Opmerkingen en uitsluitingen</h2><p class="doorlopend">' + T.uitsluitingen.map((s, i) => '<b>' + (i + 1) + '.</b>&nbsp;' + esc(s)).join(' ') + '</p></div>';
     const start = o.uitvoering.start ? (/^\d{4}-\d{2}-\d{2}$/.test(o.uitvoering.start) ? D(o.uitvoering.start) : o.uitvoering.start) : '…';
-    h += '<div class="blok"><h2>Uitvoering</h2><p>Aanvang: in overleg, ten vroegste ' + esc(start) + '.</p><p>Uitvoeringstermijn: ' + H(o.uitvoering.werkdagen) + ' werkdagen na de aanvang.</p><p class="klein">' + esc(T.termijn) + '</p></div>';
+    h += '<div class="blok"><h2>Uitvoering</h2><p>Aanvang: in overleg, ten vroegste ' + esc(start) + '. Uitvoeringstermijn: ' + H(o.uitvoering.werkdagen) + ' werkdagen na de aanvang.</p><p class="klein">' + esc(T.termijn) + '</p></div>';
     h += '<div class="blok"><h2>Betaling</h2><table class="schijven">' + t.schijven.map((s) => '<tr><td>' + H(s.p) + ' % ' + esc(s.label) + ':</td><td class="g">' + E(s.bedrag) + '</td></tr>').join('') + '</table>' +
-      '<p>Elke schijf wordt gefactureerd en is betaalbaar binnen ' + T.betaaltermijn + ' dagen na de factuurdatum op IBAN ' + esc(A.iban || '…') + '.</p><p>' + esc(T.bestelbon) + '</p>' + (o.heeftVH ? '<p>De eindafrekening verrekent de VH-posten aan de opgemeten hoeveelheden.</p>' : '') + '</div>';
+      '<p>Elke schijf wordt gefactureerd en is betaalbaar binnen ' + T.betaaltermijn + ' dagen na de factuurdatum op IBAN ' + (A.iban ? esc(A.iban) + '.' : '…') + ' ' + esc(T.bestelbon) + (o.heeftVH ? ' De eindafrekening verrekent de VH-posten aan de opgemeten hoeveelheden.' : '') + '</p></div>';
     h += '<div class="blok"><h2>Meerwerken</h2><p>' + esc(T.meerwerken) + '</p></div>';
-    h += '<div class="blok"><h2>Voorwaarden</h2>' + T.voorwaardenKort.map((z) => '<p>' + esc(z) + '</p>').join('') + '</div>';
+    h += '<div class="blok"><h2>Voorwaarden</h2><div class="kolommen">' + T.voorwaardenKort.map((z) => '<p>' + esc(z) + '</p>').join('') + '</div></div>';
     if (v.herroeping) h += '<div class="blok"><h2>Herroepingsrecht</h2><p>' + esc(T.herroeping) + '</p></div>';
     h += '<div class="blok"><h2>Voor akkoord</h2><p>' + esc(T.akkoord) + '</p>' +
       (v.herroeping && !v.dringend ? '<p class="vak">☐ Ik verzoek uitdrukkelijk dat de werken starten vóór het einde van de herroepingstermijn. Herroep ik daarna, dan betaal ik het al uitgevoerde deel aan de prijzen van deze offerte, en ik erken dat mijn herroepingsrecht vervalt zodra de werken volledig zijn uitgevoerd.</p>' : '') +
       (o.opties.length ? '<p class="vak">☐ Gewenste opties: zie het blok Opties.</p>' : '') +
       '<div class="hand"><div><b>Voor akkoord — de klant</b><p>Naam:</p><p>Plaats en datum:</p><p>Handtekening, voorafgegaan door “gelezen en goedgekeurd”:</p></div><div><b>Voor ' + esc(A.naam) + '</b><p>Naam en functie:</p><p>Datum:</p><p>Handtekening:</p></div></div></div>';
-    h += '<div class="av"><h2>Algemene voorwaarden</h2>' + o.artikelen.map((a) => '<p>' + (a.nr ? '<b>' + a.nr + '. ' + esc(a.titel) + '.</b> ' : '') + esc(a.tekst) + '</p>').join('') + '<p class="paraaf">Paraaf van de klant: ____________</p></div>';
+    h += '<div class="av"><h2>Algemene voorwaarden</h2><div class="kolommen">' + o.artikelen.map((a) => '<p>' + (a.nr ? '<b>' + a.nr + '. ' + esc(a.titel) + '.</b> ' : '') + esc(a.tekst) + '</p>').join('') + '</div><p class="paraaf">Paraaf van de klant: ____________</p></div>';
+    /* De bijlage herroeping alleen als de offerte bij de klant thuis of op de werf ondertekend wordt (vinkje onder Uitvoering en betaling). */
     if (v.herroeping && !v.dringend) {
-      h += '<div class="av bijlage"><h2>Bijlage: modelformulier voor herroeping</h2><p class="klein">Dit formulier alleen invullen en terugzenden als u de overeenkomst wilt herroepen.</p>' +
+      h += '<div class="bijlage"><h2>Bijlage: modelformulier voor herroeping</h2><p class="klein">Dit formulier alleen invullen en terugzenden als u de overeenkomst wilt herroepen.</p>' +
         '<p>Aan: ' + esc(o.naamVol) + ', ' + esc(A.adres) + ', ' + esc(A.email) + '</p>' +
-        '<p>Ik/Wij (*) deel/delen (*) u hierbij mede dat ik/wij (*) onze overeenkomst betreffende de verlening van de volgende dienst herroep/herroepen (*): de werken volgens offerte nr. ' + esc(nummer || o.kop.nummer || '') + '.</p>' +
+        '<p>Ik/Wij (*) deel/delen (*) u hierbij mede dat ik/wij (*) onze overeenkomst betreffende de verlening van de volgende dienst herroep/herroepen (*): de werken volgens ' + (nummer ? 'offerte nr. ' + esc(nummer) : 'deze offerte') + '.</p>' +
         '<p class="lijn">Besteld op (*)/Ontvangen op (*):</p><p class="lijn">Naam consument(en):</p><p class="lijn">Adres consument(en):</p><p class="lijn">Handtekening van consument(en) (alleen wanneer dit formulier op papier wordt ingediend):</p><p class="lijn">Datum:</p><p class="klein">(*) Doorhalen wat niet van toepassing is.</p></div>';
     }
     return h;
@@ -1720,15 +1854,14 @@
       (btw6 ? offV({ id: 'w-jaar', label: 'Jaar eerste ingebruikname van de woning', pad: 'off/woning/jaar', waarde: w.jaar, inputmode: 'numeric', placeholder: String(jaarNu - 30), hint: 'btw 6 %: ten minste 10 jaar' }) +
         '<div class="veld off-vinken">' + offVink({ id: 'w-prive', label: 'Woning voor meer dan 50 % privé bewoond', pad: 'off/woning/prive', waarde: !!w.prive }) + offVink({ id: 'w-eindverbruiker', label: 'Gefactureerd aan de bewoner (eigenaar, huurder of vruchtgebruiker)', pad: 'off/woning/eindverbruiker', waarde: !!w.eindverbruiker }) + '</div>' : '') +
       '</div><div class="off-groep"><h4>Offerte</h4><div class="velden">' +
-      offV({ id: 'o-nummer', label: 'Nummer', pad: 'off/offerte/nummer', waarde: ko.nummer, readonly: true }) +
+      offV({ id: 'o-nummer', label: 'Nummer', pad: 'off/offerte/nummer', waarde: offNummerStraks(k), readonly: true, placeholder: S.voorbeeld ? 'Voorbeeld: geen nummer' : 'Volgt bij de uitgifte' }) +
       offV({ id: 'o-datum', label: 'Datum', pad: 'off/offerte/datum', waarde: o.kop.datum, type: 'date' }) +
       offV({ id: 'o-geldigTot', label: 'Geldig tot', pad: 'off/offerte/geldigTot', waarde: o.kop.geldigTot, type: 'date' }) +
       offV({ id: 'o-aard', label: 'Aard van de opdracht', pad: 'off/offerte/aard', type: 'select', waarde: ko.aard || 'gepland', keuzes: [['gepland', 'Geplande werken'], ['dringend', 'Dringende herstelling op uitdrukkelijk verzoek van de klant']] }) +
       offV({ id: 'o-titel', label: 'Titel', pad: 'off/offerte/titel', waarde: o.kop.titel, breed: true }) +
       offV({ id: 'o-omschrijving', label: 'Omschrijving van de werken', pad: 'off/offerte/omschrijving', waarde: o.kop.omschrijving, type: 'tekstvak', breed: true, rows: 3 }) +
       offV({ id: 'o-aannemers', label: 'Aantal aannemers op de werf (ook onderaannemers en aannemers van de klant)', pad: 'off/offerte/aannemers', waarde: o.vlaggen.aannemers, type: 'number', min: 1, inputmode: 'numeric' }) +
-      '<div class="veld off-vinken">' + offVink({ id: 'o-thuis', label: 'Ondertekening bij de klant thuis of op de werf', pad: 'off/offerte/thuis', waarde: o.vlaggen.thuis, hint: 'dan geldt het herroepingsrecht van 14 dagen' }) +
-      offVink({ id: 'o-architect', label: 'Architect wettelijk verplicht voor deze werken', pad: 'off/offerte/architect', waarde: o.vlaggen.architect }) +
+      '<div class="veld off-vinken">' + offVink({ id: 'o-architect', label: 'Architect wettelijk verplicht voor deze werken', pad: 'off/offerte/architect', waarde: o.vlaggen.architect }) +
       offVink({ id: 'o-premiewerk', label: 'Premiewerk (Mijn VerbouwPremie)', pad: 'off/offerte/premiewerk', waarde: o.vlaggen.premiewerk }) + '</div>' +
       '</div></div></section>';
     h += '<section class="inst-sectie" id="off-posten"><div class="sectie-kop"><h3>Posten</h3><span class="rechts">' + o.lijnen.length + ' regels · ' + OFF.eur(o.totalen.excl) + ' excl. btw</span></div>' +
@@ -1746,6 +1879,7 @@
     h += '<section class="inst-sectie" id="off-uitvoering"><div class="sectie-kop"><h3>Uitvoering en betaling</h3></div><div class="velden">' +
       offV({ id: 'u-start', label: 'Aanvang (week/jaar of datum)', pad: 'off/uitvoering/start', waarde: o.uitvoering.start, placeholder: 'week 46/' + jaarNu + ' of ' + jaarNu + '-11-09' }) +
       offV({ id: 'u-werkdagen', label: 'Uitvoeringstermijn', pad: 'off/uitvoering/werkdagen', waarde: o.uitvoering.werkdagen, type: 'number', min: 1, eenheid: 'werkdagen', hint: 'startwaarde ' + o.kop.werkdagenStart + ' = werkdagen + reserve' }) +
+      '<div class="veld veld--breed off-vinken">' + offVink({ id: 'o-thuis', label: 'Ondertekend bij de klant thuis', pad: 'off/offerte/thuis', waarde: o.vlaggen.thuis, hint: 'ook op de werf: dan geldt het herroepingsrecht van 14 dagen; de offerte krijgt het blok Herroepingsrecht en het herroepingsformulier als bijlage' }) + '</div>' +
       '</div><div class="off-groep"><h4>Betalingsschema voor deze offerte</h4><div class="velden">' +
       offV({ id: 'b-p1', label: 'Bij ondertekening', pad: 'off/betaling/p1', waarde: s[0].p, type: 'number', min: 0, eenheid: '%', hint: OFF.eur(s[0].bedrag) + (s[0].p > 30 ? ' · Embuild: 25 tot 30 % is de norm; hoger alleen als u het materiaal vooraf betaalt.' : '') }) +
       offV({ id: 'b-p2', label: 'Bij de aanvang van de werken', pad: 'off/betaling/p2', waarde: s[1].p, type: 'number', min: 0, eenheid: '%', hint: OFF.eur(s[1].bedrag) }) +
@@ -1790,15 +1924,17 @@
     laatsteO = o;
     if (!o) { $('off-doc').innerHTML = '<p class="doc-leeg">Geen berekening.</p>'; $('off-velden').innerHTML = ''; $('off-print').disabled = true; return; }
     const nog = OFF.nogInTeVullen(o, { loopt: S.loopt });
-    $('off-titel').textContent = 'Offerte ' + (k.offerte.nummer || '');
-    $('off-staat').textContent = 'Concept' + (k.versies.length ? ' · wordt versie ' + (k.versies.length + 1) : '') + (S.voorbeeld ? ' · voorbeeld, wordt niet bewaard' : '');
+    const straks = offNummerStraks(k);
+    $('off-titel').textContent = 'Offerte' + (straks ? ' ' + straks : '');
+    $('off-staat').textContent = 'Concept' + (k.versies.length ? ' · wordt versie ' + (k.versies.length + 1) : straks ? '' : ' · nummer bij de uitgifte') + (S.voorbeeld ? ' · voorbeeld, wordt niet bewaard' : '');
     $('off-nog').textContent = nog.length ? 'Nog in te vullen: ' + nog.length : 'Alles ingevuld';
     $('off-nog').classList.toggle('is-klaar', !nog.length);
     $('off-nog-lijst').hidden = !nog.length;
     $('off-nog-lijst').innerHTML = '<b>Nog in te vullen</b>' + nog.map((x) => '<button type="button" data-off-naar="' + esc(x.veld) + '">' + esc(x.tekst) + '</button>').join('');
     $('off-print').disabled = !!nog.length; $('off-print').innerHTML = ic('print') + 'Offerte afdrukken';
     if (volledig) tekenOfferteForm(o);
-    $('off-doc').innerHTML = offerteDocHtml(o, k.offerte.nummer);
+    /* Vóór de uitgifte draagt het document geen nummer maar "Concept". */
+    $('off-doc').innerHTML = offerteDocHtml(o, '');
     zetPageCss(o.aannemer);
     offZoom();
   }
@@ -1824,22 +1960,36 @@
     if (el.type === 'number') return el.value === '' ? '' : leesGetal(el.value);
     return el.value;
   }
+  let offUitgifteBezig = false;
   async function offerteUitgeven() {
     const k = S.offerte;
-    if (!k) return;
+    if (!k || offUitgifteBezig) return;
     if (k.status === 'uitgegeven' && k.uitgegeven) { offPrint(k.uitgegeven.nummer, k.uitgegeven.klant && k.uitgegeven.klant.naam); return; }
     const o = offerteModel();
     if (!o) return;
     const nog = OFF.nogInTeVullen(o, { loopt: S.loopt });
     if (nog.length) { tekenOfferte(true); return; }
-    const versie = k.versies.length + 1;
-    const nummer = k.offerte.nummer + (versie > 1 ? '-v' + versie : '');
-    k.uitgegeven = { datum: o.kop.datum, nummer, versie, totaalExcl: o.totalen.excl, btwTarief: o.totalen.btwTarief, btw: o.totalen.btw, totaalIncl: o.totalen.incl, klant: kopie(o.klant), aannemer: kopie(o.aannemer), uitgegevenOp: new Date().toISOString(), html: offerteDocHtml(o, nummer) };
-    k.status = 'uitgegeven';
-    if (!S.voorbeeld) await opslaan(true);
-    tekenOfferte(true);
-    tekenKnoppen();
-    offPrint(nummer, o.klant.naam);
+    offUitgifteBezig = true;
+    $('off-print').disabled = true;
+    try {
+      /* Het nummer pas nu: het voorbeeld verbruikt er geen (het wordt niet bewaard) en draagt "Voorbeeld". */
+      if (!k.offerte.nummer && !S.voorbeeld) {
+        const nr = await offNieuwNummer();
+        if (!nr) { toast('Niet uitgegeven: geen server'); return; }
+        k.offerte.nummer = nr;
+      }
+      const versie = k.versies.length + 1;
+      const nummer = (S.voorbeeld && !k.offerte.nummer ? 'Voorbeeld' : k.offerte.nummer) + (versie > 1 ? '-v' + versie : '');
+      k.uitgegeven = { datum: o.kop.datum, geldigTot: o.kop.geldigTot, nummer, versie, totaalExcl: o.totalen.excl, btwTarief: o.totalen.btwTarief, btw: o.totalen.btw, totaalIncl: o.totalen.incl, klant: kopie(o.klant), aannemer: kopie(o.aannemer), uitgegevenOp: new Date().toISOString(), html: offerteDocHtml(o, nummer) };
+      k.status = 'uitgegeven';
+      if (!S.voorbeeld) await opslaan(true);
+      tekenOfferte(true);
+      tekenKnoppen();
+      offPrint(nummer, o.klant.naam);
+    } finally {
+      offUitgifteBezig = false;
+      if (!(k.status === 'uitgegeven' && k.uitgegeven)) tekenOfferte(false);
+    }
   }
   function offPrint(nummer, klant) {
     const oud = document.title;
@@ -1994,7 +2144,13 @@
   $('versie-herstel').addEventListener('click', () => herstelVersie());
   $('versie-weg').addEventListener('click', () => bekijkWeg());
   $('banner-opnieuw').addEventListener('click', async () => {
-    try { const a = await fetch('/api/ping'); if (a.ok) { $('banner').hidden = true; if (S.fase === 'fout') start(null); return; } } catch (e) { /* nog weg */ }
+    if (await serverLeeft()) {
+      /* Na een lading zonder server eerst de instellingen van de aannemer lezen, dan pas rekenen. */
+      if (zonderServer && !(await serverTerug())) { toast('Server antwoordt nog niet'); return; }
+      $('banner').hidden = true;
+      if (S.fase === 'fout') start(null);
+      return;
+    }
     toast('Server antwoordt nog niet');
   });
 
@@ -2081,8 +2237,9 @@
   window.addEventListener('hashchange', hash);
 
   (async function init() {
-    /* De klus van het voorbeeld staat klaar in het veld: zo start een eerste berekening met één klik. */
-    $('klus').value = RP.VOORBEELD.klus;
+    /* Een verse lading begint leeg (de placeholder toont een voorbeeldklus; de chips eronder vullen het veld met één klik).
+       Expliciet leegmaken: Chrome zet bij herladen anders de vorige tekst terug, terwijl de staat (S) leeg is. */
+    $('adres').value = ''; $('klus').value = '';
     tekenVoorbeelden();
     kaartDicht(false);
     pasKlusHoogte();

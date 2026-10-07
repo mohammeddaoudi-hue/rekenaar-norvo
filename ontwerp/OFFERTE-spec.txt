@@ -180,4 +180,597 @@ offerteKeuzes) → { hoofdstukken, opties, totalen, teksten }; geen DOM, testbaa
 - Opkuis: alg.opkuis (eenheid u) wordt forfait "Opkuis van de werf en oplevering" in zijn fase Afwerking. Staat alg.opkuis niet
   in de berekening, dan dekt de zin "Opkuis van de werf na de werken" in het blok Inbegrepen het (eigen kennis).
 
-[[VERVOLG]]
+2e. Hoofdstukken per fase met subtotaal
+- Volgorde = RP.FASES (Werfinrichting, Afbraak, Voorbereiding, Ruwbouw, Isolatie, Dakopbouw, Dakbedekking, Schrijnwerk, Wanden en
+  plafonds, Pleisterwerk, Vloeren, Tegelwerk, Sanitair, Elektriciteit, Afwerking, Schilderwerk, Afwatering, Buitenaanleg); een
+  fase die daar niet in staat (AI-post met eigen fase) komt achteraan, in volgorde van eerste voorkomen (zelfde logica als
+  r.fases in motor.js). Alleen hoofdstukken met minstens één hoofdtabelregel worden geprint.
+- Nummering: hoofdstuk 1, 2, 3 ...; regels 1.1, 1.2 ...; de nummers worden bij elke uitgifte opnieuw berekend.
+- Per hoofdstuk één subtotaalregel "Subtotaal {hoofdstuknaam}" excl. btw = Σ regeltotalen, op de cent. Voorbeeldklus:
+  1 Werfinrichting en afvoer 3.247,23 · 2 Afbraak 1.269,00 · 3 Dakopbouw 7.792,60 · 4 Dakbedekking 3.995,00 · 5 Afwerking 4.732,65
+  · 6 Afwatering 1.756,00; som 22.792,48.
+- Een instelling "Toon alleen hoofdstuktotalen" (per offerte, standaard uit) print per hoofdstuk alleen de omschrijvingen
+  zonder prijs en het subtotaal (meetstaatvorm "som over geheel"). Bronnen: VEKA (kosten "gegroepeerd per categorie van
+  werken", zie de url in deel 1 punt 3); https://support.robaws.com/en/article/working-with-line-types-and-chapters-536ga0/
+  ("By working with chapters of different levels, you can work with different subtotals within the same quotation");
+  https://www.bouwinfo.be/bouwforum/threads/meetstaat-aard-en-meeteenheid.270099/ (SOG = "een hele reeks werken en/of leveringen
+  welke moeten begrepen zijn in die bepaalde post, all-in").
+
+2f. Opties
+- Elke hoofdtabelregel waarvan DATA.posten[regel.code].keuze bestaat krijgt in het formulier een schakelaar "In optie", met als
+  tekst de keuze-naam ("In optie: sarking-isolatie"). Regels zonder code (AI) en regels zonder keuze hebben de schakelaar niet.
+  Staan er twee posten met dezelfde keuze-naam (dak.goot.zink en dak.afvoer.zink hebben verschillende namen; dak.sarking120 en
+  dak.sarking160 delen "sarking-isolatie"), dan schakelt elke post apart.
+- Een optieregel verlaat de hoofdtabel en haar hoofdstuk. Ze komt in het blok "Opties (niet inbegrepen in het totaal)" onder
+  de totalen, met: omschrijving · hoeveelheid en eenheid · eenheidsprijs excl. btw · prijs excl. btw · prijs incl. btw (aan het
+  btw-tarief van de offerte) · een aankruisvak "gewenst". De prijs is het regeltotaal volgens 2a (afgeronde eenheidsprijs ×
+  hoeveelheid), NIET het bedrag uit a.watAls "Zonder ...": dat bedrag komt uit een herberekening zonder de post (minder werkdagen,
+  minder lift) en past alleen bij een richtprijs. Hoofdtabel + aangekruiste opties = r.kosten.excl op de cent (2a, T_hoofd).
+  Voorbeeldklus met sarking in optie: hoofdtabel 16.964,48 excl. · optie "Sarking-isolatie PIR 12 cm plaatsen 94 m² × 62,00 =
+  5.828,00 excl., 6.177,68 incl. 6 % btw". Wordt een forfait of de sluitpost in optie gezet, dan kiest het programma de
+  sluitpost opnieuw onder de overblijvende hoofdtabelregels.
+- Zin boven het blok (vast): "Kruis aan wat u wenst; een aangekruiste optie wordt bij ondertekening deel van de opdracht en
+  van de prijs."
+- Hoeveelheden van opties zijn altijd FH (2g). Een optie die het werk van een andere post overbodig maakt (bv. sarking vraagt
+  tengellatten) wordt niet automatisch ontkoppeld: de aannemer beoordeelt dat zelf; het formulier toont daarom onder een
+  optie-schakelaar de zin "Controleer de posten die van deze keuze afhangen." (eigen kennis).
+  Bronnen: Robaws (optie buiten het totaal, grijs en cursief); https://www.bouwinfo.be/bouwforum/threads/meetstaat-aard-en-meeteenheid.270099/.
+
+2g. Vermoedelijke hoeveelheid (VH) tegenover forfaitaire hoeveelheid (FH)
+- Betekenis (bron: https://www.bouwinfo.be/bouwforum/threads/forfaitaire-hoeveelheid-vorderingsstaat.293540/): FH = "de aannemer
+  (prijsgever) [wordt] geacht dat hij die heeft nagezien en juist bevonden. Achteraf kan die hoeveelheid niet meer aangepast
+  worden"; VH = "kan dit achteraf nog nagemeten worden en dan kan aan de hand hiervan worden aangerekend. Dus minder of meer dan
+  de opgegeven prijs."
+- Per regel kiesbaar in het formulier (kolom "Aard": VH of FH). Forfaits en opties zijn altijd FH.
+- Standaard hangt af van één schakelaar in het formulier: "Hoeveelheden opgemeten ter plaatse" (nee / ja + datum).
+  nee (startwaarde) → elke m²-, lm-, st- en m³-regel staat op VH. Reden: de hoeveelheden komen dan uit de kaartmeting (hoogtemodel
+  2013-2015), de beschrijving en de standaarden, niet uit een meting door de aannemer; wie daar FH op zet, draagt het meetrisico.
+  ja → elke regel staat op FH (relatief forfait: vaste prijs, verrekening alleen bij meer- of minderwerk). Bron voor de
+  prijsvormen: https://www.vrt.be/vrtnws/nl/2024/04/03/verschil-offerte-raming-factuur/ ("Relatief forfait: de prijs ligt vast,
+  maar er is tijdens de overeenkomst een verrekening mogelijk bij meer- of minderwerken"; "In overeenkomsten die worden gesloten
+  met een consument kunnen werken in regie eigenlijk niet"). Keuze van de startwaarde: eigen kennis.
+- Op de offerte: de kolom "Aard" toont VH of FH. Staat er minstens één VH-regel, dan print onder de tabel deze vaste zin:
+  "VH = vermoedelijke hoeveelheid: na de werken wordt de werkelijk uitgevoerde hoeveelheid opgemeten en verrekend aan de
+  vermelde eenheidsprijs. FH = forfaitaire hoeveelheid: vaste prijs voor de vermelde hoeveelheid." Bron voor de formulering:
+  Bouwinfo 270099 ("Na de werken zal de werkelijk uitgevoerde hoeveelheid worden opgemeten en verrekend").
+- Een offerte waarin alle regels forfait én alle hoeveelheden FH zijn, is een absoluut forfait; dat mag. Een offerte in regie
+  (uurtarief × uren als post) bestaat in de app niet (VRT, zie boven).
+
+2h. Meerwerken en regietarief
+- Vaste clausule, op de offerte onder "Meerwerken" (3.10) en als artikel 4 van de algemene voorwaarden:
+  "Werken die niet in deze offerte staan, prijzen wij vooraf schriftelijk (e-mail volstaat) en voeren wij pas uit na uw
+  schriftelijk akkoord. Prijsbasis voor meerwerken in regie: € {regietarief} per uur en per arbeider, excl. btw; materiaal en
+  materieel aan inkoopprijs plus {marge} %; afvoer van afval aan kostprijs. Minderwerk wordt aan dezelfde eenheidsprijzen
+  verrekend."
+- regietarief = instellingen.offerte.regietarief; startwaarde = r.t.uurtarief naar boven afgerond op een hele euro (57,50 → 58);
+  de aannemer past het aan in de instellingen. marge = r.t.materiaalmarge (15). Het getal 57,50 zelf komt nergens op de offerte.
+  Bronnen: FOD Economie via VRT ("Alleen met de uitdrukkelijke toestemming van de consument mag hij die bijkomende werken
+  uitvoeren en de afgesproken extra kosten aanrekenen"); het uurtarief als regietarief: opdracht van de eigenaar in deze
+  taak; afronding naar boven: eigen kennis.
+
+2i. Opmerkingen en uitsluitingen
+- Eén blok "Opmerkingen en uitsluitingen" (3.7 en 3.11) met genummerde zinnen. Het programma vult het zo:
+  (1) elke zin uit m.aannames, letterlijk, als "Uitgangspunt: {zin}";
+  (2) elke post uit r.overgeslagen als "Niet inbegrepen: {naam} (geen hoeveelheid gekend; wordt apart geprijsd)." zonder het
+      stuk tussen haakjes dat motor.js toevoegt ("(hoeveelheid ontbreekt)");
+  (3) elke zin uit m.plaatsbezoek, alleen als "Hoeveelheden opgemeten ter plaatse" = nee, als "Voorbehoud: {zin} Wordt na
+      vaststelling als meerwerk geprijsd (zie Meerwerken)."; bij ja worden die punten niet geprint (de aannemer heeft ze gezien);
+  (4) de aangevinkte vaste uitsluitingen uit instellingen.offerte.uitsluitingen (lijst in 4.2), elk als "Niet inbegrepen: {zin}";
+  (5) de asbestzin die bij het asbestveld van de berekening hoort (3.11).
+  De aannemer kan elke zin schrappen, herschrijven of een eigen zin toevoegen; de uitkomst wordt bij de berekening bewaard.
+  Bronnen: Test Aankoop (checklist: "Welke bijkomende werken zal de aannemer uitvoeren en welke niet?"); FOD Economie via VRT
+  (meerwerk alleen na uitdrukkelijke toestemming); eigen kennis voor de vorm.
+
+2j. Onvoorzien
+- De 5 % onvoorzien (r.t.onvoorzien) zit via fOnv in elke eenheidsprijs en in elk forfait. Er komt geen regel, geen percentage en
+  geen woord "onvoorzien" op de offerte: een percentage zonder omschrijving is geen bepaalde prijs en lokt discussie. Onzekere
+  omvang is een VH-regel met eenheidsprijs (bv. "Kepers of gordingen vervangen · VH · 10 lm × € ..."), nooit een stelpost in
+  procent. Bronnen: FOD Economie via VRT (meerwerk pas na uitdrukkelijk akkoord); https://news.economie.fgov.be/227005-mag-een-product-meer-kosten-in-de-winkel-dan-op-de-webshop/
+  (prijs "ondubbelzinnig"); eigen kennis.
+
+3. OPBOUW VAN HET DOCUMENT (A4 staand, 3 pagina's + bijlage)
+-----------------------------------------------------------
+
+Technisch: een eigen pagina offerte.html?id={berekening-id} die de bewaarde berekening (GET /api/berekeningen/{id}) en de
+instellingen (GET /api/instellingen) leest, offerteVan(...) draait en het document rendert; afdrukken = window.print(), met
+document.title = "Offerte {nummer} {klantnaam}" (dat wordt de pdf-naam in Chrome). @page { size: A4; margin: 15 mm }.
+Lettertype IBM Plex Sans 10 pt (staat al in index.html), koppen 12 pt, totaal incl. btw 16 pt, zwart op wit, één accentkleur
+voor hoofdstukkoppen en het logo; font-variant-numeric: tabular-nums; bedragen rechts uitgelijnd. Elk hoofdstuk krijgt
+break-inside: avoid; de tabelkop herhaalt op een volgende pagina (thead). Voettekst op elke pagina via position: fixed (Chrome
+herhaalt die bij afdrukken): "{naam} {rechtsvorm} · {adres} · BTW {btw} · RPR {rpr} · IBAN {iban} · {telefoon} · {e-mail} ·
+Offerte {nummer}". Klaar-test: de voorbeeldklus (18 regels, 6 hoofdstukken) past op 3 pagina's in Chrome, A4 staand. Eigen kennis;
+ijk voor de printmaten: patroon-brief 5.16.
+
+Volgorde van de blokken (vast; de blokken 3.12 en 3.13 verschijnen alleen onder hun voorwaarde):
+
+3.1 Kop (pagina 1, bovenaan)
+- Links: logo (instellingen.offerte.aannemer.logo, hoogte 18 mm; zonder logo de naam in 14 pt vet), daaronder naam + rechtsvorm,
+  adres, "Ondernemingsnummer {ondernemingsnummer}", "BTW {btw}", "RPR {rpr}", telefoon, e-mail, "IBAN {iban}".
+- Rechts, in een kader: "OFFERTE" (14 pt), "Nummer {nummer}", "Datum {datum}", "Geldig tot {geldig tot}".
+- Daaronder twee kolommen: "Klant" (naam, straat en nummer, postcode en gemeente, e-mail, telefoon) en "Werfadres" (altijd
+  apart, ook als het gelijk is aan het klantadres).
+  Bronnen: VEKA ("Naam, adres en ondernemingsnummer aannemer", "Datum van de offerte", "Uniek offertenummer", "Naam en adres van
+  de aanvrager", "Werfadres"); https://www.unizo.be/starters/advies/wanneer-de-vermelding-van-het-ondernemingsnummer-verplicht
+  (het ondernemingsnummer staat op "Alle akten, facturen, aankondigingen, bekendmakingen, brieven, orders en andere stukken";
+  btw-nummer = "het ondernemingsnummer, voorafgegaan door de letters 'BE'"); https://www.teamleader.eu/nl/blog/voorbeeld-offerte
+  ("Status en rechtsvorm van de vennootschap", "Datum en geldigheidsduur van de offerte"); RPR en IBAN in de kop: eigen kennis.
+- Nummer: "{jaar}-{volgnummer op 4 cijfers}" (2026-0001), doorlopend per jaar uit instellingen.offerte.volgnummer; een nieuwe
+  versie van dezelfde offerte krijgt "-v2", "-v3". Geldig tot = datum + instellingen.offerte.geldigheidDagen (startwaarde 30),
+  geprint als datum, niet als "30 dagen". Bron: https://www.teamleader.eu/nl/blog/is-een-offerte-bindend ("Je doet er dan ook
+  goed aan om een geldigheidstermijn te vermelden. Zo kan je bijvoorbeeld in de algemene voorwaarden opnemen dat een offerte
+  maar 30 dagen geldig is").
+
+3.2 Titel en omschrijving van de werken
+- Titel (12 pt vet): het veld "Titel", startwaarde m.titel ("Zadeldak halfopen woning vernieuwen met sarking, 94 m²").
+- Eén alinea "Omschrijving van de werken", startwaarde: "{titel} op het adres {werfadres}. De werken omvatten: {opsomming van de
+  hoofdstuknamen in kleine letters, gescheiden door komma's}." De aannemer herschrijft vrij. Bron: eigen kennis (de inleidende
+  zin is de praktijkvorm; VEKA vraagt "Totstandkoming van de totale prijs").
+
+3.3 De tabel
+- Zeven kolommen: Nr · Omschrijving · Hoeveelheid · Eenheid · Aard · Eenheidsprijs excl. btw · Totaal excl. btw. Kolombreedtes
+  op A4 met marges 15 mm (180 mm): 10 · 86 · 18 · 14 · 10 · 21 · 21 mm. Geen kolom uren, materiaal, bron of marge.
+- Hoofdstukrij: nummer + naam in vet, met een lijn erboven. Regels zoals in 2a-2d. Subtotaalrij per hoofdstuk, rechts.
+- Forfaitregel: hoeveelheid-cel en eenheid-cel samengevoegd met de tekst "forfait", eenheidsprijs-cel leeg, aard "FH".
+  Bronnen: Bouwinfo 270099 (FH/VH, eenheden "lopende meters, vierkante meters, kubieke meters, stuks"); Teamleader
+  voorbeeld-offerte ("Opsplitsing en beschrijving van de geleverde diensten (hoeveelheid en prijs per eenheid)").
+- Onder de tabel: de VH/FH-zin (2g) als er een VH-regel is.
+
+3.4 Subtotaal excl. btw
+- Rij "Totaal excl. btw" = Σ subtotalen = r.kosten.excl − Σ opties (op de cent).
+
+3.5 Btw-regel
+- Rij "Btw {tarief} %" met het bedrag = totaal excl. × tarief ÷ 100, op de cent. Bij 6 %: "Btw 6 % (renovatie van een woning
+  ouder dan 10 jaar)". Bij 21 %: "Btw 21 %". Gemengde tarieven bestaan in versie 1 niet (r.t.btw is één getal).
+- Onder de totalen, bij 6 %, de verklaring die FOD Financiën voorschrijft, woordelijk (bron:
+  https://fin.belgium.be/nl/particulieren/woning/bouwen-verbouwen/verbouwen/verbouwen-btw-tarief):
+  "Btw-tarief: Bij gebrek aan schriftelijke betwisting binnen een termijn van één maand vanaf de ontvangst van de factuur, wordt
+  de klant geacht te erkennen dat: (1) de werken worden verricht aan een woning waarvan de eerste ingebruikneming heeft
+  plaatsgevonden in een kalenderjaar dat ten minste tien jaar voorafgaat aan de datum van de eerste factuur met betrekking tot
+  die werken, (2) de woning, na uitvoering van die werken, uitsluitend of hoofdzakelijk als privéwoning wordt gebruikt en (3) de
+  werken worden verstrekt en gefactureerd aan een eindverbruiker. Wanneer minstens één van die voorwaarden niet is voldaan, zal
+  het normale btw-tarief van 21 % van toepassing zijn en is de afnemer ten aanzien van die voorwaarden aansprakelijk voor de
+  betaling van de verschuldigde belasting, interesten en geldboeten."
+  Dezelfde tekst komt later op elke factuur; de offerte draagt hem al, zodat de klant de voorwaarden kent vóór hij tekent
+  (opdracht van de eigenaar; FOD Financiën legt de tekst op voor de factuur). Daarvoor nog één regel van het programma:
+  "Woning in gebruik sinds {jaar eerste ingebruikname}." (uit het formulier, 4.3). Posten die volgens dezelfde bron altijd 21 %
+  dragen ("Afbraakwerken zonder voorafgaande renovatie", "Intellectuele werken (studiework, toezicht architecten/ingenieurs)",
+  "Zelf aangekochte bouwmaterialen", "Nieuwbouw") komen in de datatabel van de app niet voor als losse klus; de aannemer kiest
+  dan 21 % in de tarieven.
+
+3.6 Totaal incl. btw
+- Rij "TOTAAL TE BETALEN incl. btw" in 16 pt vet = totaal excl. + btw. Het grootste cijfer op het document. Bron: FOD Economie
+  227005 (totale prijs incl. btw); VEKA.
+- Voorbeeldklus: 22.792,48 · btw 6 % 1.367,55 · 24.160,03. Bij 21 %: 4.786,42 · 27.578,90 (beide uit de run van 7 oktober 2026).
+
+3.7 Opties, Inbegrepen, Opmerkingen en uitsluitingen
+- Blok "Opties (niet inbegrepen in het totaal)" zoals 2f; alleen als er opties zijn.
+- Blok "Inbegrepen" (vaste zinnen, altijd): "Plaatsen, huur en wegnemen van de stelling en de valbeveiliging zoals in post 1.x."
+  (alleen als er een stellingregel is) · "Afvoer en verwerking van het afval zoals in de posten van hoofdstuk 1." (alleen met
+  afvoerregels) · "Afvoer van kleine restfracties en van oud metaal (zink, lood) naar de schroothandel." · "Vervoer, werfwagen en
+  verplaatsingen." · "Opkuis van de werf na de werken." · "Verzekering burgerlijke aansprakelijkheid uitbating: {verzekeraar},
+  polis {polisnummer}." (alleen als beide velden ingevuld zijn; nooit met lege plaatsen).
+- Blok "Opmerkingen en uitsluitingen" zoals 2i.
+  Bronnen: Test Aankoop (wat wel en niet inbegrepen is); Bobex (afvoer als eigen post); eigen kennis voor de zinnen.
+
+3.8 Uitvoering
+- "Aanvang: in overleg, ten vroegste {week nr/jaar of datum}." (veld, verplicht)
+- "Uitvoeringstermijn: {N} werkdagen na de aanvang." (veld, verplicht; startwaarde N = r.werkdagen + max(1, ⌈r.werkdagen ÷ 5⌉);
+  voorbeeldklus 6 → 8).
+- Vaste zin: "De termijn geldt in werkdagen. Zaterdagen, zondagen, feestdagen, het bouwverlof en dagen met weerverlet tellen niet
+  mee. Weerverlet = regen, vorst of blijvende sneeuw die het werk gedurende ten minste vier uur onmogelijk maken, genoteerd in
+  het werfboek. Wachttijd op keuzes, toegang of betalingen van de klant en leveringsvertragingen buiten onze wil schorsen de
+  termijn; wij melden elke schorsing schriftelijk."
+  Bronnen: https://www.bouwunie.be/nl/advies/bedrijfsvoering-en-management/de-kmiweertabel-de-bron-voor-jouw-weerverlet
+  ("de dagen waarop ongunstige weersomstandigheden (regen, vorst of blijvende sneeuw) het werk gedurende ten minste vier uur
+  onmogelijk maken, op voorwaarde dat die omstandigheden worden genoteerd in het werfboek"; niet-werkdagen: "zaterdagen en
+  zondagen (2 x 52= 104), feestdagen (10), vakantiedagen (20), rustdagen ten gevolge van de arbeidsduurvermindering (12)");
+  Test Aankoop ("Laat een (uiterste) uitvoeringsdatum op de offerte opnemen"); Teamleader voorbeeld-offerte ("Begindatum en
+  geschatte duur van de geleverde dienst"); reserve van 1 dag per 5: eigen kennis.
+
+3.9 Betaling
+- Drie rijen met percentage én bedrag incl. btw (op de cent; de derde rij = totaal − de twee andere, zodat de som klopt):
+  "{p1} % bij ondertekening van deze offerte: € ..." · "{p2} % bij de aanvang van de werken: € ..." · "{p3} % na de oplevering:
+  € ...". Startwaarden 30 / 40 / 30; voorbeeldklus 7.248,01 · 9.664,01 · 7.248,01.
+- Vaste zinnen: "Elke schijf wordt gefactureerd en is betaalbaar binnen {betaaltermijn} dagen na de factuurdatum op IBAN {iban}."
+  (startwaarde 14) · "Deze ondertekende offerte geldt als bestelbon." · bij VH-regels: "De eindafrekening verrekent de VH-posten
+  aan de opgemeten hoeveelheden."
+- Guard in het formulier: p1 boven 30 % toont de waarschuwing "Embuild: 25 tot 30 % is de norm; hoger alleen als u het
+  materiaal vooraf betaalt."; p1 boven 50 % blokkeert de uitgifte. p1 + p2 + p3 = 100 verplicht.
+  Bronnen: https://embuild.be/nl/meer-bouwbedrijven-vragen-nu-voorschot-door-gestegen-materialenprijzen ("Het vaakst wordt een
+  voorschot van 30% van de werken gevraagd", "meestal in de grootteorde van 25 à 30 procent", hoger "wanneer de aannemer of
+  installateur de aankoop van alle bouwmateriaal vooraf moet betalen"); https://www.kbc.be/particulieren/nl/thema/myhome/artikels/renoveren-met-een-aannemer-zo-regel-je-voorschotten-slim-en-veilig.html
+  ("Een voorschot betaal je meestal nadat je de offerte of het contract hebt ondertekend en vóór de werken starten"; laatste
+  deel na correcte oplevering); https://news.economie.fgov.be/242035-transparantie-in-bouwcontracten-garanderen/ ("Betaalt de
+  consument een voorschot, dan moet er een bestelbon worden opgesteld"); betaaltermijn 14 dagen en grens 50 %: eigen kennis.
+
+3.10 Meerwerken
+- De clausule uit 2h, als eigen blok op pagina 2.
+
+3.11 Voorwaarden op de offerte zelf (kort; de lange versie staat in de algemene voorwaarden, 3.14)
+- "Geldigheid: deze offerte geldt tot {geldig tot}."
+- "Prijs: vaste prijs; geen prijsherziening voor werken die starten vóór {datum + 6 maanden}." Start later dan 6 maanden na de
+  offertedatum → het formulier blokkeert met "Start later dan 6 maanden na de offerte: maak een nieuwe offerte op de startdatum."
+  (versie 1 kent geen herzieningsformule; eigen kennis).
+- "Garantie: tien jaar op de stabiliteit en de waterdichtheid van het uitgevoerde werk vanaf de oplevering; lichte verborgen
+  gebreken herstellen wij na schriftelijke melding; fabrieksgarantie op materialen volgens de fabrikant." (eigen kennis: de
+  wettelijke tienjarige aansprakelijkheid van de aannemer; geen artikelnummers van het oud Burgerlijk Wetboek op het document,
+  Boek 7 BW hernummert ze)
+- "Verzekering: {BA-zin uit 3.7}." en, alleen als het formulierveld "Architect wettelijk verplicht" = ja: "Verzekering tienjarige
+  aansprakelijkheid (wet van 31 mei 2017): {verzekeraar}, ondernemingsnummer {nr}, polis {nr}; het attest wordt vóór de start
+  aan de bouwheer en de architect overhandigd." Bron: https://economie.fgov.be/en/themes/financial-services/insurance/construction/decennial-civil-liability
+  (verplicht voor werven die "strictly require the intervention of an architect"; contractdocumenten vermelden "the name and
+  business number of the insurance company" en "the number of the insurance policy"). Zonder architect geen polisvermelding:
+  een verzekering die niet bestaat komt niet op papier.
+- Asbest, één van drie zinnen volgens het asbestveld van de berekening (ja / nee / onbekend, index.html):
+  ja → "De asbestposten betreffen hechtgebonden asbest, verwijderd met eenvoudige handelingen door opgeleid personeel, dubbel
+  verpakt en afgevoerd naar een vergunde verwerker. Niet-hechtgebonden asbest (leidingisolatie, spuitasbest, asbesthoudend
+  pleisterwerk of lijmlagen) valt buiten deze offerte en wordt door een erkende asbestverwijderaar verwijderd tegen afzonderlijke
+  offerte."
+  nee → "Deze offerte gaat uit van de afwezigheid van asbest."
+  onbekend → "Deze offerte gaat uit van de afwezigheid van asbest. Wordt asbest vastgesteld, dan stoppen de werken op dat
+  onderdeel en prijzen wij de verwijdering apart (hechtgebonden: eigen opgeleid personeel; niet-hechtgebonden: erkende
+  asbestverwijderaar)."
+  Bron: https://ovam.vlaanderen.be/wie-mag-wat-verwijderen (eenvoudige handelingen: "hechtgebonden asbest die niet beschadigd is
+  of waarbij er geen vrije vezels zichtbaar zijn"; erkende verwijderaar verplicht voor "asbesthoudende lijmlaag op chape
+  (affrezen, afschuren), leidingisolatie, pleisterwerk, spuitasbest"; afval "dubbel verpakt aandienen bij een categorie-I
+  stortplaats of een geregistreerd asbestinzamelaar"). De offerte vraagt of belooft nooit een asbestattest.
+- "Veiligheid: vóór de start maken wij een plaatsbeschrijving met foto's van de werf en de aanpalende delen. Het
+  postinterventiedossier (foto's en technische fiches van de uitgevoerde werken) wordt bij de oplevering overhandigd." Werken
+  er twee of meer aannemers op de werf (veld in het formulier, startwaarde 1), dan komt erbij: "Veiligheidscoördinatie
+  verwezenlijking: aangesteld door {naam aannemer}; de afspraken over de opeenvolgende werkzaamheden worden vóór de start
+  schriftelijk vastgelegd." (eigen kennis; de coördinatiekost is dan een AI-post of een eigen regel in de berekening, nooit een
+  verborgen toeslag)
+- "Afval: al het afval van de werken voeren wij af en verwerken wij volgens de wettelijke regels; de kost zit in de posten."
+- "Premies: {VEKA-zin}" alleen als het veld "Premiewerk (Mijn VerbouwPremie)" = ja: "De aannemer verbindt zich ertoe om alle
+  documenten, die nodig zijn voor aanvraag van Mijn VerbouwLening/Mijn VerbouwPremie, te bezorgen aan de bouwheer." (woordelijk,
+  bron: VEKA-url in deel 1 punt 3). Nooit een premiebedrag, nooit "komt in aanmerking", nooit "netto na premie" (eigen kennis:
+  de voorwaarden hangen af van inkomen, eigendom en datum; elke vermelding wordt een belofte van de aannemer).
+- Onrechtmatige bedingen vermijden: elke vergoeding die de klant kan treffen heeft een spiegel ten laste van de aannemer; geen
+  eenzijdige prijsverhoging, geen eenzijdige wijziging, geen beperking van de wettelijke garantie, geen omkering van de
+  bewijslast, geen eigen rechtbank opgelegd. Bron: https://legalnews.be/bouw-vastgoed/kan-een-aannemer-u-interesten-of-een-schadevergoeding-aanrekenen-als-u-de-algemene-voorwaarden-nooit-vooraf-te-zien-kreeg-everest/
+  (schadebedingen zonder wederkerigheid schenden art. VI.83, 17° WER; geen vangnet van wettelijke interest);
+  https://legalnews.be/verbintenissen-goederen/over-het-recht-op-vergoeding-in-geval-van-beeindiging-van-de-aanneming-door-de-opdrachtgever-belexa-advocaten
+  (beding "forfaitaire vergoeding van 30% op de totale aannemingssom" = "niet wederkerig" en "kennelijk bovenmatig");
+  https://news.economie.fgov.be/242035-transparantie-in-bouwcontracten-garanderen/ ("Onevenwichtige clausules in een contract die
+  nadelig zijn voor de consument, mogen niet").
+
+3.12 Herroepingsrecht (alleen als "Ondertekening bij de klant thuis of op de werf" = ja en klanttype = particulier)
+- Blok "Herroepingsrecht": "U hebt het recht deze overeenkomst binnen 14 kalenderdagen na de ondertekening zonder opgave van
+  reden te herroepen. Gebruik daarvoor het formulier in bijlage of een andere duidelijke verklaring, per post naar {adres} of per
+  e-mail naar {e-mail}. Betaalde bedragen betalen wij binnen 14 dagen terug met hetzelfde betaalmiddel."
+- Aankruisvak bij de handtekening: "☐ Ik verzoek uitdrukkelijk dat de werken starten vóór het einde van de herroepingstermijn.
+  Herroep ik daarna, dan betaal ik het al uitgevoerde deel aan de prijzen van deze offerte, en ik erken dat mijn
+  herroepingsrecht vervalt zodra de werken volledig zijn uitgevoerd."
+- Veld "Aard van de opdracht": "geplande werken" (startwaarde) of "dringende herstelling op uitdrukkelijk verzoek van de klant"
+  (stormschade, lek). Bij de tweede vervangt het programma het blok door: "U hebt {naam aannemer} uitdrukkelijk verzocht deze
+  dringende herstelling onmiddellijk uit te voeren; op deze interventie geldt geen herroepingsrecht."
+- Bijlage (laatste pagina, alleen bij dit blok): het modelformulier voor herroeping met naam, adres en e-mail van de aannemer
+  en "offerte nr. {nummer}" vooringevuld. De tekst neemt de bouwer letterlijk over uit de pdf van FOD Economie
+  (https://economie.fgov.be/sites/default/files/Files/Forms/Formulier-herroeping.pdf; geopend op 7 oktober 2026; de tekst is
+  daar niet machinaal leesbaar, overtypen uit de pdf). Opbouw van dat formulier (eigen kennis, EU-model): aan wie (naam, adres,
+  e-mail) · "Ik/Wij (*) deel/delen (*) u hierbij mede dat ik/wij (*) onze overeenkomst betreffende ... herroep/herroepen (*)" ·
+  besteld op / ontvangen op · naam en adres consument(en) · datum · handtekening (alleen op papier) · "(*) Doorhalen wat niet
+  van toepassing is".
+  Bronnen: https://economie.fgov.be/nl/themas/verkoop/reglementering/verkoop-buiten-verkoopruimten (toepassing bij "gelijktijdige
+  fysieke aanwezigheid van de consument en de onderneming op een plaats die niet de verkoopruimte van de onderneming is"; "een
+  herroepingstermijn van 14 kalenderdagen"; informatie "op papier of met instemming van de consument op een duurzame
+  gegevensdrager"; "De bewijslast voor de naleving van deze informatievoorschriften ligt bij de onderneming");
+  https://news.economie.fgov.be/227571-twijfel-na-een-aankoop-gebruik-je-herroepingsrecht/ (termijn start "op de dag nadat je ...
+  het dienstencontract hebt ondertekend"; terugbetaling "via dezelfde betaalmethode"; "standaard herroepingsformulier");
+  https://www.unizo.be/advies/welke-gevallen-heeft-de-consument-geen-herroepingsrecht (geen herroeping bij "dienstenovereenkomsten
+  die al volledig zijn uitgevoerd, met uitdrukkelijke voorafgaande instemming van de consument, die ook heeft erkend dat hij
+  zijn herroepingsrecht verliest" en bij dringende herstellingen op uitdrukkelijk verzoek).
+- De app bewaart de ondertekende pdf (upload) bij de berekening: de bewijslast ligt bij de aannemer. Versie 1: alleen een
+  veld "Ondertekend op {datum}" + bestandsnaam; geen digitale handtekening.
+
+3.13 Handtekeningvakken
+- Zin erboven: "Door ondertekening aanvaardt de klant deze offerte, het betalingsschema en de algemene voorwaarden op pagina 3;
+  deze offerte geldt als bestelbon en wordt de aannemingsovereenkomst."
+- Twee kolommen: links "Voor akkoord — de klant" met "Naam", "Plaats en datum", "Handtekening, voorafgegaan door 'gelezen en
+  goedgekeurd'"; rechts "Voor {naam aannemer}" met "Naam en functie", "Datum", "Handtekening". Onder de klantkolom het aankruisvak
+  van 3.12 (als dat blok er is) en het vak "Gewenste opties: zie blok Opties".
+  Bronnen: VEKA (ondertekende offerte = contract; eigen kennis voor de vorm); Everest-vonnis (klant ondertekent de voorwaarden
+  vóór contractsluiting).
+
+3.14 Algemene voorwaarden (pagina 3, vaste tekst uit instellingen.offerte.voorwaarden, bewerkbaar; paraafvak onderaan)
+Startversie, 14 artikelen; elke zin hoogstens 25 woorden, geen Latijn, geen artikelnummers van het oud Burgerlijk Wetboek.
+"{Aannemer}" wordt bij het renderen vervangen door de naam uit de instellingen; "{...}" door de instelwaarden.
+ 1. Toepassing. Deze voorwaarden horen bij de offerte waarop ze gedrukt zijn. Afwijkingen gelden alleen schriftelijk. Samen
+    vormen zij de aannemingsovereenkomst.
+ 2. Geldigheid. De offerte geldt tot de datum op de voorzijde. Na die datum maakt {Aannemer} op vraag een nieuwe offerte.
+ 3. Prijs. De prijs is vast en inclusief btw zoals vermeld. Posten met de aard VH worden na opmeting verrekend aan de vermelde
+    eenheidsprijs. Voor werken die starten binnen zes maanden na de offertedatum is er geen prijsherziening. Het btw-tarief
+    van 6 % geldt onder de voorwaarden op de voorzijde; is daaraan niet voldaan, dan geldt 21 %.
+ 4. Meerwerken. {tekst van 2h}
+ 5. Uitvoering. De termijn geldt in werkdagen zoals op de voorzijde omschreven. Weerverlet, bouwverlof, wachttijd op keuzes,
+    toegang of betalingen van de klant en leveringsvertragingen buiten de wil van {Aannemer} schorsen de termijn. {Aannemer}
+    meldt elke schorsing schriftelijk.
+ 6. Werf. De klant geeft vrije toegang tot de werf, water en stroom, en een vrije werkzone voor stelling, container en
+    materiaal. De klant meldt vooraf wat hij weet over leidingen, asbest en verborgen constructies.
+ 7. Betaling. De schijven en de betaaltermijn staan op de voorzijde. Blijft een factuur onbetaald op de vervaldag, dan stuurt
+    {Aannemer} een kosteloze herinnering. Betaalt de klant niet binnen 14 kalenderdagen na die herinnering, dan is interest
+    verschuldigd tegen de referentierentevoet van de wet van 2 augustus 2002 vermeerderd met 8 procentpunt, plus een
+    forfaitaire vergoeding van 20 euro (schuld tot 150 euro), 30 euro plus 10 % van het bedrag (van 150,01 tot 500 euro) of
+    65 euro plus 5 % van het bedrag (boven 500 euro), met een maximum van 2.000 euro. Betaalt {Aannemer} een bedrag dat het aan
+    de klant verschuldigd is niet binnen 14 kalenderdagen na een herinnering, dan gelden dezelfde interest en vergoeding ten
+    gunste van de klant.
+    Bron: https://news.economie.fgov.be/228627-onbetaalde-facturen-gratis-herinnering-en-beperkte-vergoeding/ (eerste herinnering
+    gratis; "minimaal 14 kalenderdagen"; "20 euro als het verschuldigde bedrag lager dan of gelijk aan 150 euro is", "30 euro plus
+    10 % van het verschuldigde bedrag als dat bedrag tussen 150,01 en 500 euro ligt", "65 euro plus 5 % van het verschuldigde
+    bedrag als dat bedrag hoger is dan 500 euro (met een maximum van 2.000 euro)"; interest "niet hoger ... dan de interesten
+    tegen de referentierentevoet vermeerderd met acht procentpunt"); spiegelregel: Everest-vonnis (wederkerigheid).
+ 8. Eigendom. Geleverde maar nog niet verwerkte materialen blijven eigendom van {Aannemer} tot de volledige betaling.
+ 9. Oplevering. Bij het einde van de werken ondertekenen beide partijen een opleveringsverslag. Zichtbare gebreken vermeldt de
+    klant in dat verslag; {Aannemer} herstelt ze binnen 30 kalenderdagen. De aanvaarding start de garantietermijnen. Het saldo
+    wordt na de oplevering gefactureerd.
+10. Garantie. {Aannemer} is tien jaar aansprakelijk voor ernstige gebreken die de stabiliteit of de waterdichtheid van het werk
+    aantasten, vanaf de oplevering. Lichte verborgen gebreken meldt de klant schriftelijk binnen twee maanden na de vaststelling;
+    {Aannemer} herstelt ze binnen 30 kalenderdagen. Op materialen geldt de garantie van de fabrikant. Normale slijtage,
+    verkeerd gebruik, gebrek aan onderhoud en werk van derden vallen buiten de garantie.
+11. Verzekering. {Aannemer} is verzekerd voor zijn burgerlijke aansprakelijkheid uitbating. Is een architect wettelijk
+    verplicht, dan sluit {Aannemer} de verzekering tienjarige aansprakelijkheid af en overhandigt het attest vóór de start.
+12. Verbreking. Verbreekt de klant de overeenkomst na ondertekening, dan betaalt hij de uitgevoerde werken en de bestelde,
+    niet-retourneerbare materialen aan de prijzen van deze offerte, plus {verbreking} % van het niet-uitgevoerde deel.
+    Verbreekt {Aannemer} zonder reden, dan betaalt {Aannemer} de klant dezelfde {verbreking} % van het niet-uitgevoerde deel.
+    (startwaarde 10; harde bovengrens 15 in de instellingen; bron: Belexa-vonnis, 30 % eenzijdig = onrechtmatig)
+13. Herroeping. Is de offerte bij de klant thuis of op de werf ondertekend, dan geldt het herroepingsrecht van 14 kalenderdagen
+    zoals op de voorzijde. Bij een dringende herstelling op uitdrukkelijk verzoek van de klant geldt geen herroepingsrecht.
+14. Klachten en geschillen. Klachten stuurt de klant schriftelijk naar {e-mail}. {Aannemer} bevestigt de ontvangst binnen 2
+    werkdagen en antwoordt binnen 10 werkdagen. Technische geschillen leggen beide partijen eerst voor aan de
+    Verzoeningscommissie Bouw (North Gate III, Koning Albert II-laan 16, 1000 Brussel). Daarna is de rechtbank bevoegd die de wet
+    aanwijst. Belgisch recht is van toepassing.
+    Bron: https://www.bouwverzoening.be/ (commissie voor "particuliere bouwheren, aannemers en architecten", "een procedure die
+    snel en goedkoop is", akkoord van beide partijen via een clausule in het contract; adres); de clausuletekst zelf: eigen
+    kennis (de officiële tekst van het bevoegdheidsbeding staat niet op de geopende pagina; de eigenaar kan hem bij de
+    commissie opvragen en in de instellingen plakken).
+Toetsing vóór uitgifte (automatisch, in het formulier): elke zin in de voorwaarden telt hoogstens 25 woorden; bevat de tekst
+"beslist eenzijdig", "zonder verhaal", "uitsluitend bevoegd", "rechtbank van" (eigen forumkeuze) of een percentage boven de
+ingestelde bovengrens, dan weigert het programma de uitgifte met de regel die fout is. Eigen kennis.
+
+4. HET FORMULIER
+----------------
+
+Plaats in de app: de knop "Offerte" in de paneelkop (index.html, id="offerte", nu uitgeschakeld met de titel "Offerte: volgende
+versie") opent een vaste weergave "Offerte" die, zoals Instellingen, gesprek en paneel vervangt (patroon-brief 2.7); links een
+lijst van vijf stappen (Aannemer · Klant en werf · Posten · Uitvoering en betaling · Tekst), rechts de velden, onderaan vast
+een balk met "Nog in te vullen: {n}" en de knoppen "Offerte afdrukken" (primair) en "Terug naar de berekening". De knop
+"Offerte afdrukken" is uitgeschakeld zolang de lijst "Nog in te vullen" niet leeg is; de lijst noemt elk veld bij zijn label
+en springt bij klik naar het veld. Alle velden bewaren bij input (geen aparte bewaarknop): aannemervelden en vaste teksten in
+instellingen.offerte via POST /api/instellingen; klant-, werf- en offertevelden in berekening.offerte via POST
+/api/berekeningen (de bestaande endpoints in server.mjs). Klanttype "onderneming" is in versie 1 zichtbaar maar uitgeschakeld
+met de tekst "Offerte voor een onderneming: volgende versie" (andere btw, andere betaalregels, geen herroeping; eigen kennis).
+
+Notatie: label · type · verplicht · vooraf ingevuld met · bewaard in
+
+4.1 Aannemer (één keer; instellingen.offerte.aannemer, bestaat al in instellingen.json met naam, adres, btw,
+    ondernemingsnummer, telefoon, email, website, logo, iban, rpr, rechtsvorm)
+- Handelsnaam · tekst · ja · "AB Bouw Groep" (bestaande waarde) · aannemer.naam
+- Rechtsvorm · keuze (BV, NV, CommV, VOF, eenmanszaak, andere) · ja · leeg · aannemer.rechtsvorm
+- Adres (straat, nummer, postcode, gemeente) · tekst · ja · bestaande waarde · aannemer.adres
+- Ondernemingsnummer · tekst, patroon 0xxx.xxx.xxx of 1xxx.xxx.xxx · ja · bestaande waarde · aannemer.ondernemingsnummer
+- Btw-nummer · tekst · ja · "BE " + ondernemingsnummer · aannemer.btw
+- RPR (rechtbank van de zetel, bv. "RPR Antwerpen, afdeling Mechelen") · tekst · ja als rechtsvorm ≠ eenmanszaak · leeg · aannemer.rpr
+- Telefoon · tekst · ja · bestaande waarde · aannemer.telefoon
+- E-mail · e-mail · ja · bestaande waarde · aannemer.email
+- Website · tekst · nee · bestaande waarde · aannemer.website
+- IBAN · tekst, IBAN-controle (BE + 14 cijfers, modulo 97) · ja · leeg · aannemer.iban
+- Logo · bestand (png/svg, pad onder assets/) · nee · "assets/ab-bouw-logo.png" (bestaat) · aannemer.logo
+- Verzekeraar BA uitbating · tekst · nee · leeg · aannemer.baVerzekeraar
+- Polisnummer BA uitbating · tekst · nee (ja als verzekeraar ingevuld) · leeg · aannemer.baPolis
+- Verzekeraar tienjarige · tekst · ja alleen als een offerte "Architect verplicht" = ja heeft · leeg · aannemer.tienjarigeVerzekeraar
+- Ondernemingsnummer verzekeraar tienjarige · tekst · idem · leeg · aannemer.tienjarigeOndernemingsnummer
+- Polisnummer tienjarige · tekst · idem · leeg · aannemer.tienjarigePolis
+  Bronnen: Unizo (ondernemingsnummer, btw-nummer BE + nummer); Teamleader voorbeeld-offerte (rechtsvorm); FOD Economie decennial
+  (naam, ondernemingsnummer en polisnummer van de verzekeraar in de contractdocumenten); RPR-vermelding voor vennootschappen en
+  IBAN: eigen kennis.
+
+4.2 Vaste instellingen van de offerte (één keer; instellingen.offerte)
+- Geldigheid in dagen · getal · ja · 30 · geldigheidDagen
+- Regietarief meerwerken, € per uur excl. btw · getal · ja · ⌈uurtarief⌉ = 58 · regietarief
+- Betalingsschema: bij ondertekening / bij aanvang / na oplevering, in % · drie getallen, som 100 · ja · 30 / 40 / 30 · betaling.p1, p2, p3
+- Betaaltermijn facturen in dagen · getal · ja · 14 · betaaltermijn
+- Verbrekingsvergoeding in % (hoogstens 15) · getal · ja · 10 · verbreking
+- Volgnummer offerte (laatst gebruikt, per jaar) · getal, alleen lezen · — · 0 · volgnummer, volgnummerJaar
+- Vaste uitsluitingen (lijst van zinnen, elk met een vinkje "standaard aan voor vak ...") · lijst · nee · deze startlijst · uitsluitingen:
+    "Verwijdering van niet-hechtgebonden asbest door een erkende asbestverwijderaar." (dak, gevel, plat: aan)
+    "Elektriciteitswerken en het los- en aankoppelen van zonnepanelen door een installateur." (alle vakken: aan)
+    "Binnenafwerking na de werken: plafonds, pleisterwerk en schilderwerk." (dak, plat, ramen: aan)
+    "Vergunningen, meldingen en parkeerverbod, tenzij als post opgenomen." (alle vakken: aan)
+    "Nutsaansluitingen en werken aan leidingen van water, gas of elektriciteit." (alle vakken: aan)
+    "Herstel van verborgen gebreken aan de draagstructuur die pas na afbraak zichtbaar worden; wordt als meerwerk geprijsd."
+    (dak, plat, gevel, vloer: aan)
+    "Stabiliteitsstudie, EPB-verslag en andere studies." (alle vakken: aan)
+  Bron: Test Aankoop (wat niet inbegrepen is); de zinnen: eigen kennis.
+- Algemene voorwaarden · tekstvak met de 14 artikelen van 3.14 · ja · de startversie · voorwaarden
+- Zin "Inbegrepen" en vaste zinnen (3.7, 3.8, 3.11) · tekstvakken · ja · de startteksten uit deel 3 · teksten.{sleutel}
+
+4.3 Per offerte (berekening.offerte; de berekening is al bewaard via POST /api/berekeningen)
+Klant en werf
+- Klanttype · keuze particulier / onderneming (uitgeschakeld) · ja · particulier · klant.type
+- Naam klant (voornaam en naam, of "Mevrouw en Mijnheer ...") · tekst · ja · leeg · klant.naam
+- Straat en nummer · tekst · ja · leeg · klant.straat
+- Postcode en gemeente · tekst · ja · leeg · klant.gemeente
+- E-mail klant · e-mail · ja als "Ondertekening bij de klant" = ja (de herroeping gaat per e-mail) · leeg · klant.email
+- Telefoon klant · tekst · nee · leeg · klant.telefoon
+- Werfadres · tekst · ja · het adresveld van de berekening (gemeten adres); leeg als er geen adres was · werf.adres
+- Vinkje "Werfadres = klantadres" · vinkje · nee · uit; aan → kopieert het klantadres bij elke wijziging · werf.gelijk
+- Jaar eerste ingebruikname van de woning · getal (4 cijfers) · ja als btw = 6 % · leeg · woning.jaar
+  Guard: jaar > huidig jaar − 10 → blokkeert met "Woning jonger dan 10 jaar: zet de btw in de tarieven op 21 %."
+- Woning voor meer dan 50 % privé bewoond · vinkje · ja als btw = 6 % (moet aan staan) · aan · woning.prive
+- Gefactureerd aan de bewoner (eigenaar, huurder of vruchtgebruiker) · vinkje · ja als btw = 6 % (moet aan) · aan · woning.eindverbruiker
+  Bron: FOD Financiën (de drie voorwaarden); guards: eigen kennis.
+Offerte
+- Nummer · alleen lezen · — · toegekend bij de eerste bewaring: jaar + volgnummer + 1 · offerte.nummer
+- Datum · datum · ja · vandaag · offerte.datum
+- Geldig tot · datum · ja · datum + geldigheidDagen · offerte.geldigTot
+- Titel · tekst · ja · m.titel · offerte.titel
+- Omschrijving van de werken · tekstvak · ja · zin uit 3.2 · offerte.omschrijving
+- Aard van de opdracht · keuze geplande werken / dringende herstelling · ja · geplande werken · offerte.aard
+- Ondertekening bij de klant thuis of op de werf · vinkje · ja · aan · offerte.thuis
+- Hoeveelheden opgemeten ter plaatse · vinkje + datum · ja · uit · offerte.opgemeten, offerte.opgemetenOp
+- Architect wettelijk verplicht voor deze werken · vinkje · ja · uit · offerte.architect
+- Aantal aannemers op de werf (inclusief onderaannemers en aannemers van de klant) · getal · ja · 1 · offerte.aannemers
+- Premiewerk (Mijn VerbouwPremie) · vinkje · nee · uit · offerte.premiewerk
+- Toon alleen hoofdstuktotalen · vinkje · nee · uit · offerte.alleenHoofdstukken
+Posten (één rij per offerteregel, in tabelvolgorde; de berekening blijft de bron van hoeveelheid en prijs)
+- Omschrijving · tekst · ja (niet leeg) · de omschrijving uit 2a-2d · offerte.regels[sleutel].omschrijving
+- Aard · keuze VH / FH · ja · volgens 2g · offerte.regels[sleutel].aard
+- In optie · vinkje, alleen bij regels met keuze · nee · uit · offerte.regels[sleutel].optie
+  sleutel = regel.code + "#" + volgnummer van die code in r.regels (AI-post: "ai:" + naam; materieelrij: "mat:" + soort + ":" + naam).
+  Verandert de berekening (herberekening, v2), dan blijven de keuzes per sleutel staan; sleutels die niet meer bestaan vervallen
+  stil, nieuwe regels krijgen de startwaarden.
+- Alleen lezen, als geheugensteun: hoeveelheid, eenheid, eenheidsprijs en regeltotaal zoals ze geprint worden; een amber puntje
+  bij AI-regels (2b); de regel "Afrondingsverschil opgevangen in post {nr}: {± bedrag}" onder de tabel.
+Uitvoering en betaling
+- Aanvang (week/jaar of datum) · tekst of datum · ja · leeg · uitvoering.start
+- Uitvoeringstermijn in werkdagen · getal · ja · r.werkdagen + max(1, ⌈r.werkdagen ÷ 5⌉) · uitvoering.werkdagen
+- Betalingsschema voor deze offerte · drie getallen · ja · uit de instellingen · betaling.p1, p2, p3 (per offerte overschrijfbaar)
+Tekst
+- Inbegrepen · lijst van zinnen, schrapbaar · nee · 3.7 · teksten.inbegrepen
+- Opmerkingen en uitsluitingen · lijst van zinnen, schrapbaar en bewerkbaar · nee · 2i · teksten.uitsluitingen
+- Eigen opmerking · tekstvak · nee · leeg · teksten.opmerking
+
+4.4 De lijst "Nog in te vullen" (blokkeert "Offerte afdrukken")
+Een veld staat op de lijst als het verplicht is volgens 4.1-4.3 en leeg of ongeldig is. Daarbovenop deze controles:
+- r.regels is leeg of de berekening loopt nog → "Geen posten: bereken eerst."
+- r.overgeslagen bevat posten → geen blokkering; ze staan in de uitsluitingen (2i).
+- btw = 6 % en woning.jaar ontbreekt of te jong → regel uit 4.3.
+- p1 > 50 → "Voorschot boven 50 %: verlaag het." p1 + p2 + p3 ≠ 100 → "Betalingsschema telt niet op tot 100 %."
+- uitvoering.start later dan offertedatum + 6 maanden → regel uit 3.11.
+- offerte.architect = aan en de drie tienjarige-velden niet ingevuld → "Verzekering tienjarige aansprakelijkheid: verzekeraar,
+  ondernemingsnummer en polis."
+- aannemer.baVerzekeraar ingevuld zonder polisnummer (of omgekeerd) → "BA-verzekering: beide velden of geen van beide."
+- een optieregel die de enige regel van de hoofdtabel was → "Minstens één post in de hoofdtabel."
+- de toetsing van de algemene voorwaarden (3.14) faalt → de foute regel.
+- offerte.geldigTot ligt vóór vandaag → "Vervallen: zet een nieuwe datum (nieuwe versie)."
+Zijn alle regels weg, dan staat er "Alles ingevuld" en is de knop actief.
+
+4.5 Wat de knop "Offerte afdrukken" doet
+1. Draait offerteVan(...) opnieuw en bevriest de uitkomst: berekening.offerte.uitgegeven = { datum, nummer, versie, totaalExcl,
+   btwTarief, btw, totaalIncl, hoofdstukken, opties, teksten, aannemer (kopie) }.
+2. Zet berekening.offerte.status = "uitgegeven", telt instellingen.offerte.volgnummer op als het nummer nieuw is, bewaart beide.
+3. Opent offerte.html?id={id}&versie={versie} in een nieuw tabblad; die pagina rendert ALTIJD uit de bevroren kopie, nooit
+   opnieuw uit de motor. De pagina roept window.print() op na het laden van het logo en de fonts.
+4. Elke latere wijziging in het formulier of in de berekening maakt een nieuwe versie (nummer-v2) bij de volgende uitgifte; de
+   vorige bevroren kopieën blijven in berekening.offerte.versies[]. Eigen kennis (VEKA: ondertekende offerte = contract).
+
+4.6 Status in de rail en het paneel
+- De rail toont bij een berekening met een uitgegeven offerte de chip "Offerte {nummer}" en, na "geldig tot", "vervallen".
+- In het paneel leest de knop "Offerte" daarna "Offerte {nummer}" en opent hij de bevroren pdf-weergave; een tweede knop in het
+  menu "Nieuwe versie" opent het formulier opnieuw.
+
+5. AFRONDINGEN EN GETALNOTATIE (nl-BE)
+--------------------------------------
+
+- Bedragen: "€ 1.234,50" (Intl.NumberFormat('nl-BE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) met "€ " ervoor,
+  vaste spatie). Altijd twee decimalen op de offerte: eenheidsprijzen, regeltotalen, subtotalen, btw, totalen, schijven, opties.
+  Een eenheidsprijs van 62 print "62,00". Negatieve bedragen komen op een offerte niet voor.
+- Hoeveelheden: geheel zonder decimalen ("94"), anders hoogstens twee decimalen met komma ("11,7", "0,25"); nooit "94,0".
+  Duizendtal met punt ("1.250 m²").
+- Eenheden, exact deze schrijfwijze: m², lm, st, m³, forfait. De eenheden "u" en "dag" komen niet op de offerte (zij worden
+  forfait, 2d). Nooit "stuks", "m2", "lopende meter" in de kolom.
+- Percentages met een spatie: "6 %", "30 %". Datums voluit: "7 oktober 2026". Weken: "week 45/2026".
+- Afrondregels (samenvatting van 2a en 2d): eenheidsprijs op € 0,10 (onder € 10), € 0,50 (tot € 100), € 1 (tot € 1.000), € 5
+  (vanaf € 1.000); forfaits op € 5; regeltotaal = eenheidsprijs × hoeveelheid op de cent; sluitpost op de cent; subtotalen,
+  btw en totalen exact op de cent uit de afgeronde regeltotalen; btw-bedrag = Σ hoofdtabel × tarief ÷ 100, afgerond op de cent
+  (half omhoog); schijven: p1 en p2 op de cent, p3 = totaal − p1 − p2. Afrondingsfunctie: cent(x) = Math.round(x × 100) / 100
+  met een correctie van 1e-9 tegen binaire restjes (zelfde aanpak als omhoog() in motor.js).
+- Het offertetotaal excl. btw is gelijk aan r.kosten.excl − Σ opties op de cent (2a); zonder forfaitregel hoogstens
+  hoeveelheid × € 0,005 ernaast (intern getoond). Het offertetotaal incl. btw kan daardoor van r.kosten.incl afwijken met
+  hoogstens € 0,01 door de afronding van de btw; de app toont de bevroren offertetotalen, niet de motor, zodra de offerte is
+  uitgegeven.
+  Bronnen: ronde eenheidsprijzen in de praktijk: Bobex (zie 2a); totaalblok op de cent: eigen kennis.
+
+
+6. NIET DOEN (uit het onderzoek)
+--------------------------------
+
+- Geen manuren, geen uurtarief per post, geen "€ 48/uur"-referentie op een forfaitofferte: dat tarief veroorzaakte zelf het
+  geschil in Bouwinfo 334545 ("De aannemer vraag 48 euro/uur, incl. btw 6%" naast een forfait van € 4.500).
+- Geen inkoopprijzen, geen marge, geen "winst", geen opsplitsing per kostensoort (arbeid / materiaal / materieel / vervoer): de
+  norm is groepering per categorie van werken (VEKA); een kostensoort-split verraadt de calculatie (eigen kennis).
+- Geen regel "Onvoorzien 5 %" en geen stelpost in procent (2j).
+- Geen kg, ton, containerprijs per ton, dichtheid; afvoer is een dienst in forfait (2d).
+- Geen offerte in regie voor een consument (VRT: "kunnen werken in regie eigenlijk niet").
+- Geen "raming", "richtprijs", "schatting", "indicatief", "±" of "circa" op een bindende offerte (deel 1, punt 5).
+- Geen prijs die alleen excl. btw staat; het bedrag incl. btw is het grootste cijfer (FOD Economie 227005; VEKA).
+- Geen voorwaarden die pas later opduiken (apart contract, website, factuur): alles staat in de offerte en de klant tekent ze
+  (Everest-vonnis: een verwijzing op de factuur komt te laat).
+- Geen eenzijdige boete, annulatievergoeding of vertragingsvergoeding (Belexa-vonnis: 30 % eenzijdig = onrechtmatig); elke
+  vergoeding wederkerig.
+- Geen concreet rentepercentage ("12 %") in de voorwaarden: de referentierentevoet wijzigt; verwijs naar "referentierentevoet
+  van de wet van 2 augustus 2002 vermeerderd met 8 procentpunt" (FOD Economie 228627).
+- Geen artikelnummers van het oud Burgerlijk Wetboek (1792, 1793, 1794) op het document: Boek 7 BW hernummert de aanneming
+  (eigen kennis).
+- Geen voorschot boven 30 % zonder reden, nooit boven 50 % (Embuild: 25 tot 30 % is de norm).
+- Geen polisnummer tienjarige verzekering als er geen architect verplicht is (FOD Economie decennial); geen BA-zin met lege
+  plaatsen.
+- Geen premiebedrag, geen "komt in aanmerking voor premie", geen "netto na premie" (3.11).
+- Geen belofte of vraag van een asbestattest; wel de aanname hechtgebonden asbest (OVAM).
+- Geen "erkend aannemer" of registratienummer: die registratie bestaat niet meer; "erkend" geldt alleen voor een erkende
+  asbestverwijderaar (eigen kennis).
+- Geen referenties, dienstenlijst of reclame op de offerte: het is een contractdocument (eigen kennis; memory: nul
+  resultaatclaims zonder bron).
+- Geen app-naam, geen "gegenereerd door", geen AI-vermelding op het document (eigen kennis).
+- Geen eenheidsprijs tot op de cent naast ronde prijzen, behalve de ene sluitpost zonder forfait (2a).
+- Geen watAls-bedragen ("Zonder sarking − € 5.825") als optieprijs (2f).
+- Geen automatische 6 % zonder de drie velden van de woning (FOD Financiën; 4.3).
+
+
+7. KLAAR-TESTS VOOR DE BOUWER (binair)
+--------------------------------------
+
+T1  offerteVan(RP.VOORBEELD.meetstaat, starttarieven) geeft exact de 18 regels, de 6 subtotalen en de totalen uit 2a en 2e
+    (22.792,48 · 1.367,55 · 24.160,03); sluitpost = Gevelstelling 1.632,23. PASS/FAIL.
+T2  Met dak.sarking120 in optie: hoofdtabel 16.964,48 excl.; optie 5.828,00 excl. / 6.177,68 incl.; hoofdtabel + optie =
+    22.792,48. PASS/FAIL.
+T3  Met btw 21: totaal incl. 27.578,90. PASS/FAIL.
+T4  Meetstaat met alleen dak.goot.reinigen 20 lm (geen forfait): regel 20 lm × 5,55 = 111,00, intern restverschil 0,09,
+    geen regel van € 0,00 voor "Klein restje rest mee in de werfwagen". PASS/FAIL.
+T5  Meetstaat met dak.herstel.pannen 3 u, dak.goot.herstel 2 u en materieel_per_dag ["transport"]: drie forfaits, nergens "u" of
+    "dag" op het document, totaal 428,66 excl. PASS/FAIL.
+T6  grep op de gerenderde offerte-html van T1: geen van deze strings komt voor: "manuur", "57,5", "marge", "onvoorzien", "kg",
+    "ton", "AI", "Datatabel", "Niet gevraagd", "richtprijs", "raming", "Richtprijs-AI", "2 × 8 m". PASS/FAIL.
+T7  De lijst "Nog in te vullen" blokkeert bij: lege IBAN; btw 6 zonder jaar; jaar = huidig jaar − 5; p1 = 60; start = datum +
+    7 maanden; architect aan zonder polis. Zes keer geblokkeerd, zes keer met de juiste regel. PASS/FAIL.
+T8  De voorbeeldofferte past op 3 pagina's A4 (Chrome, headless print naar pdf), de tabelkop herhaalt op pagina 2 als de tabel
+    doorloopt, de voettekst staat op elke pagina. PASS/FAIL.
+T9  Na "Offerte afdrukken": uurtarief in de tarieven op 60 zetten verandert de bevroren offerte niet (totaal blijft 24.160,03);
+    de rail toont "Offerte 2026-0001". PASS/FAIL.
+T10 Toetsing voorwaarden: een artikel met 26 woorden in één zin en een artikel met "beslist eenzijdig" blokkeren elk de
+    uitgifte met de foute regel. PASS/FAIL.
+
+
+8. BRONNEN (alle urls geopend en nagelezen op 7 oktober 2026)
+------------------------------------------------------------
+https://fin.belgium.be/nl/particulieren/woning/bouwen-verbouwen/verbouwen/verbouwen-btw-tarief
+https://economie.fgov.be/nl/themas/verkoop/reglementering/verkoop-buiten-verkoopruimten
+https://economie.fgov.be/sites/default/files/Files/Forms/Formulier-herroeping.pdf (pdf geopend; tekst niet machinaal leesbaar)
+https://news.economie.fgov.be/227571-twijfel-na-een-aankoop-gebruik-je-herroepingsrecht/
+https://news.economie.fgov.be/228627-onbetaalde-facturen-gratis-herinnering-en-beperkte-vergoeding/
+https://news.economie.fgov.be/242035-transparantie-in-bouwcontracten-garanderen/
+https://news.economie.fgov.be/227005-mag-een-product-meer-kosten-in-de-winkel-dan-op-de-webshop/
+https://economie.fgov.be/en/themes/financial-services/insurance/construction/decennial-civil-liability
+https://www.vlaanderen.be/veka/energie-en-klimaatbeleid/europees-beleid-en-financiering/fosster-project/laat-je-vakmanschap-spreken-al-vanaf-de-offerte
+https://ovam.vlaanderen.be/wie-mag-wat-verwijderen
+https://www.unizo.be/starters/advies/wanneer-de-vermelding-van-het-ondernemingsnummer-verplicht
+https://www.unizo.be/advies/welke-gevallen-heeft-de-consument-geen-herroepingsrecht
+https://embuild.be/nl/meer-bouwbedrijven-vragen-nu-voorschot-door-gestegen-materialenprijzen
+https://www.bouwunie.be/nl/advies/bedrijfsvoering-en-management/de-kmiweertabel-de-bron-voor-jouw-weerverlet
+https://www.bouwverzoening.be/
+https://www.test-aankoop.be/woning-energie/isolatie/dossier/buitengevelisolatie/checklist-voor-offertes
+https://www.kbc.be/particulieren/nl/thema/myhome/artikels/renoveren-met-een-aannemer-zo-regel-je-voorschotten-slim-en-veilig.html
+https://www.vrt.be/vrtnws/nl/2024/04/03/verschil-offerte-raming-factuur/
+https://www.teamleader.eu/nl/blog/is-een-offerte-bindend
+https://www.teamleader.eu/nl/blog/voorbeeld-offerte
+https://support.robaws.com/en/article/working-with-line-types-and-chapters-536ga0/
+https://www.bobex.be/nl-be/dakwerken/dakwerken-offerte/
+https://www.bouwinfo.be/bouwforum/threads/offerte-stukken-duurder-dan-werkelijk-gepresteerde-uren.334545/
+https://www.bouwinfo.be/bouwforum/threads/forfaitaire-hoeveelheid-vorderingsstaat.293540/
+https://www.bouwinfo.be/bouwforum/threads/meetstaat-aard-en-meeteenheid.270099/
+https://legalnews.be/bouw-vastgoed/kan-een-aannemer-u-interesten-of-een-schadevergoeding-aanrekenen-als-u-de-algemene-voorwaarden-nooit-vooraf-te-zien-kreeg-everest/
+https://legalnews.be/verbintenissen-goederen/over-het-recht-op-vergoeding-in-geval-van-beeindiging-van-de-aanneming-door-de-opdrachtgever-belexa-advocaten
+Niet geopend (en daarom niet als bron gebruikt): Bouwunie-modelvoorwaarden en -prijsherziening, Livios, Zimmo, Immoweb,
+Cafca, Bouwsoft, Van Marcke-aannemingsovereenkomst, Raad voor het Verbruik, Bouwinfo 365568/328426/301650, Juridischforum.
+Code gelezen op 7 oktober 2026: motor.js, ui.js, index.html, server.mjs, laad.cjs, instellingen.json, data/basis.js,
+data/dak.js, data/alg.js (en de keuze-, eenheid- en naamvelden van alle data/*.js).

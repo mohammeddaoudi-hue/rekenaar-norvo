@@ -79,8 +79,11 @@
     <div class="stroom" id="stroom">
       <div class="banner" id="banner" hidden>
         <b>De lokale server antwoordt niet.</b>
-        <span>Start start.cmd opnieuw.</span>
-        <button class="knop knop--36 knop--stil" type="button" id="banner-opnieuw">Opnieuw proberen</button>
+        <span id="banner-tekst">Start start.cmd opnieuw.</span>
+        <div class="banner-knoppen">
+          <button class="knop knop--36 knop--stil" type="button" id="banner-opnieuw">Opnieuw proberen</button>
+          <button class="knop knop--36" type="button" id="banner-voorbeeld" data-voorbeeld hidden>Bekijk het voorbeeld</button>
+        </div>
       </div>
       <div class="leeg-blok">
         <h1>Richtprijs-AI</h1>
@@ -88,7 +91,7 @@
         <div class="opdracht" id="opdracht">
           <div class="opdracht-open">
             <div class="adresrij"><svg class="ic"><use href="#i-pin"/></svg><input id="adres" type="text" autocomplete="off" spellcheck="false" placeholder="Adres in Vlaanderen (optioneel): Straat 12, Gemeente" aria-label="Adres"></div>
-            <textarea id="klus" rows="3" spellcheck="false" placeholder="Hellend dak 140 m², oude pannen eraf, 12 cm isolatie, nieuwe pannen, 2 dakramen." aria-label="Klus"></textarea>
+            <textarea id="klus" rows="3" spellcheck="false" autocomplete="off" placeholder="Hellend dak 140 m², oude pannen eraf, 12 cm isolatie, nieuwe pannen, 2 dakramen." aria-label="Klus"></textarea>
             <p class="foutregel" id="klus-fout" hidden>Beschrijf de klus met de soort werk en de maten.</p>
             <div class="asbest">
               <span class="vraag" id="asbest-vraag">Asbest aanwezig in dak of gevel?</span>
