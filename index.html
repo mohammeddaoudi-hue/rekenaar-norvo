@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="meetbeeld.css">
+<style id="off-page-css"></style>
 </head>
 <body class="leeg rail-open">
 <!-- Iconen: één keer gedefinieerd, overal hergebruikt met <use>. -->
@@ -54,6 +55,7 @@
     <div class="rail-open-inhoud">
       <div class="rail-kop"><span class="merk" aria-hidden="true"></span><span class="rail-titel">Richtprijs-AI</span><button class="ikoonknop" type="button" data-rail title="Rail inklappen" aria-label="Rail inklappen"><svg class="ic"><use href="#i-rail"/></svg></button></div>
       <button class="nieuw" type="button" data-nieuw><svg class="ic"><use href="#i-plus"/></svg><span>Nieuwe berekening</span></button>
+      <div class="zoek rail-zoek" id="rail-zoek" hidden><svg class="ic"><use href="#i-zoek"/></svg><input id="rail-zoek-veld" type="search" placeholder="Zoek op titel of adres" aria-label="Zoek in eerdere berekeningen"></div>
       <div class="rail-lijst" id="rail-lijst"></div>
       <div class="rail-voet">
         <button type="button" data-voorbeeld title="Laadt het voorbeeld"><svg class="ic"><use href="#i-klok"/></svg><span>Voorbeeld: zadeldak halfopen woning, 94 m²</span></button>
@@ -129,6 +131,7 @@
         </div>
       </section>
     </div>
+    <button class="knop knop--36 knop--stil naar-laatste" type="button" id="naar-laatste" hidden><svg class="ic"><use href="#i-omlaag"/></svg>Naar het laatste</button>
   </main>
 
   <section class="paneel" id="paneel" data-tab="overzicht" aria-label="Resultaat">
@@ -141,14 +144,22 @@
       </div>
       <div class="paneel-acties">
         <span class="chip" id="versie-paneel" hidden>v1</span>
+        <button class="link" type="button" id="versie-terug" hidden title="Vorige versie bekijken"></button>
         <span class="acties-breed">
           <button class="tekstknop" type="button" id="opslaan" disabled><svg class="ic"><use href="#i-bewaar"/></svg><span>Opslaan</span></button>
           <button class="tekstknop" type="button" data-kopieer="alles" disabled><svg class="ic"><use href="#i-kopie"/></svg>Kopieer</button>
         </span>
-        <button class="tekstknop" type="button" data-print disabled><svg class="ic"><use href="#i-print"/></svg>Afdrukken</button>
-        <button class="tekstknop" type="button" id="offerte" disabled title="Offerte: volgende versie"><svg class="ic"><use href="#i-offerte"/></svg>Offerte</button>
-        <button class="ikoonknop acties-meer" type="button" data-menu title="Opslaan, Kopieer" aria-label="Meer acties"><svg class="ic vol"><use href="#i-meer"/></svg></button>
+        <span class="acties-midden">
+          <button class="tekstknop" type="button" data-print disabled><svg class="ic"><use href="#i-print"/></svg>Afdrukken</button>
+          <button class="tekstknop" type="button" id="offerte" disabled title="Offerte opmaken uit deze berekening"><svg class="ic"><use href="#i-offerte"/></svg><span>Offerte</span></button>
+        </span>
+        <button class="ikoonknop acties-meer" type="button" data-menu title="Opslaan, Kopieer, Afdrukken, Offerte" aria-label="Meer acties"><svg class="ic vol"><use href="#i-meer"/></svg></button>
       </div>
+    </div>
+    <div class="plakbalk versie-balk" id="versie-balk" hidden>
+      <span class="tekst" id="versie-balk-tekst"></span>
+      <button class="knop knop--36" type="button" id="versie-herstel">Herstel v1</button>
+      <button class="knop knop--36 knop--stil" type="button" id="versie-weg">Terug naar v2</button>
     </div>
     <div class="paneel-inhoud" id="paneel-inhoud">
       <div class="tab tab--overzicht">
@@ -206,7 +217,7 @@
           <p class="klein">Wat de app aanneemt als de klus en de meting niets zeggen. Geldt voor de volgende berekening.</p>
           <div id="standaarden-groepen"></div>
         </section>
-        <section class="inst-sectie inst-sectie--breed" id="datatabel">
+        <section class="inst-sectie inst-sectie--breed" id="datatabel" data-datatabel>
           <div class="sectie-kop"><h3>Datatabel</h3><span class="rechts" id="datatabel-kop"></span></div>
           <p class="klein">Norm en inkoopprijzen zonder btw. Uw eigen cijfer vervangt de startwaarde; de bron opent in een nieuw tabblad.</p>
           <div class="zoek" style="margin-top:16px"><svg class="ic"><use href="#i-zoek"/></svg><input id="data-zoek" type="search" placeholder="Zoek op naam of code" aria-label="Zoek in de datatabel"></div>
@@ -216,12 +227,36 @@
       </div>
     </div>
   </section>
+
+  <section class="offerte-weergave" id="offerte-weergave" aria-label="Offerte">
+    <div class="inst-kop off-kop">
+      <button class="knop knop--36 knop--stil" type="button" data-offerte="dicht"><svg class="ic"><use href="#i-terug"/></svg>Terug naar de berekening</button>
+      <h2 id="off-titel">Offerte</h2>
+      <span class="klein" id="off-staat"></span>
+      <span class="off-nog" id="off-nog"></span>
+      <button class="knop knop--36 knop--stil" type="button" id="off-nieuw" hidden>Nieuwe versie</button>
+      <button class="knop knop--36" type="button" id="off-print" disabled><svg class="ic"><use href="#i-print"/></svg>Offerte afdrukken</button>
+    </div>
+    <div class="segment off-segment" role="tablist" id="off-segment">
+      <button type="button" data-offseg="formulier">Formulier</button>
+      <button type="button" data-offseg="document">Document</button>
+    </div>
+    <div class="off-body" id="off-body">
+      <div class="off-form" id="off-form">
+        <div class="off-nog-lijst" id="off-nog-lijst" hidden></div>
+        <nav class="inst-lijst off-stappen" id="off-stappen"><a class="is-actief" href="#off-aannemer">Aannemer</a><a href="#off-klant">Klant en werf</a><a href="#off-posten">Posten</a><a href="#off-uitvoering">Uitvoering en betaling</a><a href="#off-tekst">Tekst</a></nav>
+        <div class="off-velden" id="off-velden"></div>
+      </div>
+      <div class="off-doc-wrap" id="off-doc-wrap"><div class="off-doc-zoom" id="off-doc-zoom"><div class="doc" id="off-doc"></div></div></div>
+    </div>
+  </section>
 </div>
 
 <div class="menu" id="menu" hidden>
   <button type="button" data-menu-actie="opslaan"><svg class="ic"><use href="#i-bewaar"/></svg>Opslaan</button>
   <button type="button" data-menu-actie="kopieer"><svg class="ic"><use href="#i-kopie"/></svg>Kopieer</button>
   <button type="button" data-menu-actie="print"><svg class="ic"><use href="#i-print"/></svg>Afdrukken</button>
+  <button type="button" data-menu-actie="offerte"><svg class="ic"><use href="#i-offerte"/></svg>Offerte</button>
   <button type="button" class="rood" data-menu-actie="verwijder"><svg class="ic"><use href="#i-prullenbak"/></svg>Verwijderen</button>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>

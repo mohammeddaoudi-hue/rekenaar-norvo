@@ -1,0 +1,380 @@
+[
+ {
+  "ernst": "hoog",
+  "titel": "Herbereken zet ook de berekende kenmerken vast: de prijs volgt een aangepaste maat niet",
+  "waar": "ui.js (07e76ea) regels 991-996 (#herbereken) + motor.js regels 372 en 388 (VASTE KENMERKEN in de prompt)",
+  "bewijs": "De handler bouwt `vast` uit ALLE kenmerken, ongeacht bron. Toets met berekeningen/2026-10-06T23-51-59-hf5w.json, gevelbreedte_m 8 → 10: de prompt bevat onder 'VASTE KENMERKEN (…neem ze exact over…)' nog steeds `dakvlak_m2 (Dakvlak): 103 m²`, `noklengte_m: 8.2 m`, `goot_lm: 16.4 lm`, `stelling_m2: 96 m²` (bron 'berekend' uit de oude breedte). De AI moet die exact overnemen, dus het dakvlak en de prijs blijven die van 8 m, terwijl de tab zegt 'Pas aan wat anders is en herbereken'.",
+  "fix": "Alleen sleutels uit `S.gewijzigd` plus kenmerken met bron 'beschrijving', 'gemeten' of 'vast' als vast meesturen; kenmerken met bron 'berekend' en 'standaard' weglaten (of apart als 'vorige waarde, opnieuw afleiden')."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Stop of server-fout tijdens stap 3 markeert een volledige berekening als 'gestopt'/'fout' en biedt alleen een volle her-run",
+  "waar": "ui.js regels 727-735 (AbortError- en TypeError-tak) tegenover 736-741 (nr === 3-tak); 243 (chip), 554 (knop), 1063-1066 (banner-opnieuw)",
+  "bewijs": "Na stap 2 staat de prijs vast en is ze al opgeslagen (regel 710). Klik op Stop tijdens 'Uitleg schrijven': `S.fase = 'gestopt'` → prijskaart krijgt chip 'Onvolledig' (243), hoofdknop wordt 'Opnieuw berekenen' (554) → `start(null)` doet een volle nieuwe AI-run met versie+1 en een ander bedrag. Valt de server weg in stap 3: fase 'fout' + banner; 'Opnieuw proberen' roept `start(null)` aan. Alleen de niet-abort-tak voor nr === 3 (736-741) zet fase terug op 'klaar'.",
+  "fix": "In de catch: als `nr === 3` (laatsteA bestaat) bij AbortError en TypeError `S.fase = 'klaar'` zetten, uitleg-staat op 'gestopt'/'fout' laten en alleen 'Opnieuw schrijven' aanbieden; banner-opnieuw bij fase 'klaar' niets herstarten."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Tijdens 'Schrijf opnieuw' is skeletLoopt() waar: elke teken() maakt het paneel een skelet en dat blijft na afloop staan",
+  "waar": "ui.js regel 193 (`skeletLoopt = S.loopt && S.fase !== 'uitleg'`), 755-765 (uitlegOpnieuw laat fase op 'klaar' en roept na afloop geen teken() aan), 1106 (data-rekenpad), 1108, 1101-1105",
+  "bewijs": "Voorbeeld openen → 'Schrijf opnieuw' → tijdens het schrijven op een postnaam in Werkblad klikken: `tekenWerkblad(laatsteA, true)` voegt SKELET_RIJ toe en verbergt 'overgeslagen'. 'Terug naar …' of 'Toepassen' roept `teken()`: Overzicht wordt 'Tussenstand', geld-, watals- en kostensectie leeg/skelet, materiaal skelet. Na `schrijfUitleg()` volgen alleen `tekenUitlegRest(); tekenKnoppen();` → het skelet blijft tot een tariefwijziging.",
+  "fix": "In uitlegOpnieuw `S.fase = 'uitleg'` zetten en daarna terug op 'klaar', of skeletLoopt definiëren als `S.loopt && (S.fase === 'meting' || S.fase === 'posten')`; na afloop `teken()`."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Na een fout of stop met 0 posten toont Overzicht permanent het laad-skelet",
+  "waar": "ui.js regels 230-237 (tekenOverzicht: `if (!a || skelet)` → else-tak tekent skelet zodra S.m bestaat en fase ≠ 'leeg'); 300 (tekenWerkblad verbergt 'overgeslagen' bij !a)",
+  "bewijs": "AI-regel `{fout:'Claude start niet'}` of Stop tijdens de meting: fase 'fout'/'gestopt', `S.m` = lege meetstaat, `a` = null, `skelet` = false → `uit.innerHTML` = skelet-prijs met shimmer + 'Waar het geld zit'-skelet, zonder einde. Zijn alle posten overgeslagen (regels.length 0), dan is laatsteA null en blijft ook de tekst 'Niet meegerekend, omdat de AI geen cijfers gaf' onzichtbaar.",
+  "fix": "Skelet alleen tekenen als `skelet` waar is; bij `!a && !S.loopt` een lege-staat tonen ('Geen prijs: …' met de foutregel) en `overgeslagen` ook zonder regels tonen."
+ },
+ {
+  "ernst": "midden",
+  "titel": "AI-fout halverwege stap 2 toont een gedeeltelijke prijs zonder 'Onvolledig' en met Opslaan/Kopieer actief",
+  "waar": "ui.js regel 243 (chip alleen bij fase 'gestopt'), 742-745 (fout-tak zet fase 'fout'), 338-344 (tekenKnoppen: heeft = laatsteA && !skeletLoopt())",
+  "bewijs": "Stroom geeft na 5 posten `{fout:'Claude stopte met code 1'}` → `stroom` gooit → catch → fase 'fout' → `teken()` rekent met 5 posten → prijskaart met chip 'v1', zonder 'Onvolledig'; Opslaan, Kopieer en Afdrukken staan aan. Dezelfde situatie na Stop krijgt wel de chip.",
+  "fix": "Chip 'Onvolledig' bij fase 'fout' én 'gestopt' zodra regels bestaan; de titel in de rail en het bewaarde object een veld `onvolledig: true` geven."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Bewaarde tarieven worden bij laden niet teruggezet: rail toont het bewaarde bedrag, paneel een ander bedrag, knop zegt 'Opgeslagen'",
+  "waar": "ui.js regel 773 (opslaan bewaart `tarieven: huidig()` en `prijs`), 786-791 (zetKlaar zet alleen `S.ploeg` terug), 790 (`S.bewaard = !!o.id`), 171 (rail toont `x.prijs`)",
+  "bewijs": "Berekening bewaard aan uurtarief 57,50 (prijs 27.304 in het bestand). Uurtarief in Instellingen op 65 zetten, berekening uit de rail openen: paneel rekent met 65, rail-rij toont € 27.304, Opslaan is uitgegrijsd met tekst 'Opgeslagen'. Alleen de strook 'Geschreven bij …' meldt een verschil, en enkel als er een uitleg was.",
+  "fix": "Bij zetKlaar `o.tarieven` als tarieven van die berekening gebruiken (per-berekening tarieven, zoals ploeg), of na laden `S.bewaard = Math.round(prijs) === o.prijs` zetten en de rail-rij bijwerken."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Voorbeeld: uitlegPrijs wordt met huidig() berekend, dus de strook liegt of zwijgt",
+  "waar": "ui.js regel 833 (`uitlegPrijs: Math.round(RP.analyse(m, huidig()).r.kosten.incl)`) en 63 (huidig() neemt `S.ploeg` van de vorige berekening mee); 40-47 (vaste tekst met € 5.825, € 4.000, € 1.623)",
+  "bewijs": "Gemeten met de motor: standaard 24.160, met ploeg 4 23.534. Na 'Toepassen' bij 'Met 4 man' op een eerdere berekening en dan 'Voorbeeld' klikken: uitlegPrijs = 23.534, zetKlaar zet daarna S.ploeg = 0 → prijs 24.160 → strook 'Geschreven bij € 23.534; de prijs is nu € 24.160' met 'Schrijf opnieuw'. Omgekeerd: uurtarief 65 → uitlegPrijs en prijs zijn gelijk → geen strook, terwijl de vaste tekst bedragen van 57,50 noemt.",
+  "fix": "uitlegPrijs voor het voorbeeld als constante 24160 (het bedrag waarbij de tekst geschreven is) meegeven; de strook vergelijkt dan correct met de live prijs."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Meting wordt na een tijdelijke fout niet herhaald zolang het adres gelijk blijft",
+  "waar": "ui.js regel 648 (`meten = !!adres && (adresNieuw || !(S.gemeten || S.meetFout))`), 472 en 797 (vast label 'Geen gebouw gevonden op dit adres')",
+  "bewijs": "Kaartdienst valt uit → `S.meetFout = 'De kaartdienst van Vlaanderen antwoordt niet.'`. Wijzig → Bereken met hetzelfde adres: meetFout is waar → meten = false → stap 1 krijgt opnieuw 'Geen gebouw gevonden op dit adres · gerekend met de maten uit de klus' (ook een verkeerd label voor een uitval). Alleen een ander adres (trim maakt spaties ongedaan) dwingt een nieuwe meting af.",
+  "fix": "`meten = !!adres && (adresNieuw || !S.gemeten)`; het stap-1-label uit `S.meetFout` opbouwen in plaats van de vaste tekst."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Standaarden zonder invoercontrole: letters worden 0 en gaan zo bewaard de prompt in",
+  "waar": "ui.js regels 1026-1039 (standaarden-input bewaart `e.target.value` ongecontroleerd) tegenover 1016-1024 (tarieven toetsen `Number.isFinite(v) && v >= t.min`); motor.js 67-70",
+  "bewijs": "Gemeten: `RP.standaardWaarden({helling:'abc'}).helling` = 0; `'4O'` (letter O) = 4. De prompt bevat dan 'Dakhelling: 0 graden. Kroonlijsthoogte: 6 m.' en het veld toont chip 'Eigen cijfer'; de waarde staat in instellingen.json en geldt voor elke volgende berekening.",
+  "fix": "Voor niet-tekstvelden dezelfde toets als bij tarieven (leesGetal + Number.isFinite + ondergrens) en bij een ongeldige waarde niets bewaren en het veld rood markeren."
+ },
+ {
+  "ernst": "midden",
+  "titel": "'Toepassen' bij 'Aan 21% btw' schrijft het globale btw-tarief weg naar instellingen.json",
+  "waar": "ui.js regels 1096-1099 (data-toepassen 'btw' → `zetTarief('btw', 21)`), 100-109 (zetTarief zet inst.tarieven en roept bewaarInstellingen), 68-73 (bij laden overgenomen)",
+  "bewijs": "De wat-als 'Aan 21% btw (woning jonger dan 10 jaar)' is een vergelijking voor deze ene klus. Klik op Toepassen → POST /api/instellingen met btw 21 → na Nieuwe berekening en na herladen van de pagina start elke berekening op 21 %; alleen de chip 'Btw 21 %' verraadt het. De ploeg-Toepassen ernaast is wel per berekening (S.ploeg).",
+  "fix": "Btw per berekening bijhouden zoals ploeg (`S.btw`, in huidig() en in het bewaarde object); alleen het veld op de Instellingen-pagina wijzigt het globale tarief."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Dubbele opslag: eerste auto-save niet afgewacht, tweede save kan vóór het id binnen is",
+  "waar": "ui.js regel 710 (`opslaan(true)` zonder await), 741 en 722 (tweede `opslaan(true)`), 772 (`id: S.id || undefined`), 778 (S.id pas na antwoord)",
+  "bewijs": "Faalt de uitleg-aanvraag meteen (server geeft 429 'Er lopen al 3 vragen' of een foutregel vóór de POST /api/berekeningen antwoordt), dan loopt regel 741 met `S.id` nog null → server maakt een tweede bestand → twee rail-rijen voor één berekening.",
+  "fix": "`await opslaan(true)` op regel 710, of opslaan serialiseren via één lopende promise."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Rail-knop 'Verwijderen' werkt tijdens een lopende run; de menu-variant is wel geblokkeerd",
+  "waar": "ui.js regel 174 (knop in tekenRail), 178-188 (verwijder zonder S.loopt-check), 347 (menu wel: `!S.id || S.loopt`), 1087",
+  "bewijs": "Tijdens stap 3 (S.id is net gezet door de auto-save) de lopende berekening in de rail verwijderen → `S.id = null; S.bewaard = false` → de tweede auto-save (722) maakt een nieuw bestand; de verwijderde berekening staat meteen terug.",
+  "fix": "`if (S.loopt) return;` bovenaan verwijder(), of de rij-knoppen tijdens loopt disabled zetten."
+ },
+ {
+  "ernst": "laag",
+  "titel": "#opdracht-status wordt nooit gevuld en #status is visueel verborgen: 'Klaar in … s.' en 'Gestopt.' zijn alleen voor schermlezers",
+  "waar": "index.html regel 100 (`<span class=\"status-rust\" id=\"opdracht-status\">`), app.css regel 26 (`.sr,#status{…clip:rect(0 0 0 0)}`), ui.js regel 120 (status schrijft alleen naar #status), 718, 730, 761",
+  "bewijs": "grep op 'opdracht-status' in ui.js: 0 treffers. 'Klaar in 61 s.', 'Gestopt.', 'Uitleg bijgewerkt in 9 s.' komen enkel in het verborgen #status; zichtbaar blijft alleen de trail-kop (en die ontbreekt na Stop, want S.trailKop blijft '').",
+  "fix": "status() ook naar #opdracht-status (en bij fouten naar de foutregel) schrijven; na Stop S.trailKop zetten."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Voorbeeld: Opslaan-knop en menu 'Opslaan' staan aan maar doen niets",
+  "waar": "ui.js regel 769 (`if (!laatsteA || S.voorbeeld) return;`), 341 (`op.disabled = !heeft || S.bewaard || S.loopt`; S.bewaard is false voor het voorbeeld)",
+  "bewijs": "Voorbeeld openen → Opslaan klikken: geen POST, geen toast, knop blijft 'Opslaan'.",
+  "fix": "In tekenKnoppen `S.voorbeeld` meenemen in disabled, of het voorbeeld als nieuwe berekening bewaren (voorbeeld-vlag uit)."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Textarea-hoogte wordt alleen in de input-handler gezet; programmatische waarden laten de oude hoogte staan",
+  "waar": "ui.js regel 989 (hoogte in 'input'), 793 (zetKlaar), 1089 (voorbeeld-chip), 1136 (init), 839 (nieuw)",
+  "bewijs": "Na een 10-regelige klus (288 px) een berekening met 1 regel openen en Wijzig klikken: textarea blijft 288 px. Bij init staat de 4-regelige voorbeeldklus in een veld van 72 px (rows=3) met interne scroll.",
+  "fix": "Een `pasKlusHoogte()` die na elke `$('klus').value = …` wordt aangeroepen (zelfde formule als regel 989)."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Kenmerk-veld leegmaken geeft waarde NaN; bij de volgende her-render toont het veld de tekst 'NaN'",
+  "waar": "ui.js regel 1008 (`x.waarde = … leesGetal(e.target.value)` → NaN), 353 (waardeTekst → getal), 15 (getal(NaN) = String(NaN))",
+  "bewijs": "Gemeten: `getal(NaN)` = \"NaN\". Stappen: Dakvlak leegmaken (sleutel wordt gelijkgezet op 1013, dus geen her-render), daarna 'Terug naar …' bij een ander kenmerk → teken() → tekenKenmerken rendert opnieuw → input value=\"NaN\". In herbereken wordt NaN wel gefilterd (994), in opslaan wordt het null.",
+  "fix": "Bij lege invoer `x.waarde = ''` bewaren en in waardeTekst NaN als '' tonen."
+ },
+ {
+  "ernst": "laag",
+  "titel": "tikTrail schrijft elke 500 ms een nieuwe tekst in #status (aria-live=polite)",
+  "waar": "ui.js regels 447-451 (tikTrail → status(...)), 607 (`setInterval(tikTrail, 500)`), index.html 233",
+  "bewijs": "Tijdens een run van 60 s krijgt het live-gebied 120 wijzigingen ('Stap 2 van 3 · Posten schrijven uit de klus · 12 s'); schermlezers lezen elke wijziging voor.",
+  "fix": "status() alleen bij een stapwissel; de secondeteller alleen in de trail-rij."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Teksten na Stop kloppen niet en het rail-verwijderknopje draagt het 'meer'-icoon",
+  "waar": "ui.js regel 729 ('Gestopt na stap ' + nr), 402 + 649/665 (na stop in stap 1: 'Geen meting: er was geen adres.'), 174 (`ic('meer', 'vol')` met title 'Verwijderen')",
+  "bewijs": "Stop tijdens stap 2 geeft 'Gestopt na stap 2 · 5 posten binnen' terwijl stap 2 nog liep. Stop tijdens de meting: S.gemeten = null en S.meetFout = '' → tab Kenmerken zegt 'Geen meting: er was geen adres.' met het adres ingevuld. De ⋯-knop (menu-icoon) in de rail opent geen menu maar verwijdert.",
+  "fix": "'Gestopt in stap N'; bij abort in stap 1 `S.meetFout = 'Meting gestopt.'`; het prullenbak-icoon (#i-prullenbak bestaat al) voor de rail-knop."
+ },
+ {
+  "ernst": "hoog",
+  "titel": "Telefoon: Instellingen openen vanuit het segment Resultaat toont het resultaatpaneel, niet de instellingen",
+  "waar": "app.css@07e76ea regel 57 (body.instellingen-open .paneel{display:none}) wordt overschreven door regel 382 (body.paneel-open.seg-resultaat .paneel{display:flex}, hogere specificiteit); ui.js regel 977-981 openInstellingen() zet seg-resultaat niet uit",
+  "bewijs": "Gemeten op 390 px in de stabiele versie: #voorbeeld → tik Resultaat → ☰ → Instellingen. Body = \"paneel-open seg-resultaat instellingen-open\"; .paneel staat op y 48–1802 (zichtbaar), .instellingen begint op y 1802, .segment is verborgen; op positie (100,120) staat de tab \"Werkblad\". De gebruiker ziet na de tik hetzelfde resultaatscherm en vindt de instellingen pas na 1.750 px scrollen. Schermafbeelding: C:\\Users\\Mohammed\\AppData\\Local\\Temp\\claude\\C--Users-Mohammed\\3fb464eb-ff2d-4c7b-94f0-99b461db5822\\scratchpad\\foto2\\390-resultaat-dan-instellingen.png. In het segment Berekening werkt het wel.",
+  "fix": "In de telefoon-media-query de regel wijzigen naar body.paneel-open.seg-resultaat:not(.instellingen-open) .paneel{display:flex} en in openInstellingen(true) zetSeg(false) aanroepen."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Paneelkop loopt over: Offerte en de knop Meer acties (Opslaan, Kopieer) vallen buiten beeld op 900 px, 1100 px en 1100–1250 px met open rail",
+  "waar": "index.html@07e76ea regel 142-151 (vijfde actie Offerte toegevoegd, mockup heeft er drie); app.css regel 185-190 (.tabs en .paneel-acties flex:none, geen overflow) en 428-431 (Meer acties pas onder 720 px)",
+  "bewijs": "Gemeten in de stabiele versie, knoppen rechts van innerWidth: 900 px → Offerte 864-929 en Meer acties 941-973 buiten 900; 1100 px rail dicht → Meer acties 1077-1109 buiten 1100; 1100 px rail open → Afdrukken, Offerte en Meer acties alle drie buiten beeld; 1200 px rail open → Offerte en Meer acties buiten; 1250 px rail open → Meer acties buiten. Op 1280 px past het met 0 px marge (Offerte eindigt op 1256 = contentrand). De mockup (ontwerp/D/index.html, 3 acties) past op dezelfde breedtes. Gevolg: Opslaan en Kopieer zijn onbereikbaar op die breedtes.",
+  "fix": "Offerte en Afdrukken mee achter de knop Meer acties zetten zodra het paneel smaller is dan 800 px, en .paneel-kop overflow:auto geven zoals de telefoonregel (app.css 403) al doet."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Datatabel op 390 px: een geopende post geeft 308 px horizontale scroll; het prijsveld staat buiten beeld",
+  "waar": "app.css@07e76ea regel 327 (.kol-data: minmax(150px,1fr) 64px 64px 96px 64px 180px = 698 px) en regel 433-451 (de gestapelde-rijen-regels staan in @container paneel en gelden niet in .instellingen); regel 297 (.instellingen overflow:auto)",
+  "bewijs": "Gemeten op 390 px: #instellingen → eerste post openen → .instellingen scrollWidth 698 bij clientWidth 390, .tabel-kop display grid, rijkolommen \"150px 64px 64px 96px 64px 180px\", laatste cel rechts op 698. Schermafbeelding foto2\\390-datatabel-post-open.png: alleen Materiaal, Per, Eenheid zichtbaar; het invoervak Prijs is een afgesneden randje op x 375. Het hele instellingenscherm (ook Tarieven) schuift mee opzij.",
+  "fix": ".instellingen container-type:inline-size geven en de gestapelde-rijen-regels ook onder @container (max-width:640px) voor .kol-data laten gelden, of de regels in de telefoon-media-query herhalen (.tabel-kop verbergen, .rij 2 kolommen)."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Stopknop scrolt uit beeld tijdens stap 3 (de langste stap); mockup houdt Stop altijd zichtbaar",
+  "waar": "ui.js@07e76ea regel 562 (Stop-knop verhuist naar #opdracht-dicht bovenaan .stroom), regel 484-486 en 512 (naarOnder: scrollTop = scrollHeight bij elke tekstdelta); app.css regel 99 (.stroom overflow:auto); mockup ontwerp/D/index.html regel 127 en 332 (composer-vast onder de kolom, sticky bottom:0 op telefoon)",
+  "bewijs": "ontwerp/bouw/sim-1280-bezig-3.png: tijdens \"Uitleg schrijven bij € 24.160\" staat geen Stop-knop in beeld, de kolom is naar onder gescrold en de kaart met Stop staat erboven buiten beeld. sim-390-bezig-3.png: Stop staat bovenaan een pagina van 1.101 px die per delta naar onder scrolt. Na afloop (sim-1280-klaar.png) blijft de kolom onderaan staan: de kop \"Klaar in … s\" en Wijzig staan buiten beeld. Escape stopt ook (ui.js 990) maar staat nergens vermeld.",
+  "fix": "De dichte opdrachtkaart position:sticky; top:0 in .stroom geven (met achtergrond), of de Stop-knop in een vaste balk onder de kolom zetten zoals de mockup; na \"Klaar\" naar de trail-kop scrollen."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Na een fout (geen posten, server weg) blijft het resultaatpaneel eindeloos skeletten tonen alsof het nog laadt",
+  "waar": "ui.js@07e76ea regel 230-237 (tekenOverzicht: bij !a en S.m aanwezig altijd skelet, ook als S.fase 'fout' is), regel 300 en 316 (werkblad en materiaal idem); app.css regel 47 (.link zonder :disabled-stijl) en ui.js regel 544",
+  "bewijs": "ontwerp/bouw/fout-posten-1280.png en fout-server-1280.png: stap 2 staat rood op \"De AI gaf geen bruikbare posten.\" / \"De lokale server antwoordt niet\", bezig(false) is gelopen, maar het paneel toont de glimmende skeletten van prijs, tegels en \"Waar het geld zit\" zonder melding. Daaronder staat \"Nog geen toelichting. Schrijf de toelichting\" in merkgroen terwijl de knop disabled is (regel 544: !laatsteA).",
+  "fix": "In tekenOverzicht/tekenWerkblad/tekenMateriaal bij S.fase 'fout' een regel tonen (\"Geen posten; zie stap 2\") in plaats van het skelet, en .link:disabled{color:var(--g6);cursor:default} toevoegen."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Na Stop wordt een deelsom als richtprijs getoond; op telefoon zonder enige markering",
+  "waar": "ui.js@07e76ea regel 243 (chip 'Onvolledig' alleen in de prijskaart van het paneel), regel 225-226 (caveat noemt het niet), regel 332-335 (segmentlabel en prijs-compact zonder markering), regel 729",
+  "bewijs": "ontwerp/bouw/sim-1280-gestopt.png: gestopt na 1 post → \"€ 1.363 incl. 6 % btw\", \"€ 14 per m² dakvlak\", caveat \"Richtprijs uit de kaartmeting, uw tarieven en de datatabel\", alleen een chip van 18 px \"Onvolledig\". sim-390-gestopt.png: segment \"Resultaat · € 1.363\", prijs-compact \"€ 1.363\" met Ploeg/Werkdagen/Manuren en knop \"Bekijk resultaat\", nergens het woord onvolledig. Opslaan staat aan, dus de deelsom komt zo in de rail als prijs van de berekening.",
+  "fix": "Bij S.fase 'gestopt' de grote prijs vervangen door \"Tussenstand € X · gestopt na N posten\" in prijskaart, prijs-compact en segmentlabel, en per m²-prijs en caveat weglaten."
+ },
+ {
+  "ernst": "midden",
+  "titel": "\"Toepassen\" bij \"Aan 21% btw\" schrijft het btw-tarief weg in instellingen.json: elke volgende berekening rekent aan 21 %",
+  "waar": "ui.js@07e76ea regel 1096-1099 (data-toepassen → zetTarief), regel 100-108 (zetTarief zet inst.tarieven en roept bewaarInstellingen), regel 83-99 (POST /api/instellingen)",
+  "bewijs": "Gemeten: #voorbeeld → klik Toepassen bij \"Aan 21% btw (woning jonger dan 10 jaar)\" → prijs € 27.579, chip \"Btw 21 %\"; instellingen.json bevat daarna \"btw\": 21; na #leeg (Nieuwe berekening) staat de select Btw in Tarieven op 21 %. De regel gaat over het huis van deze klant, de instelling geldt voor alle klanten. Bij het voorbeeld opent de pagina daarna op € 27.579 incl. 21 % terwijl de vaste toelichting (regel 46) zegt \"bij 21 % btw … komt er € 3.419 bij\" (foto2\\1280-voorbeeld.png).",
+  "fix": "Toepassen alleen als overschrijving voor de open berekening bewaren (zoals S.ploeg), niet in inst.tarieven; de instelling alleen wijzigen via het scherm Instellingen."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Een bewaarde berekening opent met de tarieven van nu: paneel € 26.159, rail € 24.160, knop \"Opgeslagen\" uit",
+  "waar": "ui.js@07e76ea regel 786-791 (zetKlaar herstelt o.tarieven niet; alleen o.ploeg), regel 773 (tarieven worden wel bewaard), regel 802 (trail-kop \"Berekend op …\"), regel 341-342 (Opslaan disabled zolang S.bewaard)",
+  "bewijs": "Gemeten met een kopie van berekeningen/2026-10-07T00-03-14-t2sg.json (prijs 24160, uurtarief 57,5) en instellingen.json op uurtarief 70: klik op de rail-rij → prijs \"€ 26.159\", rail-sub \"€ 24.160 · August van Landeghemstraat 63 Willebroek\", trail-kop \"Berekend op 7 oktober 2026 · 20 s\", chip v1, Opslaan toont \"Opgeslagen\" en staat uit. Twee bedragen voor één berekening op één scherm; de getoonde prijs is nergens bewaard.",
+  "fix": "In zetKlaar o.tarieven als overschrijving voor de open berekening toepassen en Opslaan pas uitzetten als de getoonde prijs gelijk is aan o.prijs; anders de rail-sub mee bijwerken."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Opslaan op het voorbeeld staat aan maar doet niets, zonder melding",
+  "waar": "ui.js@07e76ea regel 341 (op.disabled = !heeft || S.bewaard || S.loopt, voorbeeld niet uitgesloten) en regel 769 (opslaan: if (!laatsteA || S.voorbeeld) return)",
+  "bewijs": "Gemeten: #voorbeeld → klik #opslaan → knop blijft aan met tekst \"Opslaan\", geen toast (#toast hidden), rail blijft \"Nog geen berekeningen\". Hetzelfde via ☰-menu op telefoon (ontwerp/bouw/telefoon-menu-390.png toont Opslaan actief bij het voorbeeld).",
+  "fix": "op.disabled ook op S.voorbeeld zetten en de menu-actie idem, of bij klik een toast \"Het voorbeeld wordt niet bewaard\" tonen."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Veld Ploeg onder Tarieven heeft geen effect op de volgende berekening en wordt niet bewaard, onder de kop \"Bewaard op deze pc\"",
+  "waar": "ui.js@07e76ea regel 101 (zetTarief 'ploeg' zet alleen S.ploeg, geen bewaarInstellingen), regel 650 (start() zet S.ploeg = 0), regel 897 en 878-885 (TARIEF bevat ploeg); index.html regel 201 (\"Geldt meteen voor de open berekening. Bewaard op deze pc.\")",
+  "bewijs": "Gemeten: #leeg → typ 5 in #t-ploeg → veld toont 5, geen terug-link, geen POST naar /api/instellingen; bij start() wordt S.ploeg op 0 gezet, dus de berekening rekent met de standaard (3). Dezelfde pagina heeft onder Standaarden een tweede veld Ploeg dat wél bewaard wordt (regel 1026-1031). Twee velden met dezelfde naam en ander gedrag.",
+  "fix": "Het veld Ploeg uit Tarieven halen (Standaarden → Ploeg blijft), of het laten schrijven naar inst.standaarden.ploeg."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Enter in het klusveld start de AI-berekening (chatconventie); een klus per regel typen start na de eerste regel",
+  "waar": "ui.js@07e76ea regel 988 ($('klus') keydown Enter zonder Shift → preventDefault + start(null))",
+  "bewijs": "Een aannemer die \"Hellend dak 140 m²⏎oude pannen eraf⏎…\" typt, start na regel 1 een run van ca. 60 s met een halve klus (of krijgt bij < 25 tekens de foutregel, gemeten: \"Beschrijf de klus met de soort werk en de maten.\"). De pagina is een rekenmachine met een eigen knop \"Bereken richtprijs\"; de mockup ontwerp/D/leeg.html heeft een textarea rows=3 zonder verzendtoets.",
+  "fix": "De Enter-handler op #klus verwijderen; alleen Ctrl+Enter laten berekenen en dat in de placeholder of onder het veld melden."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Bij elke verse lading staat de voorbeeldklus al ingevuld in het klusveld; de mockup toont een leeg veld met placeholder",
+  "waar": "ui.js@07e76ea regel 1136 ($('klus').value = RP.VOORBEELD.klus in init); mockup ontwerp/D/leeg.html (textarea leeg, placeholder \"Hellend dak 140 m², …\")",
+  "bewijs": "Gemeten zonder hash op 1280 px: #klus = \"Halfopen woning. Zadeldak, voorgevel 8 m breed, woning 9 m d…\" terwijl de pagina leeg heet. Wie alleen een adres intikt en op Bereken klikt, rekent de voorbeeldwoning (8 × 9 m, 40°, kroonlijst 6 m) op zijn adres: ontwerp/bouw/klik-1.png (adres Willebroek + voorbeeldklus) en sim-1280-bezig-2.png (\"Gemeten: dakvlak 265 m²\" naast posten van 94 m²). De voorbeeldchips onder de kaart vullen het veld al met één klik (regel 1089).",
+  "fix": "Regel 1136 schrappen; het veld leeg laten met de placeholder en de chip het werk laten doen."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Telefoon: de lijst binnenlopende posten in stap 2 is verborgen; de mockup toont ze",
+  "waar": "ui.js@07e76ea regel 465 (p.hidden = !s.posten || telefoon.matches)",
+  "bewijs": "ontwerp/D/bezig-mobiel.png (maatstaf): onder \"Posten schrijven uit de klus · 39 s\" staan \"7 posten\" en zes postregels plus \"+ 1 eerder\". ontwerp/bouw/sim-390-bezig-2.png (bouw): alleen \"7 posten\", geen regels. Op telefoon is dit de enige plek waar de gebruiker tijdens de 60 s ziet wat de AI schrijft (het paneel zit achter het segment Resultaat).",
+  "fix": "|| telefoon.matches uit regel 465 halen."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Toetsenbordfocus verdwijnt naar body na het openen van een rekenpad en na elke prijswijziging in de datatabel",
+  "waar": "ui.js@07e76ea regel 1106 (data-rekenpad → tekenWerkblad, regel 309 innerHTML vervangt de knop), regel 1053 ($('posten') change → tekenPosten, regel 948 innerHTML vervangt alle velden), regel 1025 (tarieven doen het wel goed via regel 895/905)",
+  "bewijs": "Gemeten: focus op [data-rekenpad] → Enter/klik → document.activeElement = BODY, rekenpad open. In de datatabel vuurt change bij Tab uit een gewijzigd prijsveld; de hele lijst wordt herbouwd en het volgende veld bestaat niet meer: Tab-navigatie door de prijzen stopt na elk gewijzigd veld.",
+  "fix": "Na het hertekenen de focus terugzetten op het element met dezelfde data-rekenpad/data-code (zoals tekenTarieven doet), en in tekenPosten bij change alleen de labels in de rij bijwerken."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Live-regio's spammen een schermlezer: #status wordt elke 500 ms herschreven en de streaming toelichting vervangt per frame de laatste zin",
+  "waar": "index.html@07e76ea regel 233 (#status role=status aria-live=polite), ui.js regel 607 (setInterval tikTrail 500 ms) en 447-451 (status(...) met secondeteller); index.html regel 118 (#toelichting aria-live=polite) en ui.js regel 510 (live.firstChild.data = laatste bij elke delta)",
+  "bewijs": "Tijdens stap 1-2 wisselt de tekst van #status twee keer per seconde (\"Stap 2 van 3 · Posten schrijven uit de klus · 39 s\" → \"… 40 s\"); tijdens stap 3 verandert de tekst van de laatste <li> bij elke delta. Een schermlezer kondigt elke wijziging opnieuw aan; de mockup (ontwerp/D/bezig.html) heeft één vaste statusregel per stap.",
+  "fix": "#status alleen bij een stapwissel en bij Klaar/Gestopt/fout bijwerken (teller zonder aria-live houden) en aria-live op #toelichting pas na afloop van het schrijven zetten."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Hover op een rail-rij is onzichtbaar: achtergrond g2 op rail-achtergrond g2",
+  "waar": "app.css@07e76ea regel 76 (.rail-rij:hover{background:var(--g2)}) tegen regel 62 (.rail{background:var(--g2)}); mockup ontwerp/D/index.html regel 78 gebruikt var(--g3)",
+  "bewijs": "Gemeten: computed background van .rail = rgb(244,241,232) = --g2, de hoverkleur is dezelfde waarde. Alleen de actieve rij (is-actief, g3) licht op.",
+  "fix": ".rail-rij:hover,.rail-rij:focus-within{background:var(--g3)}."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Verwijderknop per rail-rij draagt het ikoon \"meer\" (drie puntjes) maar verwijdert meteen",
+  "waar": "ui.js@07e76ea regel 174 (data-verwijder met ic('meer','vol'), title \"Verwijderen\")",
+  "bewijs": "Drie puntjes beloven een menu (zelfde ikoon als de knop Meer acties in de topbalk en het paneel, index.html 45 en 150); hier opent de klik de bevestiging \"Berekening verwijderen?\". De mockup heeft geen knop per rij.",
+  "fix": "Het ikoon i-prullenbak gebruiken, of de knop een echt menu laten openen met Openen/Verwijderen."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Fase-kop in het werkblad is op desktop een knop met handcursor en aria-expanded, maar klikken verandert niets",
+  "waar": "app.css@07e76ea regel 253 (.fase .ic{display:none}) en 420-423 (inklappen alleen binnen de telefoon-media-query); ui.js regel 1107; app.css regel 18 (button cursor:pointer)",
+  "bewijs": "Gemeten op 1280 px: cursor pointer; klik → aria-expanded van true naar false en klasse is-dicht, maar .fase-rijen blijft display:block. Een schermlezer hoort \"ingeklapt\" terwijl alles zichtbaar blijft.",
+  "fix": "Op desktop de fase als div tekenen (of de knop alleen onder 900 px), of de inklapregel ook buiten de telefoonquery laten gelden."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Uitgeschakelde knoppen zien er actief uit: \"Verwijderen\" blijft rood, .link-knoppen blijven groen",
+  "waar": "app.css@07e76ea regel 343-344 (.menu button:disabled vóór .menu button.rood, gelijke specificiteit) en regel 47 (.link zonder :disabled-regel); ui.js regel 347 en 544",
+  "bewijs": "Gemeten bij #voorbeeld: menu-knop Verwijderen disabled = true, computed color rgb(163,39,27) = --fout. ontwerp/bouw/fout-posten-1280.png: \"Schrijf de toelichting\" in merkgroen terwijl regel 544 de knop uitzet.",
+  "fix": ".menu button.rood vóór .menu button:disabled zetten (of :disabled.rood kleur g6) en .link:disabled{color:var(--g6);cursor:default} toevoegen."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Telefoon-werkblad: het fase-chevron staat alleen op een derde regel en het rij-chevron breekt onder de naam; de mockup heeft geen chevrons",
+  "waar": "app.css@07e76ea regel 421 (.fase .ic{display:inline-block;margin-left:auto}) met regel 448 (flex-wrap:wrap) en ui.js regel 291 (ic na de naam in .naam); mockup ontwerp/D/index.html regel 384 (fase zonder ikoon)",
+  "bewijs": "Gemeten op 390 px: fase \"Werfinrichting\": naam top 164, som top 184, chevron top 204 op x 358 → drie regels, fasehoogte 76 px; rij \"Gevelstelling …\": naam eindigt op 276, chevron begint op 281 op x 173 onder de naam. Zichtbaar in ontwerp/bouw/telefoon-werkblad-390.png en foto2\\390-werkblad.png; ontwerp/D/mobiel-werkblad.png toont twee regels zonder chevron.",
+  "fix": "Het chevron op de naamregel zetten (naam en som in een eigen kolom, chevron flex:none ernaast) of weglaten zoals de mockup en de hele fase-kop klikbaar laten."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Toepassen op 'Aan 21% btw' bewaart btw 21 % als vast tarief voor elke volgende berekening",
+  "waar": "ui.js (07e76ea) r. 1096-1099 (data-toepassen 'btw' → zetTarief('btw', 21)) en r. 100-109 (zetTarief schrijft inst.tarieven en roept bewaarInstellingen); instellingen.json",
+  "bewijs": "Headless Chrome op een kopie van 07e76ea, voorbeeld geladen, klik op Toepassen bij 'Aan 21% btw (woning jonger dan 10 jaar)': prijs € 27.579 incl. 21 % (motor: 22.792,48 × 1,21 = 27.578,9, klopt), maar daarna staat in instellingen.json \"btw\": 21 (netwerk: GET + POST /api/instellingen, #tarieven-staat 'Bewaard'). Na herladen start elke nieuwe klus op 21 % btw; alleen de chip 'Btw 21 %' verraadt het. De wat-als gaat over één woning, het tarief wordt pc-breed en blijft na herstart.",
+  "fix": "Btw per berekening houden zoals de ploeg (S.btw meegeven in huidig(), niet in inst.tarieven), of bij data-toepassen 'btw' alleen de lokale tarieven zetten zonder bewaarInstellingen()."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Bewaarde berekening wordt bij openen stil herprijsd: rail en paneel tonen een andere prijs en de knop zegt 'Opgeslagen'",
+  "waar": "ui.js r. 784-812 (zetKlaar leest o.ploeg, nooit o.tarieven; r. 790 S.bewaard = !!o.id) en r. 171 (rail toont x.prijs uit het bestand)",
+  "bewijs": "Berekening F bewaard met tarieven {uurtarief 60} en prijs 24.560; geopend via de rail terwijl het uurtarief 57,50 is en de datatabel eigen cijfers draagt (PIR € 40, norm 0,5): rail '€ 24.560 · Teststraat 1 Willebroek', paneel '€ 26.662', #opslaan disabled=true met tekst 'Opgeslagen'. Berekening G (zonder uitleg, ploeg 4 bewaard): rail € 27.153, paneel € 29.386, geen strook, geen chip; niets op de pagina verklaart het verschil.",
+  "fix": "Bij openen o.tarieven als tarieven van die berekening gebruiken (chip 'Tarieven van <datum>' met terug-knop), of herprijzen én S.bewaard = false zetten zodat Opslaan actief is en de rail na opslaan gelijk loopt."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Kostenopbouw: 'Arbeid: 144 manuren × € 57,50' geeft € 8.261, maar 144 × 57,50 = € 8.280",
+  "waar": "ui.js r. 273 (label met n0.format(Math.round(r.uren))) en r. 859 (kopieertekst schrijft '… × € 57,50 = € 8.261')",
+  "bewijs": "Motor: uren 143,675 × 57,5 = 8.261,31. Pagina (voorbeeld): 'Arbeid: 144 manuren × € 57,50 → € 8.261'; Kopieer-tekst: 'Arbeid: 144 manuren × € 57,50 = € 8.261'. Wie dit narekent komt € 19 hoger uit. Bij uurtarief 60: '144 manuren × € 60,00 → € 8.621' terwijl 144 × 60 = 8.640.",
+  "fix": "In het label n1.format(r.uren) tonen ('143,7 manuren × € 57,50 = € 8.261') en de tegel Manuren op dezelfde afronding zetten; in de kopieertekst idem."
+ },
+ {
+  "ernst": "midden",
+  "titel": "'Herbereken met deze kenmerken' stuurt ALLE kenmerken als vast, ook de berekende; een gewijzigde maat kan niet doorwerken",
+  "waar": "ui.js r. 991-996 (loop over alle S.m.kenmerken → vast[k]); motor.js r. 388 (prompt: 'VASTE KENMERKEN … neem ze exact over met bron \"vast\" en leid de posten eruit af')",
+  "bewijs": "Code gelezen en RP.bouwPrompt gedraaid met gevelbreedte 10 (gewijzigd), dakvlak 94 en noklengte 8 (berekend): de prompt bevat '- gevelbreedte_m (Gevelbreedte): 10 m', '- dakvlak_m2 (Dakvlak): 94 m²', '- noklengte_m (Noklengte): 8 m', alle drie als vast. Dakvlak en nok horen uit de nieuwe breedte te volgen (8 → 10 m geeft 94 → 117 m²); de AI krijgt de opdracht 94 te houden. Na de herberekening komt elk kenmerk met bron 'vast' terug = chip 'Aangepast' op elk veld. Niet met de AI gedraaid; dit is de prompt die vertrekt.",
+  "fix": "Alleen de sleutels uit S.gewijzigd (plus asbest) als vast sturen; de overige kenmerken laat de AI opnieuw afleiden."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Voorbeeld: de vaste toelichting spreekt het paneel tegen zonder strook, en toont een valse strook na een ploegwijziging",
+  "waar": "ui.js r. 833 (uitlegPrijs: Math.round(RP.analyse(m, huidig()).r.kosten.incl)) tegenover r. 40-47 (VOORBEELD_UITLEG met vaste bedragen bij startwaarden); r. 789 (zetKlaar zet S.ploeg pas daarna op 0)",
+  "bewijs": "(a) Uurtarief 60 bewaard plus eigen cijfers, pagina herladen met #voorbeeld: paneel 'Sarking-isolatie … € 8.182 32 %', wat-als 'Zonder sarking-isolatie − € 8.309'; de toelichting zegt '€ 5.825 of 25,6 %' en 'zonder sarking valt er € 5.825 af'; #strook hidden. (b) Toepassen 'Met 4 man' (prijs € 26.528), daarna Voorbeeld opnieuw via de rail-knop: prijs € 26.662, geen chip, strook 'Geschreven bij € 26.528; de prijs is nu € 26.662.' op een vers geopend voorbeeld.",
+  "fix": "uitlegPrijs = Math.round(RP.analyse(m, {}).r.kosten.incl): de prijs waarbij de tekst geschreven is (€ 24.160). Dan verschijnt de strook precies wanneer het paneel van de tekst afwijkt."
+ },
+ {
+  "ernst": "midden",
+  "titel": "Na een fout in stap 2 blijft het Overzicht in laad-skeletten staan",
+  "waar": "ui.js r. 230-237 (tekenOverzicht: alleen bij !S.m of fase 'leeg' de tekst 'Nog geen berekening', anders skelet, ook bij fase 'fout'); r. 316 (tekenMateriaal idem)",
+  "bewijs": "/api/ai beantwoord met 500 {\"fout\":\"Testfout van de keuring.\"}: #status 'Testfout van de keuring.' (class fout), stap 2 rood, knop 'Opnieuw berekenen'; maar #uitkomst = skelet-prijs + 5 skelet-tegels, #geld-sectie = kop 'Waar het geld zit' + skelet-rijen, #prijs-compact leeg, toelichting zichtbaar met 'Nog geen toelichting'. Het paneel ziet eruit alsof het nog laadt.",
+  "fix": "Bij S.fase 'fout' of 'gestopt' zonder regels 'Geen prijs. <foutmelding>' tonen; skeletten alleen zolang S.loopt."
+ },
+ {
+  "ernst": "midden",
+  "titel": "getal() rondt elk niet-geheel getal op 1 decimaal: datatabel toont 1,1 voor 1,05 en 0,0 voor 0,004",
+  "waar": "ui.js r. 15 (getal → n1 bij een niet-geheel getal), gebruikt op r. 964 (kolommen Per en Kg in de datatabel), r. 293 en r. 283 (hoeveelheid in werkblad en rekenpad), r. 454",
+  "bewijs": "DOM datatabel, post dak.sarking120 open: 'PIR-sarkingplaat 12 cm | 1,1 | m² | 3,9' terwijl data/dak.js r. 144 per: 1.05 heeft (5 % snijverlies staat als 10 %). Zelfde voor dampscherm 1,15 → '1,2', multiplex boeiboord 0,27 → '0,3', leihaak kg 0,004 → '0,0'. Node: n1.format(1.05) = '1,1', n1.format(0.25) = '0,3': een post van 0,25 u toont '0,3 u' in werkblad en rekenpad.",
+  "fix": "getal met maximumFractionDigits 2 (3 voor kg) zonder vaste decimalen; hoeveelheid en Per nooit grover tonen dan de bronwaarde."
+ },
+ {
+  "ernst": "midden",
+  "titel": "'Terug naar …' zet het tarief terug, maar het invoerveld in Instellingen houdt de oude waarde",
+  "waar": "ui.js r. 1101-1105 (data-tarief-terug → zetTarief of S.ploeg = 0 → tariefGewijzigd, geen tekenTarieven()); r. 1025 (tekenTarieven alleen op het change-event)",
+  "bewijs": "Instellingen, Ploeg op 4: prijs € 23.534, chip 'Ploeg 4 man', link 'Terug naar 3 man'. Klik op de link: prijs € 24.160, chip weg, maar #t-ploeg.value blijft '4'. Zelfde code-pad voor uurtarief en btw (ook de chip-x in het overzicht): het veld toont 60 terwijl met 57,50 gerekend wordt.",
+  "fix": "In de handler voor data-tarief-terug tekenTarieven() aanroepen (of het ene veld gericht bijwerken)."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Afgeronde regels sluiten niet: 'Waar het geld zit' telt op tot € 22.793 bij een totaal van € 22.792",
+  "waar": "ui.js r. 259-262 (elke geldrij apart Math.round), r. 271-277 (kostenopbouw per regel afgerond)",
+  "bewijs": "Voorbeeld: 5.825 + 4.000 + 2.101 + 1.623 + 1.249 + 7.995 = 22.793; 'Prijs excl. btw € 22.792'. Kostenopbouw bij ploeg 4: 8.261 + 11.019 + 1.864 = 21.144 tegenover 'Subtotaal € 21.145'; bij uurtarief 60: 8.621 + 11.019 + 2.427 = 22.067 tegenover 'Subtotaal € 22.066'.",
+  "fix": "Restpost en subtotaal sluitend maken (rest = totaal − som van de afgeronde delen), of de regels met 2 decimalen tonen."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Balk van '15 kleinere posten samen' is de langste (100 %); de grootste post krijgt 73 %",
+  "waar": "ui.js r. 258 (grootste = Math.max(top[0].bedrag, restBedrag, 1))",
+  "bewijs": "DOM geld-rijen: 'Sarking-isolatie … € 5.825' → breedte 73%; '15 kleinere posten samen € 7.995' → breedte 100%. De optelsom van 15 posten oogt als de zwaarste kostenpost.",
+  "fix": "grootste = top[0].bedrag; de restrij zonder balk of in grijs, met de breedte op 100 % begrensd."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Overgeslagen posten staan alleen op het tabblad Werkblad; het Overzicht toont de prijs zonder teken dat er posten ontbreken",
+  "waar": "index.html r. 160-165 (#overgeslagen in .tab--werkblad), app.css r. 192 (.tab{display:none}); ui.js r. 310-311",
+  "bewijs": "Berekening F met 3 posten zonder cijfers: Werkblad toont 'Niet meegerekend, omdat de AI geen cijfers gaf: Nok afwerken met nokpannen en ondervorst (hoeveelheid ontbreekt), dak.xyz, Open dakvlak elke avond afdekken met dakzeil (hoeveelheid onleesbaar: veel).'; Overzicht (standaardtab), prijskaart, caveat en prijs-compact zeggen niets; 'dak.xyz' is een ruwe code.",
+  "fix": "Dezelfde regel onder de caveat in de prijskaart en in prijs-compact zetten; voor een onbekende code 'onbekende post dak.xyz' tonen."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Eigen cijfers in de datatabel zijn op het resultaat onzichtbaar: 'Datatabel 6 oktober 2026' en '97 % uit de datatabel' blijven staan",
+  "waar": "ui.js r. 210-222 (tariefChips: alleen tarieven en ploeg), r. 254-255 (balk en legende uit r.aandeelData), r. 527 (bronnen-chips)",
+  "bewijs": "Na PIR-prijs 40 en norm 0,5 (instellingen.json: posten.dak.sarking120 {prijs: 40, uur: 0.5}): prijs € 26.662 in plaats van € 24.160, geldrij 'Sarking … € 8.059 32 %', maar de prijskaart toont geen chip (bij scenario D alleen 'Uurtarief € 60,00'); bronnen 'Datatabel 6 oktober 2026 · Uw tarieven'; legende '97 % van de kostprijs uit de datatabel'.",
+  "fix": "Chip 'N eigen cijfers in de datatabel' in tariefChips met link naar #datatabel; bron-chip 'Datatabel (eigen cijfers)'."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Opslaan-knop is actief op het voorbeeld, een klik doet niets",
+  "waar": "ui.js r. 769 (opslaan: if (!laatsteA || S.voorbeeld) return; zonder melding), r. 341 (disabled hangt niet van S.voorbeeld af), r. 790 (S.bewaard = !!o.id = false bij het voorbeeld)",
+  "bewijs": "Voorbeeld geladen: #opslaan.disabled = false, tekst 'Opslaan'; klik → geen POST /api/berekeningen, geen toast, knop blijft 'Opslaan'.",
+  "fix": "Op het voorbeeld de knop uitschakelen (title 'Het voorbeeld wordt niet bewaard') of een toast geven."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Werkblad-kolom 'Materiaal €' bevat de stellinghuur: kolomsom € 10.350 tegenover Kostenopbouw 'Materiaal: inkoop € 9.582'",
+  "waar": "ui.js r. 294 (x.matKost + x.huurKost onder data-l='Materiaal €'), r. 274-275 (de huur zit in 'Materieel en afvoer: inkoop € 2.110')",
+  "bewijs": "Werkblad-rij stelling '96 m² · 11,5 · 768 · — · —': 768 = huur 2 weken; som van de kolom = 10.350; kostenopbouw Materiaal-inkoop = 9.582 en Materieel-inkoop = 2.110 (768 + 360 + 270 + 412 + 300).",
+  "fix": "Kolomkop 'Materiaal en huur €' of de huur in een eigen kolom tonen."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Voorbeeldtoelichting: '94 m² maal € 3.649 inkoop aan PIR-platen' is geen kloppende formule",
+  "waar": "ui.js r. 41 (VOORBEELD_UITLEG, eerste regel)",
+  "bewijs": "Motor: PIR-sarkingplaat 98,7 m² × € 33,16 = € 3.273 plus schroeven en tape 94 m² × € 4 = € 376, samen € 3.649; '94 m² maal € 3.649' = 343.006. De zin staat woordelijk op de pagina in #uitleg li 1.",
+  "fix": "'98,7 m² × € 33,16 = € 3.273 plus € 376 schroeven en tape, en 23,5 manuren'."
+ },
+ {
+  "ernst": "laag",
+  "titel": "Afvoerregel 'Rest 5 kg → 1 Klein restje rest mee in de werfwagen' met '1 st' en de soortcode in de zin",
+  "waar": "motor.js r. 234 (naam 'Klein restje ' + soort + ' mee in de werfwagen', aantal 1, eenheid 'st'); ui.js r. 323-324",
+  "bewijs": "Materieel-tabel: 'Klein restje rest mee in de werfwagen · 1 st · 0,00 · —'; afval per soort: 'Rest 5 kg → 1 Klein restje rest mee in de werfwagen' en 'Metaal 66 kg → 1 Afvoer oud metaal naar de schroothandel'.",
+  "fix": "In de UI voor soort2 'werfwagen' en 'afvoer' de regel 'Rest 5 kg: mee in de werfwagen' en 'Metaal 66 kg: naar de schroothandel' tonen zonder aantal en eenheid."
+ }
+]
