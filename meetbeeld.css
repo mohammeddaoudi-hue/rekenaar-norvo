@@ -25,18 +25,18 @@
 .meetbeeld.is-meten .mb-maten,.meetbeeld.is-klaar .mb-maten{opacity:1}
 .mb-maat{stroke:#ffffff;stroke-width:1.5;vector-effect:non-scaling-stroke;stroke-linecap:round}
 .mb-label{fill:rgba(12,43,27,.92)}
-.mb-labeltekst{fill:#ffffff;font:600 22px/1 'IBM Plex Sans','Segoe UI',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.mb-labeltekst{fill:#ffffff;font:600 22px/1 'Inter','Segoe UI',system-ui,sans-serif;font-variant-numeric:tabular-nums}
 
 .mb-pin{opacity:0;transition:opacity 300ms ease 200ms}
 .meetbeeld.is-meten .mb-pin,.meetbeeld.is-klaar .mb-pin{opacity:1}
 .mb-pinkern{fill:#ffffff;stroke:#0c2b1b;stroke-width:2;vector-effect:non-scaling-stroke}
 .mb-pinring{fill:none;stroke:#ffffff;stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:.7}
 
-.meetbeeld__tekst{position:absolute;left:12px;right:12px;bottom:12px;display:grid;gap:2px;padding:10px 12px;border-radius:6px;background:rgba(12,43,27,.88);color:#f1f5ef;font:13px/1.4 'IBM Plex Sans','Segoe UI',system-ui,sans-serif;font-variant-numeric:tabular-nums;opacity:0;transform:translateY(6px);transition:opacity 400ms ease 2400ms,transform 400ms ease 2400ms}
+.meetbeeld__tekst{position:absolute;left:12px;right:12px;bottom:12px;display:grid;gap:2px;padding:10px 12px;border-radius:6px;background:rgba(12,43,27,.88);color:#f1f5ef;font:13px/1.4 'Inter','Segoe UI',system-ui,sans-serif;font-variant-numeric:tabular-nums;opacity:0;transform:translateY(6px);transition:opacity 400ms ease 2400ms,transform 400ms ease 2400ms}
 .meetbeeld__tekst b{font-weight:600;font-size:13.5px}
 .meetbeeld__tekst span{color:#cfe3d6}
 .meetbeeld.is-meten .meetbeeld__tekst,.meetbeeld.is-klaar .meetbeeld__tekst{opacity:1;transform:none}
-.meetbeeld__bron{position:absolute;top:10px;right:12px;padding:3px 8px;border-radius:4px;background:rgba(12,43,27,.7);color:#cfe3d6;font:11px/1.3 'IBM Plex Sans','Segoe UI',system-ui,sans-serif}
+.meetbeeld__bron{position:absolute;top:10px;right:12px;padding:3px 8px;border-radius:4px;background:rgba(12,43,27,.7);color:#cfe3d6;font:11px/1.3 'Inter','Segoe UI',system-ui,sans-serif}
 
 .meetbeeld--compact .meetbeeld__tekst{display:none}
 .meetbeeld--compact .meetbeeld__bron{display:none}

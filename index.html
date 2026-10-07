@@ -3,16 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Richtprijs-AI</title>
+<title>Norvo Richtprijs</title>
+<meta name="description" content="Norvo Richtprijs: klus en adres in, richtprijs, ploeg, werkdagen, kilo's, afval en offerte uit.">
+<meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b141a" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="assets/norvo-favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/switzer-600.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="meetbeeld.css">
 <style id="off-page-css"></style>
 </head>
 <body class="leeg rail-open">
-<!-- Iconen: één keer gedefinieerd, overal hergebruikt met <use>. -->
+<!-- Iconen: één keer gedefinieerd, overal hergebruikt met <use>.
+     Het Norvo-merk: de paden uit norvo-logo (kleinmaat-snede, voeg 15) en het woordmerk van getnorvo.com, nooit nagetekend.
+     De kleuren komen uit --n-vlak en --n-blok, zodat het merk meekleurt met licht en donker. -->
 <svg hidden aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="n-merk" viewBox="0 0 100 100"><path style="fill:var(--n-vlak)" d="M24 0H76A24 24 0 0 1 100 24V51H66A15 15 0 0 0 51 66V100H24A24 24 0 0 1 0 76V24A24 24 0 0 1 24 0Z"/><path style="fill:var(--n-blok)" d="M66 58H92A8 8 0 0 1 100 66V76A24 24 0 0 1 76 100H66A8 8 0 0 1 58 92V66A8 8 0 0 1 66 58Z"/></symbol>
+  <symbol id="n-lockup" viewBox="-8 -650 3499 764"><g transform="translate(0 -642) scale(7.48)"><path style="fill:var(--n-vlak)" d="M24 0H76A24 24 0 0 1 100 24V51H66A15 15 0 0 0 51 66V100H24A24 24 0 0 1 0 76V24A24 24 0 0 1 24 0Z"/><path style="fill:var(--n-blok)" d="M66 58H92A8 8 0 0 1 100 66V76A24 24 0 0 1 76 100H66A8 8 0 0 1 58 92V66A8 8 0 0 1 66 58Z"/></g><g transform="translate(876 0)"><path style="fill:var(--n-vlak)" d="M59 0L59-536 187-536 187-464Q240-551 346-551 429-551 477.5-501.5 526-452 526-357L526 0 398 0 398-331Q398-445 302-445 250-445 218.5-406 187-367 187-311L187 0ZM876 15Q757 15 688-60.5 619-136 619-267 619-402 688-476.5 757-551 876-551 995-551 1063.5-475 1132-399 1132-267 1132-134 1063-59.5 994 15 876 15ZM783-136.5Q783-136.5 799-113.8 815-91 876-91 937-91 968.5-136 1000-181 1000-267 1000-353 968-399 936-445 876-445 815-445 783-399.5 751-354 751-267 751-182 783-136.5ZM1225 0L1225-536 1353-536 1353-458Q1404-551 1500-551 1535-551 1552-536L1552-425Q1528-432 1493-432 1422-432 1387.5-393 1353-354 1353-285L1353 0ZM1763.5 0L1534-536 1672-536 1806-95 1947-536 2078-536 1848.5 0ZM2351 15Q2232 15 2163-60.5 2094-136 2094-267 2094-402 2163-476.5 2232-551 2351-551 2470-551 2538.5-475 2607-399 2607-267 2607-134 2538-59.5 2469 15 2351 15ZM2258-136.5Q2258-136.5 2274-113.8 2290-91 2351-91 2412-91 2443.5-136 2475-181 2475-267 2475-353 2443-399 2411-445 2351-445 2290-445 2258-399.5 2226-354 2226-267 2226-182 2258-136.5Z"/></g></symbol>
+  <symbol id="i-pijl-op" viewBox="0 0 16 16"><path d="M8 13V3.5M3.5 8L8 3.5 12.5 8"/></symbol>
   <symbol id="i-menu" viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12"/></symbol>
   <symbol id="i-meer" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="12.5" cy="8" r="1"/></symbol>
   <symbol id="i-rail" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 3v10"/></symbol>
@@ -42,7 +52,8 @@
 
 <div class="topbalk">
   <button class="ikoonknop" type="button" data-rail title="Berekeningen" aria-label="Berekeningen"><svg class="ic"><use href="#i-menu"/></svg></button>
-  <span class="midden-titel" data-titel>Richtprijs-AI</span>
+  <span class="merkregel topbalk-merk"><svg class="n-lockup" viewBox="0 0 3499 764" role="img" aria-label="Norvo"><use href="#n-lockup" width="3499" height="764"/></svg><span class="product">Richtprijs</span></span>
+  <span class="midden-titel" data-titel></span>
   <button class="ikoonknop" type="button" data-menu title="Opslaan, Kopieer, Afdrukken, Verwijderen" aria-label="Meer acties"><svg class="ic vol"><use href="#i-meer"/></svg></button>
 </div>
 <div class="segment" role="tablist">
@@ -53,7 +64,7 @@
 <div class="werk">
   <aside class="rail" aria-label="Berekeningen en instellingen">
     <div class="rail-open-inhoud">
-      <div class="rail-kop"><span class="merk" aria-hidden="true"></span><span class="rail-titel">Richtprijs-AI</span><button class="ikoonknop" type="button" data-rail title="Rail inklappen" aria-label="Rail inklappen"><svg class="ic"><use href="#i-rail"/></svg></button></div>
+      <div class="rail-kop"><span class="merkregel rail-titel"><svg class="n-lockup" viewBox="0 0 3499 764" role="img" aria-label="Norvo"><use href="#n-lockup" width="3499" height="764"/></svg><span class="product">Richtprijs</span></span><button class="ikoonknop" type="button" data-rail title="Rail inklappen" aria-label="Rail inklappen"><svg class="ic"><use href="#i-rail"/></svg></button></div>
       <button class="nieuw" type="button" data-nieuw><svg class="ic"><use href="#i-plus"/></svg><span>Nieuwe berekening</span></button>
       <div class="zoek rail-zoek" id="rail-zoek" hidden><svg class="ic"><use href="#i-zoek"/></svg><input id="rail-zoek-veld" type="search" placeholder="Zoek op titel of adres" aria-label="Zoek in eerdere berekeningen"></div>
       <div class="rail-lijst" id="rail-lijst"></div>
@@ -63,7 +74,7 @@
       </div>
     </div>
     <div class="rail-dicht-inhoud">
-      <div class="rail-kop"><span class="merk" aria-hidden="true"></span></div>
+      <div class="rail-kop"><svg class="n-merk" viewBox="0 0 100 100" role="img" aria-label="Norvo Richtprijs"><use href="#n-merk"/></svg></div>
       <button class="ikoonknop" type="button" data-nieuw title="Nieuwe berekening" aria-label="Nieuwe berekening"><svg class="ic"><use href="#i-plus"/></svg></button>
       <button class="ikoonknop" type="button" data-rail title="Eerdere berekeningen" aria-label="Eerdere berekeningen"><svg class="ic"><use href="#i-klok"/></svg></button>
       <button class="ikoonknop onder" type="button" data-instellingen="open" title="Instellingen" aria-label="Instellingen"><svg class="ic"><use href="#i-tandwiel"/></svg></button>
@@ -86,7 +97,7 @@
         </div>
       </div>
       <div class="leeg-blok">
-        <h1>Richtprijs-AI</h1>
+        <h1>Bereken een richtprijs</h1>
         <p class="regel16">Adres en klus. De richtprijs staat er binnen 60 seconden.</p>
         <div class="opdracht" id="opdracht">
           <div class="opdracht-open">
@@ -133,8 +144,18 @@
           <button class="tekstknop" type="button" data-kopieer="uitleg"><svg class="ic"><use href="#i-kopie"/></svg>Kopieer</button>
         </div>
       </section>
+      <!-- Verder vragen na de berekening: elke beurt is een vraag en een antwoord; een wijziging rekent de motor door als nieuwe versie. -->
+      <section class="gesprek" id="gesprek" aria-label="Verder vragen" hidden></section>
     </div>
     <button class="knop knop--36 knop--stil naar-laatste" type="button" id="naar-laatste" hidden><svg class="ic"><use href="#i-omlaag"/></svg>Naar het laatste</button>
+    <form class="vervolg" id="vervolg" hidden>
+      <div class="vervolg-chips" id="vervolg-chips"></div>
+      <div class="vervolg-veld">
+        <textarea id="vraag" rows="1" spellcheck="false" autocomplete="off" placeholder="Vraag iets of pas de klus aan" aria-label="Vraag over de berekening of wijziging van de klus"></textarea>
+        <button class="stuur" id="vraag-stuur" type="submit" title="Versturen (Enter)" aria-label="Versturen" disabled><svg class="ic"><use href="#i-pijl-op"/></svg></button>
+      </div>
+      <p class="vervolg-hint" id="vervolg-hint">Enter verstuurt. Een wijziging wordt een nieuwe versie; de vorige blijft bewaard.</p>
+    </form>
   </main>
 
   <section class="paneel" id="paneel" data-tab="overzicht" aria-label="Resultaat">

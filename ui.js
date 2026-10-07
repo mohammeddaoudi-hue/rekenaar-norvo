@@ -354,7 +354,7 @@
   RP.OFFERTE = { START, UITSLUITINGEN_START, VOORWAARDEN_START, TEKSTEN_START, MEERWERK, BTW6, ASBEST_ZIN, RECHTSVORMEN, vulInstellingen, nogInTeVullen, toetsVoorwaarden, ibanOk, cent, eur, hoev, datumVoluit, isoDag, plusDagen, plusMaanden, schoneNaam };
 })(globalThis);
 
-/* Pagina van de Richtprijs-AI: opdrachtkaart, stappen, toelichting, resultaatpaneel, rail, instellingen, offerte.
+/* Pagina van Norvo Richtprijs: opdrachtkaart, stappen, toelichting, verder vragen, resultaatpaneel, rail, instellingen, offerte.
    Rekenwerk staat in motor.js; de server (server.mjs) meet het adres, vraagt de AI en bewaart.
    Eén IIFE: staat (S), tekenfuncties per zone, de stroom van de AI, de events. */
 (function () {
@@ -434,6 +434,9 @@
     offerte: null,
     /* versies: de vorige versies van deze berekening (v1 bij een v2); bekijk = index van de versie die alleen-lezen open staat. */
     versies: [], bekijk: null, bekijkTerug: null,
+    /* gesprek: verder vragen na de berekening, één beurt per vraag: { vraag, antwoord, staat, versie, wijziging? }.
+       Het gesprek hoort bij de berekening (alle versies), niet bij één versie. */
+    gesprek: [],
     uitleg: { tekst: '', staat: 'geen', prijsBij: 0 },
     trail: [], trailDicht: false, trailKop: '', duur: 0,
     origineel: {}, gewijzigd: {}, open: new Set(), openPosten: new Set(), bewaard: false, oudePrijs: 0,
@@ -550,8 +553,9 @@
   function zetLeeg(aan) { body.classList.toggle('leeg', aan); if (aan) body.classList.remove('paneel-open'); tekenTitel(); }
   function tekenTitel() {
     const t = S.titel || (S.m && S.m.titel) || '';
-    document.title = t ? 'Richtprijs-AI · ' + t : 'Richtprijs-AI';
-    document.querySelectorAll('[data-titel]').forEach((e) => { e.textContent = body.classList.contains('leeg') ? (e.closest('.topbalk') ? 'Richtprijs-AI' : '') : (t || 'Berekening'); });
+    document.title = t ? 'Norvo Richtprijs · ' + t : 'Norvo Richtprijs';
+    /* Leeg: de topbalk op de telefoon toont het Norvo-merk (CSS), geen titel. */
+    document.querySelectorAll('[data-titel]').forEach((e) => { e.textContent = body.classList.contains('leeg') ? '' : (t || 'Berekening'); });
   }
   function tekenVersie() {
     const leeg = body.classList.contains('leeg') || !S.m;
@@ -569,15 +573,15 @@
   }
   /* Vorige versies: bij een v2 (Wijzig of Herbereken) wordt v1 bewaard; de pijl bij de versiechip toont v1 alleen-lezen. */
   function snapshotNu() {
-    return { versie: S.versie, titel: S.titel, adres: S.adres, klus: S.klus, asbest: S.asbest, datum: S.datum, meetstaat: kopie(S.m), gemeten: S.gemeten, meetFout: S.meetFout, meetDuur: S.meetDuur, ploeg: S.ploeg,
+    return { versie: S.versie, titel: S.titel, adres: S.adres, klus: S.klus, asbest: S.asbest, datum: S.datum, meetstaat: kopie(S.m), gemeten: S.gemeten, meetFout: S.meetFout, meetDuur: S.meetDuur, ploeg: S.ploeg, btw: S.btw,
       uitleg: S.uitleg.tekst, uitlegPrijs: S.uitleg.prijsBij, duur: S.duur, stappen: S.trail.map((s) => s.duur || 0), prijs: laatsteA ? Math.round(laatsteA.r.kosten.incl) : 0 };
   }
   function bekijkVersie(i) {
     if (S.loopt) return;
     const s = S.versies[i];
     if (!s) return;
-    const terug = S.bekijkTerug || Object.assign(snapshotNu(), { id: S.id, versies: S.versies, offerte: S.offerte, bewaard: S.bewaard });
-    zetKlaar(Object.assign({}, s, { id: terug.id, offerte: terug.offerte, versies: terug.versies }));
+    const terug = S.bekijkTerug || Object.assign(snapshotNu(), { id: S.id, versies: S.versies, offerte: S.offerte, bewaard: S.bewaard, gesprek: S.gesprek });
+    zetKlaar(Object.assign({}, s, { id: terug.id, offerte: terug.offerte, versies: terug.versies, gesprek: terug.gesprek }));
     S.bekijkTerug = terug; S.bekijk = i; S.bewaard = terug.bewaard;
     teken(); hoofdknop();
     status('v' + s.versie + ' geopend om te bekijken.');
@@ -595,8 +599,10 @@
     const ok = await bevestig('v' + t.versie + ' verwijderen en v' + S.versie + ' herstellen?', 'De latere versie verdwijnt uit deze berekening; de offertegegevens blijven staan.', 'Herstel', 'Behoud v' + t.versie);
     if (!ok) return;
     S.versies = S.versies.slice(0, i); S.bekijk = null; S.bekijkTerug = null; S.bewaard = false;
+    /* Beurten van de verwijderde versies vallen weg: gevraagd op een latere versie, of hun wijziging maakte een latere versie. */
+    S.gesprek = S.gesprek.filter((b) => (b.versie || 1) <= S.versie && !(b.wijziging && b.wijziging.toegepast && b.wijziging.naarVersie > S.versie));
     S.trailKop = 'v' + S.versie + ' hersteld · ' + datumTekst(S.datum);
-    teken(); tekenTrail();
+    teken(); tekenTrail(); tekenGesprek();
     await opslaan(true);
     status('v' + S.versie + ' hersteld.');
   }
@@ -666,7 +672,7 @@
   /* ---------- paneel ---------- */
   const SKELET_GELD = '<div class="skelet-geld">' + '<div class="r"><span class="skelet" style="height:14px"></span><span class="skelet" style="height:8px"></span><span class="skelet" style="height:14px"></span><span class="skelet" style="height:14px"></span></div>'.repeat(6) + '</div>';
   const SKELET_RIJ = '<div class="skelet-rij">' + '<span class="skelet" style="height:14px"></span>'.repeat(7) + '</div>';
-  const skeletLoopt = () => S.loopt && S.fase !== 'uitleg';
+  const skeletLoopt = () => S.loopt && S.fase !== 'uitleg' && S.fase !== 'vervolg';
 
   function teken() {
     const a = analyse();
@@ -681,6 +687,9 @@
     tekenKnoppen();
     tekenVersie();
     tekenTitel();
+    /* Tijdens een lopend antwoord tekent de stroom zelf de laatste beurt. */
+    if (!(S.loopt && S.fase === 'vervolg')) tekenGesprek();
+    tekenVervolg();
   }
 
   /* Eigen cijfers in de datatabel (instellingen.posten) tellen: elke post met een eigen norm of eigen materiaalprijs. */
@@ -1021,6 +1030,9 @@
   /* De secondeteller loopt alleen in de stappenrij; #status (aria-live) krijgt één tekst per stap, anders leest een schermlezer elke tik voor. */
   function tikTrail() {
     S.trail.forEach((s, i) => { if (s.staat === 'actief') { const d = document.querySelector('#stap-' + i + ' .duur'); if (d) d.textContent = duurTekst(s, i); } });
+    const b = S.gesprek[S.gesprek.length - 1];
+    const d = document.querySelector('#gesprek .beurt-staat.is-actief .duur');
+    if (b && b.t0 && d) d.textContent = secLoopt(b.t0);
   }
   function postNaam(p) {
     const def = p.code ? DATA.posten[p.code] : null;
@@ -1096,7 +1108,7 @@
   function tekenUitlegRest() {
     const t = $('toelichting');
     const m = S.m;
-    const toon = !!m && S.fase !== 'leeg' && (S.uitleg.staat !== 'geen' || S.fase === 'klaar' || S.fase === 'gestopt' || S.fase === 'fout');
+    const toon = !!m && S.fase !== 'leeg' && (S.uitleg.staat !== 'geen' || S.fase === 'klaar' || S.fase === 'gestopt' || S.fase === 'fout' || S.fase === 'vervolg');
     t.hidden = !toon;
     if (!toon) return;
     $('bronnen').innerHTML = (S.gemeten ? chip('Kaartmeting Digitaal Vlaanderen') : '') + chip('Datatabel ' + DATA.stand + (eigenCijfers() ? ' met eigen cijfers' : '')) + chip('Uw tarieven');
@@ -1189,6 +1201,7 @@
     hoofdknop();
     $('herbereken').disabled = aan;
     tekenKnoppen();
+    tekenVervolg();
   }
   function bewaarStapDuur() { opslag.schrijf('richtprijs-stapduur', S.trail.map((s) => s.duur || 0)); }
 
@@ -1248,7 +1261,7 @@
     S.bekijk = null; S.bekijkTerug = null;
     $('naar-laatste').hidden = true;
     S.klus = klus.slice(0, 6000); S.adres = adres; S.asbest = leesAsbest();
-    if (herhaal) S.versie++; else { S.versie = 1; S.datum = ''; S.titel = ''; S.versies = []; }
+    if (herhaal) S.versie++; else { S.versie = 1; S.datum = ''; S.titel = ''; S.versies = []; S.gesprek = []; }
     /* De meting blijft staan zolang het adres gelijk is (Wijzig, Herbereken); zonder adres is er geen meting; een mislukte meting wordt opnieuw gedaan. */
     const meten = !!adres && (adresNieuw || !S.gemeten);
     if (!adres) { S.gemeten = null; S.meetFout = ''; S.meetDuur = 0; }
@@ -1387,6 +1400,214 @@
     if (S.uitleg.staat === 'klaar') opslaan(true);
   }
 
+  /* ---------- verder vragen na de berekening ----------
+     Een vraag krijgt een antwoord uit de cijfers van de berekening (RP.bouwVervolgPrompt). Een wijziging komt als regels per post;
+     de motor past ze toe (RP.pasWijzigingToe) en rekent het verschil per post uit (RP.vergelijk). "Toepassen" maakt een nieuwe
+     versie; de vorige blijft bewaard en is te bekijken en te herstellen zoals bij Wijzig. */
+  const bevat = (b) => !!(b && b.wijziging && b.wijziging.vergelijk);
+  /* Wat tijdens het schrijven al te tonen is: de volledige tekstregels, plus de lopende regel zolang die geen JSON wordt. */
+  function vervolgLive(ruw) {
+    const delen = String(ruw).split('\n');
+    const laatste = delen.pop().trim();
+    const j = laatste.indexOf('{"t"');
+    const zicht = (j >= 0 ? laatste.slice(0, j) : laatste).trim();
+    return { regels: RP.leesVervolg(delen.join('\n')).antwoord, bezig: zicht && zicht[0] !== '{' && zicht[0] !== '`' ? zicht.replace(/^(?:[-•*]|\d+[.)])\s+/, '') : '' };
+  }
+  /* Ronde euro's die exact optellen tot het afgeronde totaal (ook met min-bedragen). */
+  function rondSom(waarden, totaal) {
+    const uit = waarden.map((w) => Math.round(w));
+    let rest = totaal - uit.reduce((s, x) => s + x, 0);
+    const volgorde = waarden.map((w, i) => [w - Math.round(w), i]).sort((p, q) => (rest > 0 ? q[0] - p[0] : p[0] - q[0]));
+    for (let j = 0; rest !== 0 && j < volgorde.length; j++) { const d = rest > 0 ? 1 : -1; uit[volgorde[j][1]] += d; rest -= d; }
+    return uit;
+  }
+  const plusMin = (x) => (x > 0 ? '+ ' : x < 0 ? '− ' : '') + eur(Math.abs(x));
+  const weken = (n) => n + (n === 1 ? ' week' : ' weken');
+  function wijzigingHtml(b, i) {
+    const w = b.wijziging, v = w.vergelijk;
+    const dExcl = Math.round(v.naar.excl) - Math.round(v.van.excl);
+    const dIncl = Math.round(v.naar.incl) - Math.round(v.van.incl);
+    const rijen = v.rijen.slice();
+    /* Materieel en afvoer per naam (lift, transport, container); een oudere bewaarde wijziging heeft alleen het totaal. */
+    if (Array.isArray(v.materieelRijen)) rijen.push(...v.materieelRijen);
+    else if (Math.abs(v.materieel) >= 0.005) rijen.push({ soort: 'materieel', naam: 'Materieel en afvoer', verschil: v.materieel });
+    const afgerond = rondSom(rijen.map((x) => x.verschil), dExcl);
+    const onder = (x) => {
+      if (x.soort === 'zet') return getal(x.van) + ' → ' + getal(x.naar) + ' ' + x.eenheid;
+      if (x.soort === 'nieuw') return 'nieuw · ' + getal(x.naar) + ' ' + x.eenheid;
+      if (x.soort === 'weg') return 'vervalt · was ' + getal(x.van) + ' ' + x.eenheid;
+      if (x.soort === 'duur') return v.van.weken !== v.naar.weken ? 'zelfde hoeveelheid, huur ' + weken(v.van.weken) + ' → ' + weken(v.naar.weken) : 'zelfde hoeveelheid';
+      if (x.soort === 'materieel' && x.eenheid) return x.van && x.naar ? getal(x.van) + ' → ' + getal(x.naar) + ' ' + x.eenheid : x.naar ? 'nieuw · ' + getal(x.naar) + ' ' + x.eenheid : 'vervalt';
+      return '';
+    };
+    const dagRij = rijen.some((x) => x.soort === 'materieel' && /^dag/.test(x.eenheid || ''));
+    const info = [v.van.ploeg !== v.naar.ploeg ? 'Ploeg ' + v.van.ploeg + ' → ' + v.naar.ploeg + ' man' : '', v.van.werkdagen !== v.naar.werkdagen ? 'werkdagen ' + v.van.werkdagen + ' → ' + v.naar.werkdagen : '',
+      v.van.btw !== v.naar.btw ? 'btw ' + v.van.btw + ' % → ' + v.naar.btw + ' %' : ''].filter(Boolean);
+    if (dagRij && info.length === 1 && /^werkdagen/.test(info[0])) info.length = 0; /* de werkdagen staan al bij lift en transport */
+    const infoTekst = info.join(' · ');
+    const kop = w.toegepast ? chip('v' + w.vanVersie + ' → v' + w.naarVersie, 'merk') : chip(w.leeg ? 'Geen wijziging' : 'Voorstel bij v' + w.vanVersie);
+    let h = '<div class="wijziging"><div class="wijziging-kop">' + kop + '<b>' + eur(v.naar.incl) + '</b><span class="klein">incl. ' + v.naar.btw + ' % btw</span><span class="verschil">' + (dIncl ? plusMin(dIncl) : 'zelfde prijs') + '</span></div>';
+    if (rijen.length) {
+      h += '<div class="wijziging-rijen">' + rijen.map((x, j) => { const o = onder(x); return '<div class="r"><span class="l">' + esc(x.naam) + (o ? '<small>' + esc(o) + '</small>' : '') + '</span><span class="v">' + plusMin(afgerond[j]) + '</span></div>'; }).join('') +
+        '<div class="r som"><span class="l">Verschil excl. btw</span><span class="v">' + plusMin(dExcl) + '</span></div></div>';
+    }
+    if (infoTekst) h += '<p class="info">' + esc(infoTekst.charAt(0).toUpperCase() + infoTekst.slice(1)) + '.</p>';
+    if (w.leeg) h += '<p class="info">De prijs en de posten blijven gelijk.</p>';
+    if (w.fouten && w.fouten.length) h += '<p class="info fout">Niet toegepast: ' + esc(w.fouten.join(', ')) + '.</p>';
+    if (!w.toegepast && !w.leeg) {
+      const kan = w.vanVersie === S.versie && !S.loopt && S.bekijk == null;
+      h += '<div class="knoppen">' + (kan ? '<button class="knop knop--36" type="button" data-toepassen-beurt="' + i + '">Toepassen als v' + (S.versie + 1) + '</button><span class="klein">v' + S.versie + ' blijft bewaard.</span>'
+        : '<span class="klein">Gerekend op v' + w.vanVersie + '; vraag het opnieuw voor v' + S.versie + '.</span>') + '</div>';
+    }
+    return h + '</div>';
+  }
+  function beurtHtml(b, i) {
+    let a = '';
+    if (b.staat === 'bezig') a += '<div class="beurt-staat is-actief">' + ic('spinner', 'spinner') + '<span class="label">Antwoord schrijven</span><span class="duur">' + (b.t0 ? secLoopt(b.t0) : '') + '</span></div>';
+    const regels = b.staat === 'bezig' && b.live ? b.live.regels : String(b.antwoord || '').split('\n').filter((s) => s.trim());
+    const loopt = b.staat === 'bezig' && b.live && b.live.bezig ? '<p>' + esc(b.live.bezig) + '<span class="caret" aria-hidden="true"></span></p>' : '';
+    a += '<div class="beurt-tekst">' + regels.map((s) => '<p>' + esc(s) + '</p>').join('') + loopt + '</div>';
+    if (bevat(b)) a += wijzigingHtml(b, i);
+    if (b.staat === 'fout' || b.staat === 'gestopt') a += '<div class="beurt-staat is-fout">' + ic(b.staat === 'gestopt' ? 'streep' : 'kruis') + '<span class="label">' + esc(b.staat === 'gestopt' ? 'Gestopt.' : (b.fout || 'Geen antwoord.')) + '</span></div>';
+    return '<div class="beurt" data-beurt="' + i + '"><div class="beurt-vraag">' + esc(b.vraag) + '</div><div class="beurt-antwoord">' + a + '</div></div>';
+  }
+  function tekenGesprek() {
+    const el = $('gesprek');
+    const toon = S.gesprek.length > 0 && !!S.m && S.fase !== 'leeg' && !body.classList.contains('leeg');
+    el.hidden = !toon;
+    el.innerHTML = toon ? S.gesprek.map(beurtHtml).join('') : '';
+  }
+  let beurtWacht = false;
+  function planBeurt() { if (beurtWacht) return; beurtWacht = true; requestAnimationFrame(() => { beurtWacht = false; tekenLaatsteBeurt(); }); }
+  function tekenLaatsteBeurt() {
+    const i = S.gesprek.length - 1;
+    const el = document.querySelector('#gesprek [data-beurt="' + i + '"]');
+    if (i < 0 || !el) { tekenGesprek(); return; }
+    const onder = dichtbijOnder();
+    el.outerHTML = beurtHtml(S.gesprek[i], i);
+    if (onder) naarOnder();
+    $('naar-laatste').hidden = onder;
+  }
+  /* Drie voorstellen uit deze berekening (alleen zolang er nog niets gevraagd is): een keuze weglaten, een man meer, de zwaarste aanname. */
+  function vervolgVoorstellen() {
+    const a = laatsteA;
+    if (!a) return [];
+    const uit = [];
+    const zonder = a.watAls.find((w) => /^Zonder /.test(w.label));
+    if (zonder) uit.push('Wat kost het ' + zonder.label.charAt(0).toLowerCase() + zonder.label.slice(1) + '?');
+    if (a.r.ploeg < 6) uit.push('Reken met ' + (a.r.ploeg + 1) + ' man');
+    if (S.m && S.m.aannames && S.m.aannames.length) uit.push('Welke aanname weegt het zwaarst in de prijs?');
+    return uit;
+  }
+  function pasVraagHoogte() { const t = $('vraag'); t.style.height = 'auto'; t.style.height = Math.min(168, Math.max(36, t.scrollHeight)) + 'px'; }
+  function tekenVervolg() {
+    const f = $('vervolg');
+    const kan = !!laatsteA && !body.classList.contains('leeg') && S.fase !== 'leeg' && S.bekijk == null && !(S.loopt && S.fase !== 'vervolg');
+    f.hidden = !kan;
+    body.classList.toggle('met-vervolg', kan);
+    if (!kan) return;
+    const loopt = S.loopt && S.fase === 'vervolg';
+    const knop = $('vraag-stuur');
+    knop.classList.toggle('is-stop', loopt);
+    knop.innerHTML = loopt ? ic('stop', 'vol') : ic('pijl-op');
+    knop.setAttribute('aria-label', loopt ? 'Stop het antwoord' : 'Versturen');
+    knop.title = loopt ? 'Stop (Esc)' : 'Versturen (Enter)';
+    knop.disabled = !loopt && !$('vraag').value.trim();
+    const chips = S.gesprek.length || loopt ? [] : vervolgVoorstellen();
+    const html = chips.map((t) => '<button type="button" data-vervolg="' + esc(t) + '">' + esc(t) + '</button>').join('');
+    if ($('vervolg-chips').innerHTML !== html) $('vervolg-chips').innerHTML = html;
+  }
+  /* Past een wijziging toe als nieuwe versie: de huidige versie gaat naar S.versies (te bekijken en te herstellen). */
+  function pasToe(w, wijz) {
+    S.versies.push(snapshotNu());
+    S.versie++;
+    S.m = w.m;
+    if (w.ploeg) S.ploeg = w.ploeg;
+    if (w.btw) S.btw = w.btw === tarieven.btw ? 0 : w.btw;
+    if (w.m.titel) S.titel = w.m.titel;
+    /* Het voorbeeld wordt na een wijziging een eigen berekening: die wordt bewaard. */
+    S.voorbeeld = false;
+    S.gewijzigd = {}; S.origineel = kopie(S.m.kenmerken); S.bewaard = false; S.oudePrijs = 0;
+    wijz.toegepast = true; wijz.naarVersie = S.versie;
+  }
+  function tarievenNa(w) { return Object.assign({}, huidig(), w.ploeg ? { ploeg: w.ploeg } : {}, w.btw ? { btw: w.btw } : {}); }
+  function maakWijziging(uit) {
+    const w = RP.pasWijzigingToe(S.m, uit.ops);
+    const v = RP.vergelijk(S.m, huidig(), w.m, tarievenNa(w), w.herkomst);
+    const anders = JSON.stringify(w.m) !== JSON.stringify(S.m) || v.van.ploeg !== v.naar.ploeg || v.van.btw !== v.naar.btw;
+    const wijz = { soort: uit.actie, ops: uit.ops, fouten: w.fouten, vergelijk: v, vanVersie: S.versie, toegepast: false, leeg: !anders };
+    if (uit.actie === 'toepassen' && anders) pasToe(w, wijz);
+    return wijz;
+  }
+  function toepassenBeurt(i) {
+    const b = S.gesprek[i];
+    if (!bevat(b) || b.wijziging.toegepast || b.wijziging.leeg || S.loopt || S.bekijk != null || !S.m) return;
+    if (b.wijziging.vanVersie !== S.versie) { toast('Gerekend op v' + b.wijziging.vanVersie); return; }
+    const w = RP.pasWijzigingToe(S.m, b.wijziging.ops);
+    /* Opnieuw gerekend met de tarieven van nu: tussen de vraag en de klik kan een tarief veranderd zijn. */
+    b.wijziging.vergelijk = RP.vergelijk(S.m, huidig(), w.m, tarievenNa(w), w.herkomst);
+    b.wijziging.fouten = w.fouten;
+    pasToe(w, b.wijziging);
+    teken(); tekenUitlegRest(); tekenRail();
+    opslaan(true);
+    status('Toegepast: v' + S.versie + '.');
+  }
+  async function vervolg(tekst) {
+    tekst = String(tekst || '').trim().slice(0, 1000);
+    if (!tekst || S.loopt || startBezig || !laatsteA || S.bekijk != null) return;
+    if (zonderServer) {
+      startBezig = true;
+      let terug = false;
+      try { terug = (await serverLeeft()) && (await serverTerug()); } finally { startBezig = false; }
+      if (!terug) {
+        S.gesprek.push({ vraag: tekst, antwoord: '', staat: 'fout', versie: S.versie, fout: 'Geen antwoord: deze demo draait zonder de lokale server. Op de pc (start.cmd) antwoordt de AI hier op elke vraag.' });
+        $('vraag').value = ''; pasVraagHoogte();
+        tekenGesprek(); tekenVervolg(); naarOnder();
+        return;
+      }
+    }
+    const eerder = S.gesprek.filter((b) => b.staat === 'klaar');
+    const beurt = { vraag: tekst, antwoord: '', staat: 'bezig', versie: S.versie, t0: Date.now(), live: { regels: [], bezig: '' } };
+    S.gesprek.push(beurt);
+    $('vraag').value = ''; pasVraagHoogte();
+    const faseVoor = S.fase;
+    S.fase = 'vervolg';
+    bezig(true);
+    ctl = new AbortController();
+    tekenGesprek();
+    naarOnder();
+    status('Antwoord schrijven.');
+    let ruw = '';
+    try {
+      const prompt = RP.bouwVervolgPrompt(S.klus, S.gemeten, S.m, huidig(), standaarden, eerder, tekst, S.uitleg.staat === 'klaar' ? S.uitleg.tekst : '');
+      await stroom(prompt, (d) => { ruw += d; beurt.live = vervolgLive(ruw); planBeurt(); }, ctl.signal);
+      const uit = RP.leesVervolg(ruw);
+      beurt.antwoord = uit.antwoord.join('\n');
+      if (uit.ops.length) beurt.wijziging = maakWijziging(uit);
+      if (!beurt.antwoord && !beurt.wijziging) throw new Error('Geen antwoord ontvangen.');
+      beurt.staat = 'klaar';
+      status(beurt.wijziging && beurt.wijziging.toegepast ? 'Wijziging toegepast: v' + S.versie + '.' : beurt.wijziging ? 'Voorstel doorgerekend.' : 'Antwoord geschreven.');
+    } catch (e) {
+      const gestopt = !!(e && e.name === 'AbortError');
+      const serverWeg = e instanceof TypeError;
+      beurt.staat = gestopt ? 'gestopt' : 'fout';
+      beurt.antwoord = RP.leesVervolg(ruw).antwoord.join('\n');
+      beurt.fout = gestopt ? '' : serverWeg ? 'De lokale server antwoordt niet.' : ((e && e.message) || 'Geen antwoord ontvangen.');
+      if (serverWeg) toonBanner();
+      status(gestopt ? 'Gestopt.' : beurt.fout, !gestopt);
+    } finally {
+      beurt.duur = sec(beurt.t0);
+      delete beurt.t0; delete beurt.live;
+      bezig(false);
+      S.fase = faseVoor === 'vervolg' ? 'klaar' : faseVoor;
+      teken(); tekenUitlegRest(); tekenRail();
+      $('naar-laatste').hidden = true;
+      naarOnder();
+      opslaan(true);
+      if (!telefoon.matches) $('vraag').focus();
+    }
+  }
+
   /* ---------- bewaren, laden, nieuw, voorbeeld ---------- */
   function opslaan(stil) {
     /* Opslagen lopen na elkaar: de tweede wacht tot de eerste zijn id heeft. */
@@ -1401,7 +1622,8 @@
       meetstaat: S.m, gemeten: S.gemeten, meetFout: S.meetFout, meetDuur: S.meetDuur, tarieven: huidig(), ploeg: S.ploeg, btw: S.btw, onvolledig: S.onvolledig,
       /* Een afgebroken uitleg wordt niet bewaard: na het openen zou hij als volledig gelden. */
       uitleg: S.uitleg.staat === 'klaar' ? S.uitleg.tekst : '', uitlegPrijs: S.uitleg.staat === 'klaar' ? S.uitleg.prijsBij : 0, duur: S.duur, stappen: S.trail.map((s) => s.duur || 0),
-      offerte: S.offerte ? offOpslagVorm(S.offerte) : undefined, versies: S.versies.length ? S.versies : undefined };
+      offerte: S.offerte ? offOpslagVorm(S.offerte) : undefined, versies: S.versies.length ? S.versies : undefined,
+      gesprek: S.gesprek.some((b) => b.staat !== 'bezig') ? S.gesprek.filter((b) => b.staat !== 'bezig').map((b) => { const c = Object.assign({}, b); delete c.live; delete c.t0; return c; }) : undefined };
     try {
       const a = await fetch('/api/berekeningen', { method: 'POST', headers: JSON_KOP, body: JSON.stringify(o) });
       const j = await a.json();
@@ -1422,6 +1644,7 @@
     S.beeldAnimatie = false; S.kenmerkenBeeldVers = false;
     S.offerte = o.offerte && typeof o.offerte === 'object' ? offNormaliseer(o.offerte) : null;
     S.versies = Array.isArray(o.versies) ? o.versies : []; S.bekijk = null; S.bekijkTerug = null;
+    S.gesprek = Array.isArray(o.gesprek) ? o.gesprek.filter((b) => b && typeof b === 'object' && b.vraag && b.staat !== 'bezig') : [];
     $('naar-laatste').hidden = true;
     openOfferte(false);
     S.gewijzigd = {}; S.origineel = kopie(S.m.kenmerken); S.open = new Set(); S.bewaard = !!o.id; S.oudePrijs = 0; S.duur = o.duur || 0;
@@ -1472,9 +1695,27 @@
     };
     zetKlaar({ voorbeeld: true, titel: m.titel, klus: RP.VOORBEELD.klus, asbest: 'onbekend', meetstaat: m, uitleg: VOORBEELD_UITLEG, uitlegPrijs: VOORBEELD_PRIJS });
   }
+  /* Het voorbeeld met een gesprek erbij (haakje #voorbeeld-gesprek, ook voor de demo zonder server): een vraag met een antwoord uit de
+     cijfers van het voorbeeld (geschreven op 7 oktober 2026 uit RP.analyse) en een wijziging die de motor hier zelf doorrekent. */
+  function laadVoorbeeldGesprek() {
+    if (S.loopt) return;
+    laadVoorbeeld();
+    S.gesprek = [{ vraag: 'Waarom zit er een stelling in de prijs? De klant vroeg er niet om.', staat: 'klaar', versie: 1,
+      antwoord: ['De dakrand ligt op 6 m hoogte, dus de ploeg werkt van op een stelling aan de voor- en achtergevel: 2 × 8 m × 6 m = 96 m².',
+        'Die stelling kost € 1.623 in de prijs; daarin zit 2 weken huur, inkoop € 768.',
+        'De vrije zijgevel krijgt geen stelling: volgens de aanname is die bereikbaar vanaf het dak.'].join('\n') }];
+    const b = { vraag: 'Zet er 2 dakramen bij, dus 4 in totaal.', antwoord: 'Ik zet 4 dakramen in plaats van 2.', staat: 'klaar', versie: 1 };
+    const nr = S.m.posten.findIndex((p) => p.code === 'dak.dakraam');
+    b.wijziging = maakWijziging({ actie: 'toepassen', ops: [{ t: 'zet', id: 'p' + (nr + 1), hoeveelheid: 4, toelichting: '4 dakramen' }, { t: 'kenmerk', k: 'dakramen_st', label: 'Dakramen', waarde: 4, eenheid: 'st' }] });
+    S.gesprek.push(b);
+    S.voorbeeld = true; /* blijft het voorbeeld: niet bewaren */
+    teken(); tekenUitlegRest();
+    status('Voorbeeld met gesprek geopend.');
+  }
   function nieuw() {
     if (S.loopt) return;
-    Object.assign(S, { id: null, versie: 1, titel: '', adres: '', klus: '', asbest: 'onbekend', datum: '', m: null, gemeten: null, meetFout: '', meetDuur: 0, ploeg: 0, btw: 0, onvolledig: false, foutTekst: '', voorbeeld: false, beeldAnimatie: false, kenmerkenBeeldVers: false, offerte: null, versies: [], bekijk: null, bekijkTerug: null, trail: [], trailDicht: false, trailKop: '', duur: 0, origineel: {}, gewijzigd: {}, open: new Set(), bewaard: false, oudePrijs: 0, fase: 'leeg', stapNr: 0 });
+    Object.assign(S, { id: null, versie: 1, titel: '', adres: '', klus: '', asbest: 'onbekend', datum: '', m: null, gemeten: null, meetFout: '', meetDuur: 0, ploeg: 0, btw: 0, onvolledig: false, foutTekst: '', voorbeeld: false, beeldAnimatie: false, kenmerkenBeeldVers: false, offerte: null, versies: [], bekijk: null, bekijkTerug: null, gesprek: [], trail: [], trailDicht: false, trailKop: '', duur: 0, origineel: {}, gewijzigd: {}, open: new Set(), bewaard: false, oudePrijs: 0, fase: 'leeg', stapNr: 0 });
+    $('vraag').value = ''; pasVraagHoogte();
     S.uitleg = { tekst: '', staat: 'geen', prijsBij: 0 }; uitlegBuf = ''; live = null;
     $('naar-laatste').hidden = true;
     $('adres').value = ''; $('klus').value = ''; zetAsbest('onbekend'); $('klus-fout').hidden = true; $('banner').hidden = true;
@@ -1505,7 +1746,7 @@
     if (uitleg.length) regels.push('TOELICHTING', ...uitleg.map((s) => '- ' + s), '');
     if (S.m && S.m.aannames.length) regels.push('AANNAMES', ...S.m.aannames.map((s) => '- ' + s), '');
     if (S.m && S.m.plaatsbezoek.length) regels.push('TE CONTROLEREN BIJ HET PLAATSBEZOEK', ...S.m.plaatsbezoek.map((s) => '- ' + s), '');
-    if (!alleenUitleg) regels.push('Richtprijs uit ' + (S.gemeten ? 'de kaartmeting' : 'de maten in de klus') + ', uw tarieven en de datatabel van ' + DATA.stand + '. Richtprijs-AI.');
+    if (!alleenUitleg) regels.push('Richtprijs uit ' + (S.gemeten ? 'de kaartmeting' : 'de maten in de klus') + ', uw tarieven en de datatabel van ' + DATA.stand + '. Norvo Richtprijs.');
     return regels.join('\n').trim() + '\n';
   }
   async function kopieer(wat) {
@@ -2056,6 +2297,10 @@
   /* Enter in het klusveld maakt een nieuwe regel (een klus per regel typen); Ctrl+Enter of Cmd+Enter berekent. */
   $('klus').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!S.loopt) start(null); } });
   $('klus').addEventListener('input', () => { $('klus-fout').hidden = true; pasKlusHoogte(); });
+  /* Verder vragen: Enter verstuurt, Shift+Enter maakt een nieuwe regel; tijdens het antwoord is de knop Stop. */
+  $('vervolg').addEventListener('submit', (e) => { e.preventDefault(); if (S.loopt && S.fase === 'vervolg') { if (ctl) ctl.abort(); return; } vervolg($('vraag').value); });
+  $('vraag').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!S.loopt) vervolg($('vraag').value); } });
+  $('vraag').addEventListener('input', () => { pasVraagHoogte(); $('vraag-stuur').disabled = !(S.loopt && S.fase === 'vervolg') && !$('vraag').value.trim(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (S.loopt && ctl) ctl.abort(); $('menu').hidden = true; } });
   $('herbereken').addEventListener('click', () => {
     if (S.loopt || !S.m || !S.m.kenmerken) return;
@@ -2159,6 +2404,8 @@
     const k = e.target.closest('button, a, [data-chip-weg]');
     if (!k) { if (!e.target.closest('#menu')) $('menu').hidden = true; return; }
     const d = k.dataset;
+    if (d.vervolg != null) { vervolg(d.vervolg); return; }
+    if (d.toepassenBeurt != null) { toepassenBeurt(Number(d.toepassenBeurt)); return; }
     if (k.hasAttribute('data-rail')) { body.classList.toggle(smal.matches ? 'lade' : 'rail-open'); return; }
     if (k.hasAttribute('data-nieuw')) { nieuw(); return; }
     if (k.hasAttribute('data-voorbeeld') && !k.hasAttribute('data-voorbeeld-chip')) { laadVoorbeeld(); return; }
@@ -2214,6 +2461,7 @@
     const delen = location.hash.replace(/^#/, '').split(',').filter(Boolean);
     for (const t of delen) {
       if (t === 'voorbeeld') laadVoorbeeld();
+      else if (t === 'voorbeeld-gesprek') laadVoorbeeldGesprek();
       else if (t === 'offerte-voorbeeld') {
         /* Controlehaakje: het voorbeeld met de aannemergegevens uit de instellingen en een fictieve klant, meteen in de offerteweergave. */
         laadVoorbeeld();

@@ -64,8 +64,30 @@ try {
   toets('uitleg geschreven', !!eind && eind.punten >= 1 && eind.punten <= 6, eind && String(eind.punten));
   const groei = lijn.map((l) => Number(l.match(/: (\d+) posten/)[1]));
   toets('posten liepen binnen terwijl de AI schreef', new Set(groei.filter((n) => n > 0)).size >= 2, groei.join(' '));
-  toets('geen scriptfouten in de pagina', consoleFouten.length === 0, consoleFouten.join(' | ').slice(0, 300));
   console.log('\nUITLEG OP DE PAGINA:\n' + (await ev("[...document.querySelectorAll('#uitleg li')].map((li) => '- ' + li.textContent).join('\\n')")));
+
+  /* Verder vragen in de pagina: een vraag (alleen tekst) en een wijziging (nieuwe versie met de wijzigingskaart). */
+  const wachtBeurt = async (n) => {
+    const t1 = Date.now();
+    while (Date.now() - t1 < 120000) {
+      await slaap(1500);
+      const s = JSON.parse(await ev("JSON.stringify({ n: document.querySelectorAll('#gesprek .beurt').length, bezig: !!document.querySelector('#gesprek .beurt-staat.is-actief'), status: document.getElementById('status').textContent })"));
+      if (s.n >= n && !s.bezig) return s;
+    }
+    return null;
+  };
+  toets('invoerveld voor verder vragen staat klaar', await ev("!document.getElementById('vervolg').hidden"));
+  await ev("(() => { const t = document.getElementById('vraag'); t.value = 'Hoeveel werkdagen duurt dit werk en met hoeveel man?'; t.dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('vraag-stuur').click(); return 1; })()");
+  const s1 = await wachtBeurt(1);
+  const tekst1 = await ev("(document.querySelector('#gesprek .beurt:last-child .beurt-tekst') || {}).innerText || ''");
+  toets('vraag in de pagina beantwoord, zonder wijziging', !!s1 && tekst1.length > 10 && !(await ev("!!document.querySelector('#gesprek .beurt:last-child .wijziging')")), tekst1.replace(/\n/g, ' ').slice(0, 160));
+  const versieVoor = await ev("document.getElementById('versie-kop').textContent");
+  await ev("(() => { const t = document.getElementById('vraag'); t.value = 'Zet er 1 dakraam bij.'; t.dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('vraag-stuur').click(); return 1; })()");
+  const s2 = await wachtBeurt(2);
+  const kaart = await ev("(document.querySelector('#gesprek .beurt:last-child .wijziging') || {}).innerText || ''");
+  const versieNa = await ev("document.getElementById('versie-kop').textContent");
+  toets('wijziging in de pagina: nieuwe versie met wijzigingskaart', !!s2 && /→/.test(kaart) && versieNa !== versieVoor, versieVoor + ' -> ' + versieNa + ' | ' + kaart.replace(/\n/g, ' ').slice(0, 200));
+  toets('geen scriptfouten in de pagina', consoleFouten.length === 0, consoleFouten.join(' | ').slice(0, 300));
 
   const hoogte = Math.min(5600, await ev('document.documentElement.scrollHeight'));
   const foto = await stuur('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width: 1280, height: hoogte, scale: 1 } });

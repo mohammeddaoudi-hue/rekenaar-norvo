@@ -134,6 +134,35 @@ toets('prompt zonder meting bevat geen meetblok', !/GEMETEN OP HET ADRES/.test(b
 const up = bouwUitlegPrompt(VOORBEELD.klus, null, v, {});
 toets('uitlegvraag bevat de uitgerekende prijs en de wat-als', up.includes('"incl_btw":' + Math.round(k.incl)) && up.includes('"wat_als"'), String(Math.round(k.incl)));
 
+/* 14. Verder vragen: antwoord lezen, wijziging toepassen, verschil per post. De rijen plus materieel tellen exact op tot het verschil excl. btw. */
+const { leesVervolg, pasWijzigingToe, vergelijk, bouwVervolgPrompt } = RP;
+const id = (code) => 'p' + (v.posten.findIndex((p) => p.code === code) + 1);
+const sluit = (x) => bijna(x.rijen.reduce((s, y) => s + y.verschil, 0) + x.materieel, x.verschilExcl, 0.0001);
+const lv = leesVervolg('Ik zet 4 dakramen.\n{"t":"actie","waarde":"toepassen"}\n{"t":"zet","id":"p12","hoeveelheid":4}\n```\nNog een zin {"t":"weg","id":"p3"}\n- Een opsomming');
+toets('antwoord lezen: tekst, actie en regels apart', lv.actie === 'toepassen' && lv.ops.length === 2 && lv.antwoord.join('|') === 'Ik zet 4 dakramen.|Nog een zin|Een opsomming', JSON.stringify(lv));
+toets('regels zonder actie = voorstel; alleen tekst = geen actie', leesVervolg('Tekst\n{"t":"ploeg","waarde":4}').actie === 'voorstel' && leesVervolg('Alleen tekst.').actie === '');
+const w1 = pasWijzigingToe(v, [{ t: 'zet', id: id('dak.dakraam'), hoeveelheid: 4 }, { t: 'kenmerk', k: 'dakramen_st', waarde: 4 }]);
+const v1 = vergelijk(v, {}, w1.m, {}, w1.herkomst);
+toets('2 dakramen erbij: één rij, 2 -> 4 st, de oude meetstaat blijft onaangeroerd', v1.rijen.length === 1 && v1.rijen[0].van === 2 && v1.rijen[0].naar === 4 && v.posten.find((p) => p.code === 'dak.dakraam').hoeveelheid === 2, JSON.stringify(v1.rijen));
+toets('dakraam-rij = 2 x (5 manuur x uurtarief x 1,05 + materiaal x 1,15 x 1,05)', bijna(v1.rijen[0].verschil, 2 * (5 * DATA.tarieven.uurtarief * 1.05 + DATA.posten['dak.dakraam'].mat.reduce((s, y) => s + y.per * y.prijs, 0) * 1.15 * 1.05), 0.01), v1.rijen[0].verschil.toFixed(2));
+toets('verschil sluit: rijen + materieel = verschil excl. btw (dakramen)', sluit(v1), (v1.rijen.reduce((s, y) => s + y.verschil, 0) + v1.materieel).toFixed(4) + ' / ' + v1.verschilExcl.toFixed(4));
+toets('kenmerk dakramen = 4, bron vast', w1.m.kenmerken.dakramen_st && w1.m.kenmerken.dakramen_st.waarde === 4 && w1.m.kenmerken.dakramen_st.bron === 'vast');
+const w2 = pasWijzigingToe(v, [{ t: 'weg', id: id('dak.sarking120') }, { t: 'post', code: 'dak.sarking160', hoeveelheid: 94, toelichting: 'Volledig dakvlak' }]);
+const v2 = vergelijk(v, {}, w2.m, {}, w2.herkomst);
+toets('materiaalwissel 12 -> 16 cm: één nieuw, één weg, prijs omhoog, sluit', v2.rijen.filter((x) => x.soort === 'nieuw').length === 1 && v2.rijen.filter((x) => x.soort === 'weg').length === 1 && v2.verschilExcl > 0 && sluit(v2), JSON.stringify(v2.rijen.map((x) => [x.soort, Math.round(x.verschil)])));
+const w3 = pasWijzigingToe(v, [{ t: 'ploeg', waarde: 4 }]);
+const v3 = vergelijk(v, {}, w3.m, { ploeg: w3.ploeg }, w3.herkomst);
+toets('4 man: 6 -> 5 werkdagen, = de wat-als "Met 4 man", sluit', v3.van.werkdagen === 6 && v3.naar.werkdagen === 5 && bijna(v3.verschilExcl, a.watAls.find((x) => /^Met 4 man/.test(x.label)).verschil, 0.001) && sluit(v3), v3.verschilExcl.toFixed(2));
+const w4 = pasWijzigingToe(v, [{ t: 'btw', waarde: 21 }]);
+const v4 = vergelijk(v, {}, w4.m, { btw: w4.btw }, w4.herkomst);
+toets('21 % btw: excl gelijk, incl + excl x 0,15, geen rijen', v4.rijen.length === 0 && bijna(v4.verschilExcl, 0, 0.0001) && bijna(v4.verschilIncl, k.excl * 0.15, 0.01), v4.verschilIncl.toFixed(2));
+const w5 = pasWijzigingToe(v, [{ t: 'zet', id: 'p99', hoeveelheid: 3 }, { t: 'post', code: 'dak.bestaatniet', hoeveelheid: 2 }, { t: 'btw', waarde: 12 }, { t: 'post', naam: 'zonder schatting', hoeveelheid: 1 }]);
+toets('onbekende post, code, btw en post zonder schatting: niets toegepast, 4 fouten', w5.gedaan === 0 && w5.fouten.length === 4 && JSON.stringify(w5.m) === JSON.stringify(v), JSON.stringify(w5.fouten));
+const w6 = pasWijzigingToe(v, [{ t: 'zet', id: id('dak.goot.zink'), hoeveelheid: 0 }]);
+toets('hoeveelheid 0 = post vervalt', w6.m.posten.length === v.posten.length - 1 && !w6.m.posten.some((p) => p.code === 'dak.goot.zink'));
+const vp = bouwVervolgPrompt(VOORBEELD.klus, null, v, {}, {}, [{ vraag: 'Eerdere vraag', antwoord: 'Eerder antwoord', staat: 'klaar' }], 'Waarom een stelling?', 'Punt 1');
+toets('vervolgvraag: ids, datatabel, geschiedenis, vraag en toelichting', vp.includes('"id":"' + id('dak.dakraam') + '"') && vp.includes('dak.sarking160 | ') && vp.includes('Aannemer: Eerdere vraag') && vp.endsWith('Waarom een stelling?') && vp.includes('"toelichting_bij_de_prijs":["Punt 1"]'));
+
 console.log('\nVOORBEELD: ' + r.uren.toFixed(1) + ' manuren, ' + r.ploeg + ' man, ' + r.werkdagen + ' werkdagen, ' +
   Math.round(r.matKg) + ' kg naar boven, ' + Math.round(r.afvalKg) + ' kg afval, ' + r.containers + ' container');
 console.log('arbeid ' + k.arbeid.toFixed(0) + ' | materiaal ' + k.materiaal.toFixed(0) + ' (inkoop ' + k.materiaalInkoop.toFixed(0) + ') | materieel ' + k.materieel.toFixed(0) +

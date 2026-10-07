@@ -1,4 +1,4 @@
-/* Richtprijs-AI, lokale server. Start: node server.mjs --open
+/* Norvo Richtprijs, lokale server. Start: node server.mjs --open
    Doet twee dingen die een pagina zelf niet kan:
    1. /api/adres  meet een gebouw op uit de kaartdata van Vlaanderen (geo.mjs);
    2. /api/ai     stelt een vraag aan Claude via de Claude Code-installatie op deze pc
@@ -245,7 +245,7 @@ server.on('error', (e) => {
 });
 server.on('listening', () => {
   const adres = 'http://localhost:' + poort;
-  console.log('RICHTPRIJS-AI draait op ' + adres + '  (model: ' + MODEL + ', terugval: ' + TERUGVAL + ', Claude: ' + CLAUDE + ')');
+  console.log('NORVO RICHTPRIJS draait op ' + adres + '  (model: ' + MODEL + ', terugval: ' + TERUGVAL + ', Claude: ' + CLAUDE + ')');
   if (process.argv.includes('--open')) spawn('cmd', ['/c', 'start', '', adres], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
 });
 server.listen(poort, '127.0.0.1');

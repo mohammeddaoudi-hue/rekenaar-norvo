@@ -1,6 +1,5 @@
-/* Rekenmotor van de Richtprijs-AI: geen DOM, zodat hij los getest kan worden (test-motor.cjs).
+/* Rekenmotor van Norvo Richtprijs: geen DOM, zodat hij los getest kan worden (test-motor.cjs).
    Laadvolgorde in index.html: data/basis.js, data/<vak>.js, motor.js, ui.js. */
-/* Rekenmotor: geen DOM, zodat hij ook los getest kan worden (test-motor.cjs). */
 (function (g) {
   /* De datatabel komt uit data/basis.js en data/<vak>.js (globalThis.RP_DATA), geladen vóór dit bestand. */
   const DATA = g.RP_DATA;
@@ -162,7 +161,9 @@
     const ploeg = Math.max(1, Math.round(num(t.ploeg) || num(m && m.ploeg) || 3));
     const regels = [];
     const overgeslagen = [];
-    for (const p of (m && Array.isArray(m.posten) ? m.posten : [])) {
+    const lijst = m && Array.isArray(m.posten) ? m.posten : [];
+    for (let nr = 0; nr < lijst.length; nr++) {
+      const p = lijst[nr];
       if (!p || typeof p !== 'object') continue;
       const q = num(p.hoeveelheid);
       const def = p.code ? DATA.posten[p.code] : null;
@@ -190,6 +191,8 @@
         overgeslagen.push(String(p.code || p.naam || 'post zonder naam'));
         continue;
       }
+      /* nr = de plaats van de post in m.posten: een wijziging uit het gesprek wijst er een post mee aan (id p1, p2, …). */
+      r.nr = nr;
       r.toelichting = String(p.toelichting || '');
       r.gevraagd = p.gevraagd !== false;
       r.waarom = r.gevraagd ? '' : String(p.waarom || '');
@@ -459,11 +462,219 @@
       '- Verboden woorden: mogelijk, waarschijnlijk, ongeveer, eventueel, belangrijk, uiteraard, kortom.',
       '- Heeft een onderwerp niets scherps, sla het over. 3 sterke punten zijn beter dan 6 zwakke.',
       '- Staat er iets onder "niet_meegerekend", zeg dan in één zin dat het buiten de prijs valt. De btw-voorwaarde noem je alleen als de klus eraan twijfelt.',
-      '- Bedragen als "€ 1.234". Nederlands zoals een Vlaamse aannemer het zegt.',
+      '- Getallen zoals in Vlaanderen: decimalen met een komma (102,8 m²), duizendtallen met een punt (€ 1.234). Nederlands zoals een Vlaamse aannemer het zegt.',
       '',
       'BEREKENING:',
       JSON.stringify(data),
     ].join('\n');
+  }
+
+  /* ---------- verder vragen na de berekening ----------
+     De aannemer stelt een vraag of vraagt een wijziging. De AI antwoordt in gewone tekst; een wijziging komt als regels met
+     een id per post (p1 = de eerste post van m.posten). Rekencode past de wijziging toe en rekent het verschil uit: de AI noemt
+     bij een wijziging geen bedrag. */
+  const VERBODEN = ['mogelijk', 'waarschijnlijk', 'ongeveer', 'eventueel', 'belangrijk', 'uiteraard', 'kortom'];
+  function vervolgData(klus, gm, m, tar, uitleg) {
+    const a = analyse(m, tar);
+    const r = a.r;
+    const e = (x) => Math.round(x);
+    const r4 = (x) => Math.round(x * 10000) / 10000;
+    return {
+      klus: String(klus),
+      gemeten_op_het_adres: gemetenRegels(gm),
+      vak: r.vak,
+      richtprijs: { incl_btw: e(r.kosten.incl), excl_btw: e(r.kosten.excl), btw_procent: r.t.btw, per_m2_excl_btw: e(r.perM2), oppervlakte: r.vlak + ' m² ' + r.vlakNaam },
+      uitvoering: { ploeg_man: r.ploeg, werkdagen: r.werkdagen, weken_huur: r.weken, manuren: Math.round(r.uren * 10) / 10, materiaal_naar_boven_kg: e(r.matKg), afval_kg: e(r.afvalKg),
+        afval_per_soort: r.afvoer.map((x) => ({ soort: x.soort, kg: e(x.kg), afvoer: x.aantal + ' x ' + x.naam })) },
+      opbouw_excl_btw: { arbeid: e(r.kosten.arbeid), materiaal_inkoop: e(r.kosten.materiaalInkoop), materiaal_met_marge: e(r.kosten.materiaal), materieel_en_afvoer_met_marge: e(r.kosten.materieel), subtotaal: e(r.kosten.subtotaal), onvoorzien: e(r.kosten.onvoorzien), totaal_excl_btw: e(r.kosten.excl) },
+      tarieven: { uurtarief_arbeid_excl_btw: r.t.uurtarief, uren_per_werkdag: r.t.urenPerDag, marge_op_materiaal_procent: r.t.materiaalmarge, onvoorzien_procent: r.t.onvoorzien },
+      posten: r.regels.map((x) => ({
+        id: 'p' + (x.nr + 1), code: x.code || undefined, werk: x.naam, fase: x.fase, hoeveelheid: x.hoeveelheid, eenheid: x.eenheid, toelichting: x.toelichting || undefined,
+        manuur_per_eenheid: r4(x.uren / x.hoeveelheid), manuren: Math.round(x.uren * 10) / 10, arbeid_eur: e(x.arbeidKost),
+        materiaal: x.mat.map((y) => y.naam + ': ' + y.aantal + ' ' + y.eenheid + ' x € ' + y.prijs + (y.weken ? ' x ' + y.weken + (y.weken === 1 ? ' week' : ' weken') : '') + ' = € ' + e(y.kost)),
+        in_de_prijs_excl_btw_eur: e(a.inPrijs(x)), aandeel_procent: Math.round(a.inPrijs(x) / r.kosten.excl * 1000) / 10,
+        cijfers_uit: x.bron === 'data' ? 'datatabel' : 'AI-schatting', door_de_klant_gevraagd: x.gevraagd, waarom_nodig: x.waarom || undefined,
+      })),
+      materieel_en_afvoer_los_van_de_posten: r.materieel.filter((x) => x.soort !== 'huur').map((x) => ({ post: x.naam, aantal: x.aantal + ' ' + x.eenheid, in_de_prijs_excl_btw_eur: e(x.kost * a.fMat) })),
+      wat_als: a.watAls.map((w) => ({ wijziging: w.label, verschil_eur: e(w.verschil), basis: w.inclBtw ? 'incl. btw' : 'excl. btw' })),
+      kenmerken: Object.entries(m.kenmerken || {}).map(([k, x]) => ({ k, kenmerk: x.label, waarde: x.waarde, eenheid: x.eenheid || undefined, bron: x.bron })),
+      aannames: m.aannames || [],
+      plaatsbezoek: m.plaatsbezoek || [],
+      niet_meegerekend: r.overgeslagen,
+      btw_voorwaarde: r.t.btw === 6 ? '6 % btw geldt alleen voor een privéwoning ouder dan 10 jaar die hoofdzakelijk bewoond wordt, met factuur aan de eigenaar of huurder; anders 21 %.' : '21 % btw.',
+      toelichting_bij_de_prijs: uitleg ? String(uitleg).split('\n').filter((s) => s.trim()) : undefined,
+      datatabel: 'startwaarden van ' + DATA.stand + '; posten met een bron-veld dragen een geopende prijsbron',
+    };
+  }
+  function bouwVervolgPrompt(klus, gm, m, tar, standaarden, gesprek, vraag, uitleg) {
+    const data = vervolgData(klus, gm, m, tar, uitleg);
+    const posten = Object.values(VAKKEN).map((vak) => '[' + vak + ']\n' + Object.entries(DATA.posten).filter(([code]) => vakVan(code) === vak).map(([code, p]) => code + ' | ' + p.naam + ' | ' + p.eenheid).join('\n')).join('\n');
+    const st = standaardWaarden(standaarden);
+    const kort = (s, n) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
+    const eerder = (gesprek || []).filter((b) => b && b.vraag).slice(-6).map((b) => 'Aannemer: ' + kort(b.vraag, 400) + '\nJij: ' + (kort(b.antwoord, 600) || '(geen tekst)') +
+      (b.wijziging && b.wijziging.toegepast ? ' [toegepast als v' + b.wijziging.naarVersie + ']' : b.wijziging && b.wijziging.soort === 'voorstel' ? ' [voorstel, niet toegepast]' : ''));
+    return [
+      'Je bent calculator met 20 jaar ervaring in ' + (data.vak === 'Overig' ? 'de bouw' : String(data.vak).toLowerCase()) + ' in Vlaanderen. Hieronder staat een berekening als JSON; rekencode rekende alle bedragen uit.',
+      'De aannemer stelt een vraag over deze berekening of wil iets aan de klus veranderen.',
+      '',
+      'HOE JE ANTWOORDT',
+      '- Een vraag: antwoord in gewone tekst, hoogstens 4 zinnen, elke zin op een eigen regel. Geen opsommingsteken, geen titel, geen aanhef, geen slotzin.',
+      '- Wil de aannemer iets veranderen (werk erbij of eraf, een ander aantal, een andere maat, een ander materiaal, een andere ploeg, een ander btw-tarief): schrijf één zin die zegt wat je verandert, zonder bedrag. Daarna de regel {"t":"actie","waarde":"toepassen"} en dan de wijzigingsregels.',
+      '- Vraagt hij wat iets zou kosten of wat er gebeurt als iets anders is, zonder te zeggen dat het zo moet: schrijf één zin die zegt wat je doorrekent, zonder bedrag. Daarna de regel {"t":"actie","waarde":"voorstel"} en dan de wijzigingsregels. De rekencode toont het nieuwe bedrag; de aannemer beslist zelf.',
+      '- Bij een wijziging noem je nooit een bedrag: de rekencode rekent het uit.',
+      '',
+      'WIJZIGINGSREGELS: elk één volledig JSON-object op een eigen regel, zonder tekst ervoor of erna.',
+      '{"t":"zet","id":"p3","hoeveelheid":4,"toelichting":"4 dakramen"}   andere hoeveelheid voor post p3',
+      '{"t":"weg","id":"p7"}   post p7 vervalt',
+      '{"t":"post","code":"dak.dakraam","hoeveelheid":2,"gevraagd":true,"toelichting":"2 extra dakramen"}   nieuwe post uit de datatabel',
+      '{"t":"post","fase":"Afwerking","naam":"werk zonder code","eenheid":"st","hoeveelheid":1,"uur_per_eenheid":2,"materiaal_eur_per_eenheid":150,"kg_per_eenheid":10,"afval_kg_per_eenheid":0,"afval_soort":"rest","gevraagd":true,"toelichting":"..."}   werk dat niet in de datatabel staat: je eigen schatting per eenheid (manuren, inkoop in België zonder btw, kilo)',
+      '{"t":"kenmerk","k":"dakramen_st","label":"Dakramen","waarde":4,"eenheid":"st"}   een kenmerk dat met de wijziging verandert',
+      '{"t":"ploeg","waarde":4}',
+      '{"t":"btw","waarde":21}',
+      '{"t":"aannames","lijst":["...","..."]}   de volledige nieuwe lijst, alleen als een aanname door de wijziging niet meer klopt',
+      '{"t":"titel","tekst":"..."}   alleen als de klus wezenlijk verandert',
+      '',
+      'REGELS',
+      '- Verander alleen wat de aannemer vraagt, plus elke post die rechtstreeks van die wijziging afhangt (dezelfde maat of dezelfde formule als in de toelichting van de post). Laat al de rest staan.',
+      '- Een ander materiaal = de oude post weg en een nieuwe post met de juiste code. Gebruik codes uit de datatabel; staat het werk er niet in, geef een post zonder code met je schatting per eenheid.',
+      '- Hoeveelheden reken je zoals in de meetstaat: met de maten uit de kenmerken en de standaarden hieronder.',
+      '- Gebruik in je tekst alleen getallen die in de JSON staan. Reken zelf geen nieuwe bedragen uit.',
+      '- Kan je een vraag niet beantwoorden met de JSON, zeg dan in één zin welk gegeven ontbreekt.',
+      '- Geen zin die op elke klus past, geen algemene raad, geen beleefdheden.',
+      '- Verboden woorden: ' + VERBODEN.join(', ') + '.',
+      '- Getallen zoals in Vlaanderen: decimalen met een komma (102,8 m²), duizendtallen met een punt (€ 1.234). Nederlands zoals een Vlaamse aannemer het zegt.',
+      '',
+      'DATATABEL (code | werk | eenheid):',
+      posten,
+      '',
+      'STANDAARDEN VAN DE SECTOR:',
+    ].concat(standaardRegels(st).map((s) => '- ' + s), ['']).concat(eerder.length ? ['EERDER IN DIT GESPREK (oudste eerst; de berekening hieronder is de stand van nu):'].concat(eerder, ['']) : []).concat([
+      'BEREKENING:',
+      JSON.stringify(data),
+      '',
+      'VRAAG VAN DE AANNEMER:',
+      String(vraag),
+    ]).join('\n');
+  }
+  /* Leest het antwoord: gewone regels = tekst voor de aannemer; regels die met { beginnen = actie of wijziging. */
+  function leesVervolg(tekst) {
+    const antwoord = [], ops = [];
+    let actie = '';
+    for (let regel of String(tekst || '').split('\n')) {
+      regel = regel.trim();
+      if (!regel || /^```/.test(regel)) continue;
+      const j = regel.indexOf('{"t"');
+      if (j > 0) { const voor = regel.slice(0, j).trim(); if (voor) antwoord.push(voor); regel = regel.slice(j); }
+      if (regel[0] === '{') {
+        let o;
+        try { o = JSON.parse(regel); } catch (e) { continue; }
+        if (!o || typeof o !== 'object' || Array.isArray(o)) continue;
+        if (o.t === 'actie') { actie = o.waarde === 'toepassen' ? 'toepassen' : 'voorstel'; continue; }
+        if (typeof o.t === 'string') ops.push(o);
+        continue;
+      }
+      antwoord.push(regel.replace(/^(?:[-•*]|\d+[.)])\s+/, ''));
+    }
+    return { antwoord, actie: ops.length ? (actie || 'voorstel') : '', ops };
+  }
+  /* Past de wijzigingsregels toe op een kopie van de meetstaat. herkomst[i] = de plaats van post i in de oude meetstaat (-1 = nieuw). */
+  function pasWijzigingToe(m, ops) {
+    const uit = kopie(m);
+    if (!Array.isArray(uit.posten)) uit.posten = [];
+    const n = uit.posten.length;
+    const herkomst = uit.posten.map((_, i) => i);
+    const weg = new Set();
+    const fouten = [];
+    let ploeg = 0, btw = 0, gedaan = 0;
+    const plaats = (id) => { const x = /^p(\d+)$/.exec(String(id == null ? '' : id).trim()); const i = x ? Number(x[1]) - 1 : -1; return i >= 0 && i < n ? i : -1; };
+    for (const o of (Array.isArray(ops) ? ops : [])) {
+      if (!o || typeof o !== 'object') continue;
+      if (o.t === 'zet' || o.t === 'weg') {
+        const i = plaats(o.id);
+        if (i < 0) { fouten.push('onbekende post ' + String(o.id).slice(0, 12)); continue; }
+        const q = num(o.hoeveelheid);
+        if (o.t === 'weg' || !(q > 0)) { weg.add(i); gedaan++; continue; }
+        uit.posten[i].hoeveelheid = q;
+        if (o.toelichting) uit.posten[i].toelichting = String(o.toelichting).slice(0, 160);
+        gedaan++;
+      } else if (o.t === 'post') {
+        const p = Object.assign({}, o);
+        delete p.t;
+        if (p.code && !DATA.posten[p.code]) { fouten.push('onbekende code ' + String(p.code).slice(0, 40)); continue; }
+        if (!p.code && !(p.naam && p.uur_per_eenheid != null)) { fouten.push('nieuwe post zonder code en zonder schatting'); continue; }
+        if (!(num(p.hoeveelheid) > 0)) { fouten.push('nieuwe post zonder hoeveelheid'); continue; }
+        p.hoeveelheid = num(p.hoeveelheid);
+        uit.posten.push(p);
+        herkomst.push(-1);
+        gedaan++;
+      } else if (o.t === 'kenmerk' && o.k && o.waarde != null && o.waarde !== '') {
+        const k = String(o.k).slice(0, 40);
+        if (!uit.kenmerken || typeof uit.kenmerken !== 'object') uit.kenmerken = {};
+        const oud = uit.kenmerken[k] || {};
+        const tekst = typeof o.waarde === 'string' && !/^-?\d+([.,]\d+)?$/.test(o.waarde.trim());
+        uit.kenmerken[k] = { label: String(o.label || oud.label || kenmerkLabel(k)).slice(0, 60), eenheid: String(o.eenheid != null ? o.eenheid : (oud.eenheid != null ? oud.eenheid : kenmerkEenheid(k))).slice(0, 8),
+          waarde: tekst ? String(o.waarde).slice(0, 80) : num(o.waarde), tekst, bron: 'vast' };
+      } else if (o.t === 'ploeg') {
+        const v = Math.round(num(o.waarde));
+        if (v >= 1 && v <= 12) { ploeg = v; gedaan++; } else fouten.push('ploeg ' + String(o.waarde).slice(0, 12));
+      } else if (o.t === 'btw') {
+        const v = num(o.waarde);
+        if (v === 6 || v === 21) { btw = v; gedaan++; } else fouten.push('btw ' + String(o.waarde).slice(0, 12));
+      } else if (o.t === 'aannames' && Array.isArray(o.lijst)) {
+        uit.aannames = o.lijst.map((s) => String(s).trim()).filter(Boolean).slice(0, 12);
+      } else if (o.t === 'plaatsbezoek' && Array.isArray(o.lijst)) {
+        uit.plaatsbezoek = o.lijst.map((s) => String(s).trim()).filter(Boolean).slice(0, 5);
+      } else if (o.t === 'titel' && o.tekst) {
+        uit.titel = String(o.tekst).slice(0, 120);
+      }
+    }
+    const posten = [], her = [];
+    uit.posten.forEach((p, i) => { if (!(i < n && weg.has(i))) { posten.push(p); her.push(herkomst[i]); } });
+    uit.posten = posten;
+    return { m: uit, herkomst: her, ploeg, btw, gedaan, fouten };
+  }
+  /* Het verschil tussen twee versies, per post: arbeid aan het uurtarief, materiaal met marge, alles met onvoorzien (zoals "Waar het geld zit").
+     De rijen plus materieel en afvoer tellen exact op tot het verschil excl. btw. */
+  function vergelijk(mOud, tarOud, mNieuw, tarNieuw, herkomst) {
+    const a1 = analyse(mOud, tarOud), a2 = analyse(mNieuw, tarNieuw);
+    const r1 = a1.r, r2 = a2.r;
+    const oud = new Map(r1.regels.map((x) => [x.nr, x]));
+    const nieuwVan = new Map();
+    const rijen = [];
+    for (const x of r2.regels) {
+      const oi = Array.isArray(herkomst) && herkomst[x.nr] != null ? herkomst[x.nr] : -1;
+      if (oi >= 0 && oud.has(oi)) nieuwVan.set(oi, x);
+      else rijen.push({ soort: 'nieuw', naam: x.naam, eenheid: x.eenheid, van: 0, naar: x.hoeveelheid, verschil: a2.inPrijs(x) });
+    }
+    for (const x of r1.regels) {
+      const y = nieuwVan.get(x.nr);
+      if (!y) { rijen.push({ soort: 'weg', naam: x.naam, eenheid: x.eenheid, van: x.hoeveelheid, naar: 0, verschil: -a1.inPrijs(x) }); continue; }
+      const d = a2.inPrijs(y) - a1.inPrijs(x);
+      if (Math.abs(y.hoeveelheid - x.hoeveelheid) > 1e-9) rijen.push({ soort: 'zet', naam: y.naam, eenheid: y.eenheid, van: x.hoeveelheid, naar: y.hoeveelheid, verschil: d });
+      else if (Math.abs(d) >= 0.005) rijen.push({ soort: 'duur', naam: y.naam, eenheid: y.eenheid, van: x.hoeveelheid, naar: y.hoeveelheid, verschil: d });
+    }
+    /* Materieel en afvoer los van de posten (lift en transport per werkdag, containers, big bags), per naam: aantal en bedrag voor en na. */
+    const los = (a) => {
+      const uit = new Map();
+      for (const x of a.r.materieel) {
+        if (x.soort === 'huur') continue;
+        const o = uit.get(x.naam) || { naam: x.naam, eenheid: x.eenheid, aantal: 0, bedrag: 0 };
+        o.aantal += x.aantal; o.bedrag += x.kost * a.fMat; o.eenheid = x.eenheid;
+        uit.set(x.naam, o);
+      }
+      return uit;
+    };
+    const l1 = los(a1), l2 = los(a2);
+    const materieelRijen = [];
+    let materieel = 0;
+    for (const naam of new Set([...l1.keys(), ...l2.keys()])) {
+      const x = l1.get(naam), y = l2.get(naam);
+      const d = (y ? y.bedrag : 0) - (x ? x.bedrag : 0);
+      materieel += d;
+      if (Math.abs(d) >= 0.005) materieelRijen.push({ soort: 'materieel', naam, eenheid: (y || x).eenheid, van: x ? x.aantal : 0, naar: y ? y.aantal : 0, verschil: d });
+    }
+    const stand = (r) => ({ incl: r.kosten.incl, excl: r.kosten.excl, btw: r.t.btw, ploeg: r.ploeg, werkdagen: r.werkdagen, weken: r.weken, posten: r.regels.length });
+    return { van: stand(r1), naar: stand(r2), rijen, materieelRijen, materieel, verschilExcl: r2.kosten.excl - r1.kosten.excl, verschilIncl: r2.kosten.incl - r1.kosten.incl };
   }
 
   const VOORBEELD = {
@@ -503,5 +714,6 @@
     },
   };
 
-  g.RP = { DATA, DATA_START, pasInstellingenToe, FASES, VAKKEN, vakVan, STANDAARDEN, KENMERKEN, BRONNEN, standaardWaarden, standaardRegels, bereken, analyse, telWaarden, bouwPrompt, bouwUitlegPrompt, gemetenRegels, pasRegelToe, leegMeetstaat, VOORBEELD };
+  g.RP = { DATA, DATA_START, pasInstellingenToe, FASES, VAKKEN, vakVan, STANDAARDEN, KENMERKEN, BRONNEN, standaardWaarden, standaardRegels, bereken, analyse, telWaarden, bouwPrompt, bouwUitlegPrompt, gemetenRegels, pasRegelToe, leegMeetstaat,
+    VERBODEN, vervolgData, bouwVervolgPrompt, leesVervolg, pasWijzigingToe, vergelijk, VOORBEELD };
 })(globalThis);
