@@ -6,3 +6,6 @@ ontwerp/**/*.png
 ontwerp/**/*.pdf
 *.png
 !assets/*.png
+
+# Test- en keuringsbestanden van de bouwrondes (bevatten lokale paden)
+ontwerp/bouw/
