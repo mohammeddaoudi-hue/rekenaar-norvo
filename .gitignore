@@ -1,4 +1,8 @@
 server.log
 berekeningen/
 instellingen.json
+# Schermafbeeldingen van ontwerp- en testrondes; het logo in assets/ hoort er wel in.
+ontwerp/**/*.png
+ontwerp/**/*.pdf
 *.png
+!assets/*.png
