@@ -338,6 +338,11 @@ server.on('error', async (e) => {
       if (j && j.app === 'richtprijs-ai') {
         const adres = 'http://localhost:' + poort;
         console.log('REKENAAR NORVO draait al op ' + adres + '. Dit venster mag dicht.');
+        /* De link voor de andere toestellen van de draaiende server, zodat dit venster hem ook toont. */
+        try {
+          const k = await (await fetch('http://127.0.0.1:' + poort + '/api/koppeling', { headers: { 'x-richtprijs': '1' }, signal: AbortSignal.timeout(2000) })).json();
+          if (k && k.link) console.log('\nDemo-link voor al je toestellen (rekent met jouw Claude-account zolang deze pc aanstaat; deel hem niet):\n  ' + k.link + '\n');
+        } catch (x) { /* geen link: de tunnel start nog */ }
         if (process.argv.includes('--open')) spawn('cmd', ['/c', 'start', '', adres], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
         return;
       }
