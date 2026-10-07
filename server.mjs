@@ -15,6 +15,12 @@ import { meetAdres } from './geo.mjs';
 
 const MAP = path.dirname(fileURLToPath(import.meta.url));
 const MODEL = process.env.RICHTPRIJS_MODEL || 'fable';
+/* Terugval: staat het eerste model op zijn gebruikslimiet (7 okt 2026: "You've reached your Fable limit", api_error_status 429)
+   of is het niet beschikbaar, dan rekent de app verder met dit model. Na zo een fout probeert de server het eerste model
+   pas na 30 minuten opnieuw, zodat niet elke vraag eerst een mislukte poging doet. */
+const TERUGVAL = process.env.RICHTPRIJS_TERUGVAL || 'opus';
+const TERUGVAL_MINUTEN = 30;
+let eersteModelUitTot = 0;
 /* Denkdiepte van Claude (low, medium, high). Gemeten op 6 okt 2026 met de voorbeeldklus: low geeft de eerste regel
    na 16 s, de standaard na 47 s, met dezelfde posten en hoeveelheden. */
 const EFFORT = process.env.RICHTPRIJS_EFFORT || 'low';
@@ -28,10 +34,11 @@ const FOTOS = new Map();
 let poort = Number(process.env.PORT) || 4791;
 let lopend = 0;
 
-function vraagClaude(prompt, opDelta) {
+/* Eén vraag aan één model. Een fout draagt mee hoeveel tekst er al doorgestuurd was en of het een limiet- of modelfout is. */
+function vraagModel(model, prompt, opDelta) {
   let kind;
   const klaar = new Promise((resolve, reject) => {
-    kind = spawn(CLAUDE, ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--model', MODEL,
+    kind = spawn(CLAUDE, ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--model', model,
       '--tools', '', '--setting-sources', 'project', '--strict-mcp-config', '--no-session-persistence', '--disable-slash-commands',
       '--system-prompt', SYSTEEM].concat(EFFORT ? ['--effort', EFFORT] : []), { cwd: LEEG, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     let rest = '', fout = '', gestuurd = 0, eind = null;
@@ -56,7 +63,9 @@ function vraagClaude(prompt, opDelta) {
         if (!gestuurd && typeof eind.result === 'string') opDelta(eind.result);
         resolve();
       } else {
-        reject(new Error((eind && typeof eind.result === 'string' && eind.result) || fout.trim().split('\n').pop() || 'Claude stopte met code ' + code));
+        const tekst = (eind && typeof eind.result === 'string' && eind.result) || fout.trim().split('\n').pop() || 'Claude stopte met code ' + code;
+        const limiet = (eind && (eind.api_error_status === 429 || eind.api_error_status === 529)) || /limit|usage credits|overloaded|not available|does not exist|invalid model/i.test(tekst);
+        reject(Object.assign(new Error(tekst), { gestuurd, limiet }));
       }
     });
     kind.stdin.on('error', () => {});
@@ -64,6 +73,29 @@ function vraagClaude(prompt, opDelta) {
   });
   return { klaar, stop: () => { try { kind.kill(); } catch (e) { /* al gestopt */ } } };
 }
+
+/* De vraag van de app: eerst het gekozen model, bij een limiet- of modelfout zonder doorgestuurde tekst het terugvalmodel. */
+function vraagClaude(prompt, opDelta) {
+  let huidig = null;
+  let gestopt = false;
+  const klaar = (async () => {
+    const eerst = Date.now() < eersteModelUitTot ? TERUGVAL : MODEL;
+    huidig = vraagModel(eerst, prompt, opDelta);
+    try {
+      await huidig.klaar;
+      return eerst;
+    } catch (e) {
+      if (gestopt || eerst === TERUGVAL || !TERUGVAL || e.gestuurd > 0 || !e.limiet) throw e;
+      eersteModelUitTot = Date.now() + TERUGVAL_MINUTEN * 60000;
+      console.log('Model ' + eerst + ' niet beschikbaar (' + String(e.message).slice(0, 80) + '); verder met ' + TERUGVAL + ' voor ' + TERUGVAL_MINUTEN + ' minuten.');
+      huidig = vraagModel(TERUGVAL, prompt, opDelta);
+      await huidig.klaar;
+      return TERUGVAL;
+    }
+  })();
+  return { klaar, stop: () => { gestopt = true; if (huidig) huidig.stop(); } };
+}
+const actiefModel = () => (Date.now() < eersteModelUitTot ? TERUGVAL : MODEL);
 
 const json = (res, code, o) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(o)); };
 /* Alleen de eigen pagina: een eigen kop dwingt bij andere sites een voorafvraag af die hier nooit wordt toegestaan. */
@@ -101,7 +133,7 @@ const server = http.createServer(async (req, res) => {
         return res.end(inhoud);
       } catch (e) { return json(res, 404, { fout: 'Niet gevonden.' }); }
     }
-    if (url.pathname === '/api/ping') return json(res, 200, { app: 'richtprijs-ai', model: MODEL, sinds: START });
+    if (url.pathname === '/api/ping') return json(res, 200, { app: 'richtprijs-ai', model: actiefModel(), eersteModel: MODEL, terugval: TERUGVAL, sinds: START });
     if (!url.pathname.startsWith('/api/')) return json(res, 404, { fout: 'Niet gevonden.' });
     /* Luchtfoto van Vlaanderen (open data, WMS OMWRGBMRVL) voor het meetbeeld: een <img> stuurt geen eigen kop mee,
        dus hier alleen de host-controle. Alleen een vierkant van 20 tot 400 m binnen Vlaanderen; de laatste 60 beelden in het geheugen. */
@@ -213,7 +245,7 @@ server.on('error', (e) => {
 });
 server.on('listening', () => {
   const adres = 'http://localhost:' + poort;
-  console.log('RICHTPRIJS-AI draait op ' + adres + '  (model: ' + MODEL + ', Claude: ' + CLAUDE + ')');
+  console.log('RICHTPRIJS-AI draait op ' + adres + '  (model: ' + MODEL + ', terugval: ' + TERUGVAL + ', Claude: ' + CLAUDE + ')');
   if (process.argv.includes('--open')) spawn('cmd', ['/c', 'start', '', adres], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
 });
 server.listen(poort, '127.0.0.1');
