@@ -149,7 +149,12 @@ const server = http.createServer(async (req, res) => {
       await mkdir(BEREKENINGEN, { recursive: true });
       const lijst = [];
       for (const naam of (await readdir(BEREKENINGEN)).filter((n) => n.endsWith('.json')).sort().reverse().slice(0, 200)) {
-        try { const o = JSON.parse(await readFile(path.join(BEREKENINGEN, naam), 'utf8')); lijst.push({ id: naam.slice(0, -5), titel: o.titel || '', adres: o.adres || '', datum: o.datum || '', prijs: o.prijs || 0, vak: o.vak || '' }); } catch (e) { /* kapot bestand slaan we over */ }
+        try {
+          const o = JSON.parse(await readFile(path.join(BEREKENINGEN, naam), 'utf8'));
+          const of = o.offerte && typeof o.offerte === 'object' ? o.offerte : null;
+          lijst.push({ id: naam.slice(0, -5), titel: o.titel || '', adres: o.adres || '', datum: o.datum || '', prijs: o.prijs || 0, vak: o.vak || '', versie: o.versie || 1,
+            offerte: of && (of.nummer || of.uitgegeven) ? { nummer: of.nummer || '', uitgegeven: !!of.uitgegeven, geldigTot: of.geldigTot || of.geldig_tot || '' } : null });
+        } catch (e) { /* kapot bestand slaan we over */ }
       }
       return json(res, 200, lijst);
     }

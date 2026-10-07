@@ -43,7 +43,8 @@ try {
   await slaap(2000);
   toets('pagina geladen, nog geen berekening', (await ev("document.getElementById('uitkomst').textContent")).includes('Nog geen berekening'));
   toets('losse bestanden geladen (data, motor, ui)', (await ev("Object.keys(globalThis.RP_DATA.posten).length")) >= 40 && (await ev("typeof globalThis.RP.bereken")) === 'function');
-  await ev("document.getElementById('adres').value = " + JSON.stringify(ADRES) + "; document.getElementById('bereken').click(); 1");
+  /* De test vult zelf het adres én de klus in (het klusveld is bij het laden leeg) en vuurt input-gebeurtenissen zodat de pagina ze ziet. */
+  await ev("(() => { const zet = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }; zet('adres', " + JSON.stringify(ADRES) + "); zet('klus', globalThis.RP.VOORBEELD.klus); document.getElementById('bereken').click(); return 1; })()");
 
   const t0 = Date.now();
   const lijn = [];
