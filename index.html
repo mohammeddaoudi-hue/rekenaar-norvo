@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Norvo Richtprijs</title>
-<meta name="description" content="Norvo Richtprijs: klus en adres in, richtprijs, ploeg, werkdagen, kilo's, afval en offerte uit.">
+<title>Rekenaar Norvo</title>
+<meta name="description" content="Rekenaar Norvo: klus en adres in, richtprijs, ploeg, werkdagen, kilo's, afval en offerte uit.">
 <meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b141a" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="assets/norvo-favicon.svg" type="image/svg+xml">
@@ -52,7 +52,7 @@
 
 <div class="topbalk">
   <button class="ikoonknop" type="button" data-rail title="Berekeningen" aria-label="Berekeningen"><svg class="ic"><use href="#i-menu"/></svg></button>
-  <span class="merkregel topbalk-merk"><svg class="n-lockup" viewBox="0 0 3499 764" role="img" aria-label="Norvo"><use href="#n-lockup" width="3499" height="764"/></svg><span class="product">Richtprijs</span></span>
+  <span class="merkregel topbalk-merk"><svg class="n-lockup" viewBox="0 0 3499 764" role="img" aria-label="Norvo"><use href="#n-lockup" width="3499" height="764"/></svg><span class="product">Rekenaar</span></span>
   <span class="midden-titel" data-titel></span>
   <button class="ikoonknop" type="button" data-menu title="Opslaan, Kopieer, Afdrukken, Verwijderen" aria-label="Meer acties"><svg class="ic vol"><use href="#i-meer"/></svg></button>
 </div>
@@ -64,7 +64,7 @@
 <div class="werk">
   <aside class="rail" aria-label="Berekeningen en instellingen">
     <div class="rail-open-inhoud">
-      <div class="rail-kop"><span class="merkregel rail-titel"><svg class="n-lockup" viewBox="0 0 3499 764" role="img" aria-label="Norvo"><use href="#n-lockup" width="3499" height="764"/></svg><span class="product">Richtprijs</span></span><button class="ikoonknop" type="button" data-rail title="Rail inklappen" aria-label="Rail inklappen"><svg class="ic"><use href="#i-rail"/></svg></button></div>
+      <div class="rail-kop"><span class="merkregel rail-titel"><svg class="n-lockup" viewBox="0 0 3499 764" role="img" aria-label="Norvo"><use href="#n-lockup" width="3499" height="764"/></svg><span class="product">Rekenaar</span></span><button class="ikoonknop" type="button" data-rail title="Rail inklappen" aria-label="Rail inklappen"><svg class="ic"><use href="#i-rail"/></svg></button></div>
       <button class="nieuw" type="button" data-nieuw><svg class="ic"><use href="#i-plus"/></svg><span>Nieuwe berekening</span></button>
       <div class="zoek rail-zoek" id="rail-zoek" hidden><svg class="ic"><use href="#i-zoek"/></svg><input id="rail-zoek-veld" type="search" placeholder="Zoek op titel of adres" aria-label="Zoek in eerdere berekeningen"></div>
       <div class="rail-lijst" id="rail-lijst"></div>
@@ -74,7 +74,7 @@
       </div>
     </div>
     <div class="rail-dicht-inhoud">
-      <div class="rail-kop"><svg class="n-merk" viewBox="0 0 100 100" role="img" aria-label="Norvo Richtprijs"><use href="#n-merk"/></svg></div>
+      <div class="rail-kop"><svg class="n-merk" viewBox="0 0 100 100" role="img" aria-label="Rekenaar Norvo"><use href="#n-merk"/></svg></div>
       <button class="ikoonknop" type="button" data-nieuw title="Nieuwe berekening" aria-label="Nieuwe berekening"><svg class="ic"><use href="#i-plus"/></svg></button>
       <button class="ikoonknop" type="button" data-rail title="Eerdere berekeningen" aria-label="Eerdere berekeningen"><svg class="ic"><use href="#i-klok"/></svg></button>
       <button class="ikoonknop onder" type="button" data-instellingen="open" title="Instellingen" aria-label="Instellingen"><svg class="ic"><use href="#i-tandwiel"/></svg></button>
@@ -89,7 +89,7 @@
     </div>
     <div class="stroom" id="stroom">
       <div class="banner" id="banner" hidden>
-        <b>De lokale server antwoordt niet.</b>
+        <b id="banner-kop">De lokale server antwoordt niet.</b>
         <span id="banner-tekst">Start start.cmd opnieuw.</span>
         <div class="banner-knoppen">
           <button class="knop knop--36 knop--stil" type="button" id="banner-opnieuw">Opnieuw proberen</button>
@@ -231,6 +231,17 @@
     <div class="inst-body">
       <nav class="inst-lijst" id="inst-lijst"><a class="is-actief" href="#tarieven">Tarieven</a><a href="#standaarden">Standaarden</a><a href="#datatabel">Datatabel</a></nav>
       <div class="inst-inhoud">
+        <section class="inst-sectie" id="koppel-sectie" hidden>
+          <div class="sectie-kop"><h3>Op je andere toestellen</h3></div>
+          <p class="klein">Open deze link één keer op je gsm, tablet of laptop. Daarna rekent de demo-link daar met jouw Claude-account, zolang deze pc aanstaat en start.cmd draait. Na een herstart van de pc staat hier een nieuwe link. Deel hem niet: de sleutel zit erin.</p>
+          <div class="koppel">
+            <div class="koppel-qr" id="koppel-qr" hidden></div>
+            <div class="koppel-rechts">
+              <div class="koppel-link" id="koppel-link"></div>
+              <button class="knop knop--36" type="button" id="koppel-kopieer" hidden><svg class="ic"><use href="#i-kopie"/></svg>Kopieer de link</button>
+            </div>
+          </div>
+        </section>
         <section class="inst-sectie" id="tarieven">
           <div class="sectie-kop"><h3>Tarieven</h3><span class="rechts" id="tarieven-staat">Bewaard</span></div>
           <p class="klein" style="margin-bottom:16px">Geldt meteen voor de open berekening. Bewaard op deze pc.</p>

@@ -1,6 +1,9 @@
 server.log
+server-fout.log
 berekeningen/
 instellingen.json
+# De sleutel voor de demo-link op de toestellen van de eigenaar: nooit in git.
+koppeling.json
 # Schermafbeeldingen van ontwerp- en testrondes; het logo in assets/ hoort er wel in.
 ontwerp/**/*.png
 ontwerp/**/*.pdf

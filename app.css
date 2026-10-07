@@ -1,4 +1,4 @@
-/* Norvo Richtprijs · opmaak uit mockup D (ontwerp/D), 7 oktober 2026; Norvo-huisstijl sinds 7 oktober 2026.
+/* Rekenaar Norvo · opmaak uit mockup D (ontwerp/D), 7 oktober 2026; Norvo-huisstijl sinds 7 oktober 2026.
    Huisstijl uit de bron (getnorvo.com src/styles/tokens.css en de Norvo-werfapp norvo.online): warm papier #fbfaf8, inkt #211f1a,
    dennengroen #1e5b3a (op donker #4ec27e), donkere vlakken #0b141a; koppen Switzer, tekst Inter; knoppen en velden 10 px rond.
    Drie zones: rail (links), berekening (midden: opdrachtkaart, stappen, toelichting, verder vragen), resultaatpaneel (rechts).
@@ -404,6 +404,12 @@ body.met-vervolg .naar-laatste{bottom:112px}
 .inst-inhoud{display:flex;flex-direction:column;gap:48px;min-width:0}
 .inst-sectie{max-width:720px;scroll-margin-top:24px}
 .inst-sectie--breed{max-width:none}
+/* Op je andere toestellen: QR-code links (altijd zwart op wit, ook in donker), de link en de kopieerknop rechts. */
+.koppel{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;margin-top:12px}
+.koppel-qr{background:#fff;padding:8px;border:1px solid var(--g4);border-radius:8px;line-height:0}
+.koppel-qr img,.koppel-qr canvas{width:168px;height:168px;display:block}
+.koppel-rechts{flex:1;min-width:200px;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.koppel-link{max-width:100%;padding:8px 10px;border:1px solid var(--g4);border-radius:8px;background:var(--g2);color:var(--g9);font:13px/18px ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
 .inst-sectie > .sectie-kop{margin-bottom:4px}
 .inst-sectie .groep{margin-top:24px}
 .inst-sectie .groep h4{font-size:14px;line-height:20px;font-weight:600;color:var(--g10);margin-bottom:8px}

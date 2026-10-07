@@ -34,7 +34,8 @@
     foto.className = 'meetbeeld__foto';
     foto.alt = 'Luchtfoto van ' + (gemeten.adres || 'het adres');
     foto.decoding = 'async';
-    foto.src = '/api/luchtfoto?bbox=' + b.bbox.join(',') + '&px=' + o.px;
+    /* Op een gekoppeld toestel komt de luchtfoto via de tunnel van de pc (RP_API) met de sleutel in ?k= (een <img> stuurt geen kop). */
+    foto.src = (globalThis.RP_API || '') + '/api/luchtfoto?bbox=' + b.bbox.join(',') + '&px=' + o.px + (globalThis.RP_K ? '&k=' + globalThis.RP_K : '');
     wortel.appendChild(foto);
 
     const svg = el('svg', { class: 'meetbeeld__laag', viewBox: '0 0 ' + S + ' ' + S, preserveAspectRatio: 'xMidYMid slice' }, null);

@@ -1,19 +1,33 @@
-/* Norvo Richtprijs, lokale server. Start: node server.mjs --open
+/* Rekenaar Norvo, lokale server. Start: node server.mjs --open
    Doet twee dingen die een pagina zelf niet kan:
    1. /api/adres  meet een gebouw op uit de kaartdata van Vlaanderen (geo.mjs);
    2. /api/ai     stelt een vraag aan Claude via de Claude Code-installatie op deze pc
                   (het account waarmee `claude` is aangemeld) en stuurt het antwoord door terwijl het geschreven wordt.
-   Luistert alleen op 127.0.0.1. */
+   Luistert alleen op 127.0.0.1. Een tunnel (cloudflared) maakt de server bereikbaar voor de demo-link op GitHub Pages,
+   alleen met de sleutel uit koppeling.json: zo rekent de demo-link op elk toestel van de eigenaar met zijn Claude-account,
+   zolang deze pc aanstaat. Anderen hebben de sleutel niet en zien het voorbeeld. */
 import http from 'node:http';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { readFile, writeFile, readdir, mkdir, unlink } from 'node:fs/promises';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { meetAdres } from './geo.mjs';
 
 const MAP = path.dirname(fileURLToPath(import.meta.url));
+/* De demo-link (GitHub Pages) en de sleutel waarmee een toestel van de eigenaar via de tunnel rekent. koppeling.json staat
+   buiten git; de sleutel blijft dezelfde bij elke start, het tunneladres verandert bij elke start van de tunnel. */
+const DEMO = 'https://mohammeddaoudi-hue.github.io';
+const DEMO_LINK = DEMO + '/rekenaar-norvo/';
+const KOPPELING = path.join(MAP, 'koppeling.json');
+let SLEUTEL = '';
+try { SLEUTEL = String(JSON.parse(fs.readFileSync(KOPPELING, 'utf8')).sleutel || ''); } catch (e) { /* nog geen koppeling */ }
+if (!/^[a-f0-9]{32}$/.test(SLEUTEL)) { SLEUTEL = crypto.randomBytes(16).toString('hex'); fs.writeFileSync(KOPPELING, JSON.stringify({ sleutel: SLEUTEL }, null, 1), 'utf8'); }
+const CLOUDFLARED = process.env.CLOUDFLARED || [path.join(os.homedir(), 'tools', 'cloudflared', 'cloudflared.exe')].find((p) => fs.existsSync(p)) || '';
+let tunnel = { url: '', sinds: 0 };
+const koppelLink = () => (tunnel.url ? DEMO_LINK + '#koppel=' + SLEUTEL + '@' + new URL(tunnel.url).host : '');
 const MODEL = process.env.RICHTPRIJS_MODEL || 'fable';
 /* Terugval: staat het eerste model op zijn gebruikslimiet (7 okt 2026: "You've reached your Fable limit", api_error_status 429)
    of is het niet beschikbaar, dan rekent de app verder met dit model. Na zo een fout probeert de server het eerste model
@@ -98,11 +112,20 @@ function vraagClaude(prompt, opDelta) {
 const actiefModel = () => (Date.now() < eersteModelUitTot ? TERUGVAL : MODEL);
 
 const json = (res, code, o) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(o)); };
-/* Alleen de eigen pagina: een eigen kop dwingt bij andere sites een voorafvraag af die hier nooit wordt toegestaan. */
+/* Lokaal = de pagina op deze pc (localhost). Op afstand = via de tunnel (een andere host): alleen /api, alleen met de sleutel. */
+const lokaal = (req) => ['localhost:' + poort, '127.0.0.1:' + poort].includes(req.headers.host);
+function sleutelOk(s) {
+  const a = Buffer.from(String(s || '')), b = Buffer.from(SLEUTEL);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+/* Alleen de eigen pagina: een eigen kop dwingt bij andere sites een voorafvraag af die hier nooit wordt toegestaan.
+   Via de tunnel: de demo-link op GitHub Pages met de sleutel van de eigenaar. */
 function eigen(req) {
   const hosts = ['localhost:' + poort, '127.0.0.1:' + poort];
   const o = req.headers.origin;
-  return req.headers['x-richtprijs'] === '1' && hosts.includes(req.headers.host) && (!o || hosts.some((h) => o === 'http://' + h));
+  if (req.headers['x-richtprijs'] !== '1') return false;
+  if (lokaal(req)) return !o || hosts.some((h) => o === 'http://' + h);
+  return sleutelOk(req.headers['x-sleutel']) && (!o || o === DEMO);
 }
 function lichaam(req, max) {
   return new Promise((resolve, reject) => {
@@ -122,6 +145,18 @@ const BEREKENINGEN = path.join(MAP, 'berekeningen');
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   try {
+    /* Via de tunnel (of elke andere host): alleen /api, CORS voor de demo-link, de voorafvraag zonder sleutel, daarna de sleutel.
+       Een <img> van de luchtfoto stuurt geen eigen kop: die draagt de sleutel in ?k=. */
+    if (!lokaal(req)) {
+      if (!url.pathname.startsWith('/api/')) return json(res, 404, { fout: 'Niet gevonden.' });
+      if (req.headers.origin === DEMO) { res.setHeader('access-control-allow-origin', DEMO); res.setHeader('vary', 'Origin'); }
+      if (req.method === 'OPTIONS') {
+        if (req.headers.origin !== DEMO) return json(res, 403, { fout: 'Alleen de demo-link.' });
+        res.writeHead(204, { 'access-control-allow-methods': 'GET, POST, PUT, DELETE', 'access-control-allow-headers': 'content-type, x-richtprijs, x-sleutel', 'access-control-max-age': '600' });
+        return res.end();
+      }
+      if (!sleutelOk(req.headers['x-sleutel'] || (url.pathname === '/api/luchtfoto' ? url.searchParams.get('k') : ''))) return json(res, 401, { fout: 'Sleutel ontbreekt of klopt niet.' });
+    }
     if (req.method === 'GET' && !url.pathname.startsWith('/api/')) {
       const rel = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1));
       const bestand = path.resolve(MAP, rel);
@@ -135,12 +170,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === '/api/ping') return json(res, 200, { app: 'richtprijs-ai', model: actiefModel(), eersteModel: MODEL, terugval: TERUGVAL, sinds: START });
     if (!url.pathname.startsWith('/api/')) return json(res, 404, { fout: 'Niet gevonden.' });
-    /* Luchtfoto van Vlaanderen (open data, WMS OMWRGBMRVL) voor het meetbeeld: een <img> stuurt geen eigen kop mee,
-       dus hier alleen de host-controle. Alleen een vierkant van 20 tot 400 m binnen Vlaanderen; de laatste 60 beelden in het geheugen. */
+    /* Luchtfoto van Vlaanderen (open data, WMS OMWRGBMRVL) voor het meetbeeld: een <img> stuurt geen eigen kop mee, dus hier
+       geen eigen-kopcontrole; een andere host dan deze pc is hierboven al op de sleutel gecontroleerd.
+       Alleen een vierkant van 20 tot 400 m binnen Vlaanderen; de laatste 60 beelden in het geheugen. */
     if (req.method === 'GET' && url.pathname === '/api/luchtfoto') {
-      const hosts = ['localhost:' + poort, '127.0.0.1:' + poort];
-      if (!hosts.includes(req.headers.host)) return json(res, 403, { fout: 'Alleen de eigen pagina.' });
-      const b = String(url.searchParams.get('bbox') || '').split(',').map(Number);
+      const b =String(url.searchParams.get('bbox') || '').split(',').map(Number);
       const px = Math.min(1024, Math.max(128, Math.round(Number(url.searchParams.get('px')) || 640)));
       const zijde = b.length === 4 ? b[2] - b[0] : 0;
       if (b.length !== 4 || !b.every(Number.isFinite) || zijde < 20 || zijde > 400 || Math.abs((b[3] - b[1]) - zijde) > 0.5 || b[0] < 20000 || b[2] > 260000 || b[1] < 150000 || b[3] > 250000) return json(res, 400, { fout: 'Geen geldig kaartvierkant.' });
@@ -159,6 +193,12 @@ const server = http.createServer(async (req, res) => {
       return res.end(beeld);
     }
     if (!eigen(req)) return json(res, 403, { fout: 'Alleen de eigen pagina mag deze dienst gebruiken.' });
+
+    /* De link met sleutel voor de andere toestellen van de eigenaar: alleen op deze pc te lezen (Instellingen). */
+    if (url.pathname === '/api/koppeling' && req.method === 'GET') {
+      if (!lokaal(req)) return json(res, 403, { fout: 'Alleen op deze pc.' });
+      return json(res, 200, { link: koppelLink(), tunnel: tunnel.url, sinds: tunnel.sinds, cloudflared: !!CLOUDFLARED });
+    }
 
     /* Instellingen van de aannemer (tarieven, standaarden, eigen cijfers in de datatabel): één JSON-bestand naast de app. */
     if (url.pathname === '/api/instellingen') {
@@ -223,7 +263,8 @@ const server = http.createServer(async (req, res) => {
       if (typeof prompt !== 'string' || prompt.length < 20) return json(res, 400, { fout: 'Lege vraag.' });
       if (lopend >= 3) return json(res, 429, { fout: 'Er lopen al 3 vragen. Wacht tot er één klaar is.' });
       lopend++;
-      res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store', 'x-accel-buffering': 'no' });
+      /* Regels JSON, één per stukje tekst. Het type event-stream laat de tunnel elk stukje meteen doorsturen in plaats van te bufferen. */
+      res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store, no-transform', 'x-accel-buffering': 'no' });
       let af = false;
       const vraag = vraagClaude(prompt, (d) => { if (!af) res.write(JSON.stringify({ d }) + '\n'); });
       res.on('close', () => { if (!af) { af = true; vraag.stop(); } });
@@ -239,13 +280,77 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.on('error', (e) => {
-  if (e.code === 'EADDRINUSE' && poort < 4811) { poort++; server.listen(poort, '127.0.0.1'); }
+/* De tunnel: cloudflared geeft een https-adres op trycloudflare.com dat naar deze server wijst. Valt hij weg, dan start hij na 10 s
+   opnieuw (met een nieuw adres, dus een nieuwe link). Het proces-id staat in koppeling.json, zodat een volgende start een
+   achtergebleven tunnel van een vorige start opruimt (Windows stopt kindprocessen niet mee). */
+let tunnelProces = null;
+let stoppen = false;
+function bewaarKoppeling(extra) {
+  try { fs.writeFileSync(KOPPELING, JSON.stringify(Object.assign({ sleutel: SLEUTEL }, extra), null, 1), 'utf8'); } catch (e) { /* niet bewaard: de volgende start ruimt dan niets op */ }
+}
+function ruimOudeTunnelOp() {
+  let pid = 0;
+  try { pid = Number(JSON.parse(fs.readFileSync(KOPPELING, 'utf8')).tunnelPid) || 0; } catch (e) { return; }
+  if (!pid) return;
+  /* tasklist geeft de naam van het proces met dit id; zo stopt de server nooit een ander programma dat dit id kreeg. */
+  try {
+    const r = spawnSync('tasklist', ['/FI', 'PID eq ' + pid, '/FO', 'CSV', '/NH'], { encoding: 'utf8', windowsHide: true });
+    if (/cloudflared\.exe/i.test(r.stdout || '')) process.kill(pid);
+  } catch (e) { /* al gestopt */ }
+}
+function startTunnel() {
+  if (!CLOUDFLARED || process.env.RICHTPRIJS_GEEN_TUNNEL || stoppen) return;
+  const t = spawn(CLOUDFLARED, ['tunnel', '--no-autoupdate', '--url', 'http://127.0.0.1:' + poort], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  tunnelProces = t;
+  bewaarKoppeling({ tunnelPid: t.pid });
+  let gezien = false;
+  const lees = (d) => {
+    const m = String(d).match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
+    if (m && !gezien) {
+      gezien = true;
+      tunnel = { url: m[0], sinds: Date.now() };
+      console.log('\nDemo-link voor al je toestellen (rekent met jouw Claude-account zolang deze pc aanstaat; deel hem niet):\n  ' + koppelLink() + '\nDe link staat ook in de app: Instellingen, blok "Op je andere toestellen".\n');
+    }
+  };
+  t.stdout.on('data', lees);
+  t.stderr.on('data', lees);
+  t.on('error', (e) => console.log('Tunnel start niet: ' + e.message));
+  t.on('close', () => {
+    tunnel = { url: '', sinds: 0 };
+    tunnelProces = null;
+    if (!stoppen) { console.log('Tunnel weggevallen; nieuwe tunnel over 10 s (nieuwe link).'); setTimeout(startTunnel, 10000); }
+  });
+}
+function stop() {
+  stoppen = true;
+  if (tunnelProces) { try { tunnelProces.kill(); } catch (e) { /* al gestopt */ } }
+  bewaarKoppeling({});
+  process.exit(0);
+}
+for (const s of ['SIGINT', 'SIGHUP', 'SIGBREAK', 'SIGTERM']) process.on(s, stop);
+
+server.on('error', async (e) => {
+  if (e.code === 'EADDRINUSE' && poort < 4811) {
+    /* Draait Rekenaar Norvo al op deze poort (start.cmd twee keer gestart), dan opent dit venster die en start het niets dubbel. */
+    try {
+      const r = await fetch('http://127.0.0.1:' + poort + '/api/ping', { signal: AbortSignal.timeout(2000) });
+      const j = await r.json();
+      if (j && j.app === 'richtprijs-ai') {
+        const adres = 'http://localhost:' + poort;
+        console.log('REKENAAR NORVO draait al op ' + adres + '. Dit venster mag dicht.');
+        if (process.argv.includes('--open')) spawn('cmd', ['/c', 'start', '', adres], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+        return;
+      }
+    } catch (x) { /* een ander programma op deze poort */ }
+    poort++; server.listen(poort, '127.0.0.1');
+  }
   else { console.error('Server start niet: ' + e.message); process.exitCode = 1; }
 });
 server.on('listening', () => {
   const adres = 'http://localhost:' + poort;
-  console.log('NORVO RICHTPRIJS draait op ' + adres + '  (model: ' + MODEL + ', terugval: ' + TERUGVAL + ', Claude: ' + CLAUDE + ')');
+  console.log('REKENAAR NORVO draait op ' + adres + '  (model: ' + MODEL + ', terugval: ' + TERUGVAL + ', Claude: ' + CLAUDE + ')');
   if (process.argv.includes('--open')) spawn('cmd', ['/c', 'start', '', adres], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  ruimOudeTunnelOp();
+  startTunnel();
 });
 server.listen(poort, '127.0.0.1');

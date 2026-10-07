@@ -1,4 +1,4 @@
-/* Rekenmotor van Norvo Richtprijs: geen DOM, zodat hij los getest kan worden (test-motor.cjs).
+/* Rekenmotor van Rekenaar Norvo: geen DOM, zodat hij los getest kan worden (test-motor.cjs).
    Laadvolgorde in index.html: data/basis.js, data/<vak>.js, motor.js, ui.js. */
 (function (g) {
   /* De datatabel komt uit data/basis.js en data/<vak>.js (globalThis.RP_DATA), geladen vóór dit bestand. */

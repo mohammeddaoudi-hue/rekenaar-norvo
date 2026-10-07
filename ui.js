@@ -354,7 +354,7 @@
   RP.OFFERTE = { START, UITSLUITINGEN_START, VOORWAARDEN_START, TEKSTEN_START, MEERWERK, BTW6, ASBEST_ZIN, RECHTSVORMEN, vulInstellingen, nogInTeVullen, toetsVoorwaarden, ibanOk, cent, eur, hoev, datumVoluit, isoDag, plusDagen, plusMaanden, schoneNaam };
 })(globalThis);
 
-/* Pagina van Norvo Richtprijs: opdrachtkaart, stappen, toelichting, verder vragen, resultaatpaneel, rail, instellingen, offerte.
+/* Pagina van Rekenaar Norvo: opdrachtkaart, stappen, toelichting, verder vragen, resultaatpaneel, rail, instellingen, offerte.
    Rekenwerk staat in motor.js; de server (server.mjs) meet het adres, vraagt de AI en bewaart.
    Eén IIFE: staat (S), tekenfuncties per zone, de stroom van de AI, de events. */
 (function () {
@@ -460,14 +460,62 @@
     if (tarieven.btw !== 21) tarieven.btw = 6;
     standaarden = RP.standaardWaarden(inst.standaarden || {});
   }
-  /* zonderServer: /api/instellingen gaf bij het laden geen antwoord (statische demo zoals GitHub Pages, of start.cmd draait niet).
-     Dan gelden de startwaarden, toont de rail geen geschiedenis en bewaart de pagina niets: zo overschrijven startwaarden nooit
-     het instellingenbestand van de aannemer als de server later wel antwoordt. Bereken toont dan de banner. */
+  /* Waar de server zit.
+     - Op de pc (start.cmd, localhost:4791): dezelfde herkomst, API = ''.
+     - Op de demo-link (GitHub Pages) op een gekoppeld toestel van de eigenaar: de server op zijn pc via de tunnel, met de sleutel uit
+       de link "…#koppel=<sleutel>@<tunnel>" (start.cmd en Instellingen tonen die link). Dit toestel bewaart sleutel en tunneladres;
+       na een herstart van de pc heeft de tunnel een nieuw adres en opent de eigenaar de nieuwe link.
+     - Anders (demo zonder koppeling): geen server, de pagina toont het voorbeeld.
+     zonderServer: er antwoordde bij het laden geen server. Dan gelden de startwaarden, toont de rail geen geschiedenis en bewaart de
+     pagina niets: zo overschrijven startwaarden nooit het instellingenbestand van de aannemer als de server later wel antwoordt. */
   let zonderServer = false;
+  let API = '';
+  const KOPPEL_OPSLAG = 'rekenaar-koppeling';
+  const opDePc = () => location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const koppeling = () => { const k = opslag.lees(KOPPEL_OPSLAG, null); return k && /^[a-f0-9]{32}$/.test(String(k.sleutel)) && /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/.test(String(k.server)) ? k : null; };
+  /* De link met #koppel=… bewaart de koppeling op dit toestel en verdwijnt meteen uit de adresbalk: de sleutel hoort niet in een link
+     die verder gedeeld wordt. */
+  function leesKoppelLink() {
+    const m = /(?:^#|,)koppel=([a-f0-9]{32})@([a-z0-9-]+\.trycloudflare\.com)/.exec(location.hash);
+    if (!m) return false;
+    opslag.schrijf(KOPPEL_OPSLAG, { sleutel: m[1], server: 'https://' + m[2] });
+    const rest = location.hash.replace(/^#/, '').split(',').filter((d) => d && !/^koppel=/.test(d)).join(',');
+    history.replaceState(null, '', location.pathname + location.search + (rest ? '#' + rest : ''));
+    return true;
+  }
+  function zetApi(basis, sleutel) {
+    API = basis;
+    for (const kop of [KOP, JSON_KOP]) { if (sleutel) kop['x-sleutel'] = sleutel; else delete kop['x-sleutel']; }
+    globalThis.RP_API = basis;
+    globalThis.RP_K = sleutel || '';
+  }
+  async function pingOp(basis, sleutel) {
+    try {
+      const a = await fetch(basis + '/api/ping', { headers: Object.assign({}, KOP, sleutel ? { 'x-sleutel': sleutel } : {}) });
+      if (!a.ok) return false;
+      const j = await a.json();
+      return !!j && j.app === 'richtprijs-ai';
+    } catch (e) { return false; }
+  }
+  /* Eerst de server van deze pagina zelf (op de pc), dan de pc van de eigenaar via de tunnel. */
+  async function vindServer() {
+    if (location.protocol !== 'file:' && (await pingOp(''))) { zetApi(''); return true; }
+    const k = koppeling();
+    if (k && (await pingOp(k.server, k.sleutel))) { zetApi(k.server, k.sleutel); return true; }
+    zetApi('');
+    return false;
+  }
+  /* Kop en tekst van de melding als er geen server antwoordt: op de pc, op een gekoppeld toestel, of op een toestel zonder koppeling. */
+  function geenServer() {
+    if (opDePc()) return { kop: 'De lokale server antwoordt niet.', tekst: 'Start start.cmd opnieuw.' };
+    if (koppeling()) return { kop: 'Je pc antwoordt niet.', tekst: 'Staat start.cmd aan op je pc? Na een herstart van de pc open je op dit toestel de nieuwe link uit Instellingen, blok "Op je andere toestellen".' };
+    return { kop: 'Dit toestel is niet gekoppeld.', tekst: 'Rekenen gebeurt op de pc van de eigenaar. Open op dit toestel de link met sleutel uit Instellingen op de pc, blok "Op je andere toestellen". Zonder koppeling toont deze pagina het voorbeeld.' };
+  }
   async function laadInstellingen(vers) {
     if (vers) inst = { tarieven: {}, standaarden: {}, posten: {}, offerte: {} };
     try {
-      const a = await fetch('/api/instellingen', { headers: KOP });
+      if (!(await vindServer())) throw new Error('Geen server');
+      const a = await fetch(API + '/api/instellingen', { headers: KOP });
       if (!a.ok) throw new Error('Instellingen: status ' + a.status);
       const o = await a.json();
       if (o && typeof o === 'object' && !Array.isArray(o)) inst = Object.assign(inst, o);
@@ -475,11 +523,33 @@
     } catch (e) { zonderServer = true; }
     for (const k of ['tarieven', 'standaarden', 'posten', 'offerte']) if (!inst[k] || typeof inst[k] !== 'object') inst[k] = {};
     pasInstellingenToe();
-    $('tarieven-staat').textContent = zonderServer ? 'Niet bewaard: geen lokale server' : 'Bewaard';
+    $('tarieven-staat').textContent = zonderServer ? 'Niet bewaard: geen server' : 'Bewaard';
+    tekenKoppeling();
   }
-  /* Antwoordt de lokale server (en is het deze app)? Voor de demo zonder server en de knop Opnieuw proberen. */
-  async function serverLeeft() {
-    try { const a = await fetch('/api/ping', { headers: KOP }); if (!a.ok) return false; const j = await a.json(); return !!j && j.app === 'richtprijs-ai'; } catch (e) { return false; }
+  /* Antwoordt een server (die van deze pagina of de pc via de tunnel)? Voor de demo zonder server en de knop Opnieuw proberen. */
+  const serverLeeft = () => vindServer();
+  /* Instellingen, blok "Op je andere toestellen": alleen op de pc zelf, met de link met sleutel en een QR-code om te scannen. */
+  let qrLaden = null;
+  async function tekenKoppeling() {
+    const sectie = $('koppel-sectie');
+    if (!sectie) return;
+    if (!opDePc() || zonderServer) { sectie.hidden = true; return; }
+    let k = null;
+    try { const a = await fetch(API + '/api/koppeling', { headers: KOP }); if (a.ok) k = await a.json(); } catch (e) { k = null; }
+    sectie.hidden = false;
+    const link = k && k.link;
+    $('koppel-link').textContent = link || (k && !k.cloudflared ? 'Geen tunnelprogramma gevonden (cloudflared).' : 'De tunnel start nog; open Instellingen over enkele seconden opnieuw.');
+    $('koppel-kopieer').hidden = !link;
+    $('koppel-kopieer').setAttribute('data-link', link || '');
+    const qr = $('koppel-qr');
+    qr.innerHTML = '';
+    qr.hidden = !link;
+    if (!link) { setTimeout(() => { if (body.classList.contains('instellingen-open')) tekenKoppeling(); }, 4000); return; }
+    try {
+      if (!globalThis.QRCode) qrLaden = qrLaden || new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+      await qrLaden;
+      new globalThis.QRCode(qr, { text: link, width: 168, height: 168, correctLevel: globalThis.QRCode.CorrectLevel.M });
+    } catch (e) { qr.hidden = true; }
   }
   /* De server antwoordt (weer) na een lading zonder server: de instellingen van de aannemer opnieuw lezen in plaats van de startwaarden. */
   async function serverTerug() {
@@ -503,10 +573,10 @@
       /* De pagina bezit tarieven, standaarden, posten en offerte (aannemergegevens, vaste teksten, volgnummer). Andere sleutels
          in hetzelfde bestand worden eerst opnieuw gelezen en blijven staan. */
       let basis = {};
-      try { const g = await fetch('/api/instellingen', { headers: KOP }); if (g.ok) basis = await g.json(); } catch (e) { basis = {}; }
+      try { const g = await fetch(API + '/api/instellingen', { headers: KOP }); if (g.ok) basis = await g.json(); } catch (e) { basis = {}; }
       if (!basis || typeof basis !== 'object' || Array.isArray(basis)) basis = {};
       const uit = Object.assign({}, basis, { tarieven: inst.tarieven, standaarden: inst.standaarden, posten: inst.posten, offerte: inst.offerte });
-      const a = await fetch('/api/instellingen', { method: 'POST', headers: JSON_KOP, body: JSON.stringify(uit) });
+      const a = await fetch(API + '/api/instellingen', { method: 'POST', headers: JSON_KOP, body: JSON.stringify(uit) });
       $('tarieven-staat').textContent = a.ok ? 'Bewaard' : 'Niet bewaard';
       return a.ok;
     } catch (e) { $('tarieven-staat').textContent = 'Niet bewaard: de server antwoordt niet'; return false; }
@@ -553,7 +623,7 @@
   function zetLeeg(aan) { body.classList.toggle('leeg', aan); if (aan) body.classList.remove('paneel-open'); tekenTitel(); }
   function tekenTitel() {
     const t = S.titel || (S.m && S.m.titel) || '';
-    document.title = t ? 'Norvo Richtprijs · ' + t : 'Norvo Richtprijs';
+    document.title = t ? 'Rekenaar Norvo · ' + t : 'Rekenaar Norvo';
     /* Leeg: de topbalk op de telefoon toont het Norvo-merk (CSS), geen titel. */
     document.querySelectorAll('[data-titel]').forEach((e) => { e.textContent = body.classList.contains('leeg') ? '' : (t || 'Berekening'); });
   }
@@ -614,7 +684,7 @@
   async function laadLijst() {
     /* Zonder server (demo) is er geen geschiedenis: geen aanvraag die toch mislukt. */
     if (zonderServer) { lijst = []; tekenRail(); return; }
-    try { const a = await fetch('/api/berekeningen', { headers: KOP }); if (a.ok) lijst = await a.json(); } catch (e) { /* server weg: de lijst blijft zoals ze was */ }
+    try { const a = await fetch(API + '/api/berekeningen', { headers: KOP }); if (a.ok) lijst = await a.json(); } catch (e) { /* server weg: de lijst blijft zoals ze was */ }
     if (!Array.isArray(lijst)) lijst = [];
     tekenRail();
   }
@@ -661,7 +731,7 @@
     const ok = await bevestig('Berekening verwijderen?', 'De berekening verdwijnt van deze pc.', 'Verwijderen', 'Behouden');
     if (!ok) return;
     try {
-      const a = await fetch('/api/berekeningen/' + encodeURIComponent(id), { method: 'DELETE', headers: KOP });
+      const a = await fetch(API + '/api/berekeningen/' + encodeURIComponent(id), { method: 'DELETE', headers: KOP });
       if (!a.ok) { toast('Niet verwijderd'); return; }
       toast('Berekening verwijderd');
       if (id === S.id) { S.id = null; S.bewaard = false; tekenKnoppen(); }
@@ -1165,9 +1235,9 @@
 
   /* ---------- de stroom van de AI ---------- */
   async function stroom(prompt, opDelta, signal) {
-    const antwoord = await fetch('/api/ai', { method: 'POST', headers: JSON_KOP, body: JSON.stringify({ prompt }), signal });
+    const antwoord = await fetch(API + '/api/ai', { method: 'POST', headers: JSON_KOP, body: JSON.stringify({ prompt }), signal });
     if (!antwoord.ok || !antwoord.body) {
-      let tekst = 'De lokale server gaf geen antwoord.';
+      let tekst = 'De server gaf geen antwoord.';
       try { tekst = (await antwoord.json()).fout || tekst; } catch (e) { /* geen leesbare fout */ }
       if (antwoord.status === 429) tekst = 'Er lopen al 3 berekeningen. Wacht tot er één klaar is.';
       const e = new Error(tekst); e.code = antwoord.status; throw e;
@@ -1235,7 +1305,9 @@
 
   /* De banner: lokaal "Start start.cmd opnieuw"; in de demo zonder server de uitleg dat alleen het voorbeeld werkt. */
   function toonBanner() {
-    $('banner-tekst').textContent = zonderServer ? 'Zonder server toont deze demo alleen het voorbeeld. Een eigen klus berekenen, meten en bewaren gebeurt via de lokale server (start.cmd op de pc).' : 'Start start.cmd opnieuw.';
+    const g = geenServer();
+    $('banner-kop').textContent = g.kop;
+    $('banner-tekst').textContent = g.tekst;
     $('banner-voorbeeld').hidden = !zonderServer;
     $('banner').hidden = false;
   }
@@ -1247,7 +1319,7 @@
       startBezig = true;
       let terug = false;
       try { terug = (await serverLeeft()) && (await serverTerug()); } finally { startBezig = false; }
-      if (!terug) { toonBanner(); status('De lokale server antwoordt niet.', true); return; }
+      if (!terug) { toonBanner(); status(geenServer().kop, true); return; }
     }
     const klus = $('klus').value.trim();
     const adres = $('adres').value.trim();
@@ -1284,7 +1356,7 @@
         const tm = Date.now();
         S.gemeten = null; S.meetFout = '';
         try {
-          const antwoord = await fetch('/api/adres?q=' + encodeURIComponent(adres), { headers: KOP, signal: ctl.signal });
+          const antwoord = await fetch(API + '/api/adres?q=' + encodeURIComponent(adres), { headers: KOP, signal: ctl.signal });
           const j = await antwoord.json();
           if (antwoord.ok) S.gemeten = j; else S.meetFout = j.fout || 'Geen gebouw gevonden op dit adres.';
         } catch (e) {
@@ -1352,7 +1424,7 @@
       if (nr === 3 && laatsteA) {
         /* De prijs staat vast en is al bewaard: alleen de uitleg ontbreekt. Geen volle her-run, wel "Opnieuw schrijven". */
         S.fase = 'klaar';
-        if (s) rij(2, gestopt ? 'gestopt' : 'fout', gestopt ? 'Uitleg gestopt' : serverWeg ? 'De lokale server antwoordt niet' : 'Uitleg niet volledig aangekomen', s.t0 ? sec(s.t0) : 0);
+        if (s) rij(2, gestopt ? 'gestopt' : 'fout', gestopt ? 'Uitleg gestopt' : serverWeg ? geenServer().kop.replace(/\.$/, '') : 'Uitleg niet volledig aangekomen', s.t0 ? sec(s.t0) : 0);
         S.trailKop = (gestopt ? 'Gestopt zonder uitleg' : 'Klaar zonder uitleg') + ' · ' + secTekst(sec(t0));
         if (serverWeg) toonBanner();
         status(gestopt ? 'Gestopt. De prijs is klaar, zonder uitleg.' : 'Uitleg niet volledig aangekomen. ' + ((e && e.message) || ''), !gestopt);
@@ -1364,11 +1436,12 @@
         S.trailKop = 'Gestopt na ' + secTekst(sec(t0));
         status('Gestopt.');
       } else if (serverWeg) {
-        S.fase = 'fout'; S.onvolledig = nPosten > 0; S.foutTekst = 'De lokale server antwoordt niet.';
+        const g = geenServer();
+        S.fase = 'fout'; S.onvolledig = nPosten > 0; S.foutTekst = g.kop;
         toonBanner();
-        if (s) rij(nr - 1, 'fout', 'De lokale server antwoordt niet', s.t0 ? sec(s.t0) : 0);
+        if (s) rij(nr - 1, 'fout', g.kop.replace(/\.$/, ''), s.t0 ? sec(s.t0) : 0);
         S.trailKop = 'Afgebroken na ' + secTekst(sec(t0));
-        status('De lokale server antwoordt niet. Start start.cmd opnieuw.', true);
+        status(g.kop + ' ' + g.tekst, true);
       } else {
         S.fase = 'fout'; S.onvolledig = nPosten > 0; S.foutTekst = (e && e.message) || 'Geen bruikbare posten uit de klus.';
         if (s) rij(nr - 1, 'fout', S.foutTekst, s.t0 ? sec(s.t0) : 0);
@@ -1560,7 +1633,7 @@
       let terug = false;
       try { terug = (await serverLeeft()) && (await serverTerug()); } finally { startBezig = false; }
       if (!terug) {
-        S.gesprek.push({ vraag: tekst, antwoord: '', staat: 'fout', versie: S.versie, fout: 'Geen antwoord: deze demo draait zonder de lokale server. Op de pc (start.cmd) antwoordt de AI hier op elke vraag.' });
+        S.gesprek.push({ vraag: tekst, antwoord: '', staat: 'fout', versie: S.versie, fout: 'Geen antwoord: ' + geenServer().kop.charAt(0).toLowerCase() + geenServer().kop.slice(1) + ' ' + geenServer().tekst });
         $('vraag').value = ''; pasVraagHoogte();
         tekenGesprek(); tekenVervolg(); naarOnder();
         return;
@@ -1592,7 +1665,7 @@
       const serverWeg = e instanceof TypeError;
       beurt.staat = gestopt ? 'gestopt' : 'fout';
       beurt.antwoord = RP.leesVervolg(ruw).antwoord.join('\n');
-      beurt.fout = gestopt ? '' : serverWeg ? 'De lokale server antwoordt niet.' : ((e && e.message) || 'Geen antwoord ontvangen.');
+      beurt.fout = gestopt ? '' : serverWeg ? geenServer().kop : ((e && e.message) || 'Geen antwoord ontvangen.');
       if (serverWeg) toonBanner();
       status(gestopt ? 'Gestopt.' : beurt.fout, !gestopt);
     } finally {
@@ -1625,7 +1698,7 @@
       offerte: S.offerte ? offOpslagVorm(S.offerte) : undefined, versies: S.versies.length ? S.versies : undefined,
       gesprek: S.gesprek.some((b) => b.staat !== 'bezig') ? S.gesprek.filter((b) => b.staat !== 'bezig').map((b) => { const c = Object.assign({}, b); delete c.live; delete c.t0; return c; }) : undefined };
     try {
-      const a = await fetch('/api/berekeningen', { method: 'POST', headers: JSON_KOP, body: JSON.stringify(o) });
+      const a = await fetch(API + '/api/berekeningen', { method: 'POST', headers: JSON_KOP, body: JSON.stringify(o) });
       const j = await a.json();
       if (!a.ok || !j.id) throw new Error(j.fout || 'Niet opgeslagen.');
       S.id = j.id; S.bewaard = true;
@@ -1676,7 +1749,7 @@
   async function laden(id) {
     if (S.loopt) return;
     try {
-      const a = await fetch('/api/berekeningen/' + encodeURIComponent(id), { headers: KOP });
+      const a = await fetch(API + '/api/berekeningen/' + encodeURIComponent(id), { headers: KOP });
       if (!a.ok) { toast('Berekening niet gevonden'); return; }
       zetKlaar(await a.json());
     } catch (e) { toast('Server antwoordt niet'); }
@@ -1746,7 +1819,7 @@
     if (uitleg.length) regels.push('TOELICHTING', ...uitleg.map((s) => '- ' + s), '');
     if (S.m && S.m.aannames.length) regels.push('AANNAMES', ...S.m.aannames.map((s) => '- ' + s), '');
     if (S.m && S.m.plaatsbezoek.length) regels.push('TE CONTROLEREN BIJ HET PLAATSBEZOEK', ...S.m.plaatsbezoek.map((s) => '- ' + s), '');
-    if (!alleenUitleg) regels.push('Richtprijs uit ' + (S.gemeten ? 'de kaartmeting' : 'de maten in de klus') + ', uw tarieven en de datatabel van ' + DATA.stand + '. Norvo Richtprijs.');
+    if (!alleenUitleg) regels.push('Richtprijs uit ' + (S.gemeten ? 'de kaartmeting' : 'de maten in de klus') + ', uw tarieven en de datatabel van ' + DATA.stand + '. Rekenaar Norvo.');
     return regels.join('\n').trim() + '\n';
   }
   async function kopieer(wat) {
@@ -1881,7 +1954,7 @@
   function openInstellingen(aan) {
     body.classList.toggle('instellingen-open', aan);
     body.classList.remove('lade');
-    if (aan) { zetSeg(false); tekenInstellingen(); $('instellingen').scrollTop = 0; window.scrollTo(0, 0); }
+    if (aan) { zetSeg(false); tekenInstellingen(); tekenKoppeling(); $('instellingen').scrollTop = 0; window.scrollTo(0, 0); }
   }
 
   /* ---------- offerte: formulier links, document rechts (ontwerp/OFFERTE-spec.txt) ---------- */
@@ -1914,7 +1987,7 @@
     const io = inst.offerte;
     let n = Number(io.volgnummerJaar) === jaar ? Number(io.volgnummer) || 0 : 0;
     try {
-      const g = await fetch('/api/instellingen', { headers: KOP });
+      const g = await fetch(API + '/api/instellingen', { headers: KOP });
       const so = g.ok ? ((await g.json()) || {}).offerte : null;
       if (so && Number(so.volgnummerJaar) === jaar) n = Math.max(n, Number(so.volgnummer) || 0);
     } catch (e) { /* de lokale teller geldt */ }
@@ -2278,6 +2351,11 @@
     const doel = document.querySelector(a.getAttribute('href'));
     if (doel) doel.scrollIntoView({ block: 'start' });
   });
+  $('koppel-kopieer').addEventListener('click', async (e) => {
+    const link = e.currentTarget.getAttribute('data-link');
+    if (!link) return;
+    try { await navigator.clipboard.writeText(link); toast('Link gekopieerd'); } catch (x) { toast('Kopiëren lukte niet'); }
+  });
   $('off-print').addEventListener('click', () => offerteUitgeven());
   $('off-nieuw').addEventListener('click', () => offNieuweVersie());
   $('off-nog-lijst').addEventListener('click', (e) => {
@@ -2458,6 +2536,8 @@
 
   /* ---------- hash-haakjes en start ---------- */
   function hash() {
+    /* Een koppellink geopend terwijl de pagina al openstond: koppeling bewaren en meteen met de pc verbinden. */
+    if (leesKoppelLink()) { serverTerug().then((ok) => { if (ok) { $('banner').hidden = true; toast('Gekoppeld met je pc'); } else toonBanner(); }); }
     const delen = location.hash.replace(/^#/, '').split(',').filter(Boolean);
     for (const t of delen) {
       if (t === 'voorbeeld') laadVoorbeeld();
@@ -2488,11 +2568,13 @@
     /* Een verse lading begint leeg (de placeholder toont een voorbeeldklus; de chips eronder vullen het veld met één klik).
        Expliciet leegmaken: Chrome zet bij herladen anders de vorige tekst terug, terwijl de staat (S) leeg is. */
     $('adres').value = ''; $('klus').value = '';
+    const gekoppeld = leesKoppelLink();
     tekenVoorbeelden();
     kaartDicht(false);
     pasKlusHoogte();
     teken(); tekenTrail(); tekenUitleg();
     await laadInstellingen();
+    if (gekoppeld) { if (zonderServer) toonBanner(); else toast('Gekoppeld met je pc'); }
     tekenInstellingen();
     teken();
     laadLijst();
