@@ -36,6 +36,9 @@
     foto.decoding = 'async';
     /* Op een gekoppeld toestel komt de luchtfoto via de tunnel van de pc (RP_API) met de sleutel in ?k= (een <img> stuurt geen kop). */
     foto.src = (globalThis.RP_API || '') + '/api/luchtfoto?bbox=' + b.bbox.join(',') + '&px=' + o.px + (globalThis.RP_K ? '&k=' + globalThis.RP_K : '');
+    /* Een haperende tunnel of luchtfotodienst: twee nieuwe pogingen na 1,5 s, met een eigen adres zodat de browser opnieuw vraagt. */
+    let pogingen = 0;
+    foto.onerror = () => { if (pogingen++ < 2) setTimeout(() => { foto.src = foto.src.replace(/&p=\d+$/, '') + '&p=' + pogingen; }, 1500); };
     wortel.appendChild(foto);
 
     const svg = el('svg', { class: 'meetbeeld__laag', viewBox: '0 0 ' + S + ' ' + S, preserveAspectRatio: 'xMidYMid slice' }, null);

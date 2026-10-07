@@ -497,9 +497,9 @@
       return !!j && j.app === 'richtprijs-ai';
     } catch (e) { return false; }
   }
-  /* Eerst de server van deze pagina zelf (op de pc), dan de pc van de eigenaar via de tunnel. */
+  /* Eerst de server van deze pagina zelf (alleen op de pc: de server luistert alleen op 127.0.0.1), dan de pc via de tunnel. */
   async function vindServer() {
-    if (location.protocol !== 'file:' && (await pingOp(''))) { zetApi(''); return true; }
+    if (opDePc() && (await pingOp(''))) { zetApi(''); return true; }
     const k = koppeling();
     if (k && (await pingOp(k.server, k.sleutel))) { zetApi(k.server, k.sleutel); return true; }
     zetApi('');
