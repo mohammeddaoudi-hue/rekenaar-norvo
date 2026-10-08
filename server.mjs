@@ -285,6 +285,7 @@ const server = http.createServer(async (req, res) => {
    achtergebleven tunnel van een vorige start opruimt (Windows stopt kindprocessen niet mee). */
 let tunnelProces = null;
 let stoppen = false;
+let tunnelMis = 0;
 function bewaarKoppeling(extra) {
   try { fs.writeFileSync(KOPPELING, JSON.stringify(Object.assign({ sleutel: SLEUTEL }, extra), null, 1), 'utf8'); } catch (e) { /* niet bewaard: de volgende start ruimt dan niets op */ }
 }
@@ -308,6 +309,7 @@ function startTunnel() {
     const m = String(d).match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
     if (m && !gezien) {
       gezien = true;
+      tunnelMis = 0;
       tunnel = { url: m[0], sinds: Date.now() };
       console.log('\nDemo-link voor al je toestellen (rekent met jouw Claude-account zolang deze pc aanstaat; deel hem niet):\n  ' + koppelLink() + '\nDe link staat ook in de app: Instellingen, blok "Op je andere toestellen".\n');
     }
@@ -321,6 +323,24 @@ function startTunnel() {
     if (!stoppen) { console.log('Tunnel weggevallen; nieuwe tunnel over 10 s (nieuwe link).'); setTimeout(startTunnel, 10000); }
   });
 }
+/* Wachter. Op 8 okt 2026 stond de pc 12 uur in slaapstand. Daarna kende Cloudflare het tunneladres niet meer, terwijl
+   cloudflared nog draaide: de link werkte niet en niets startte een nieuwe tunnel. Daarom vraagt de server zichzelf elke 30 s
+   via de tunnel. Antwoordt de tunnel 3 keer op rij niet terwijl internet werkt, dan start hij een nieuwe tunnel (nieuwe link).
+   Een nieuwe tunnel krijgt eerst 60 s om op te starten. Zonder internet telt een mislukte poging niet mee. */
+const antwoordt = async (url, kop) => { try { return (await fetch(url, { headers: kop, signal: AbortSignal.timeout(10000) })).status; } catch (e) { return 0; } };
+let wachterBezig = false;
+setInterval(async () => {
+  if (wachterBezig || stoppen || !tunnelProces || !tunnel.url || Date.now() - tunnel.sinds < 60000) return;
+  wachterBezig = true;
+  try {
+    if (await antwoordt(tunnel.url + '/api/ping', { 'x-richtprijs': '1', 'x-sleutel': SLEUTEL }) === 200) { tunnelMis = 0; return; }
+    if (!(await antwoordt('https://www.cloudflare.com/cdn-cgi/trace'))) return;
+    if (++tunnelMis < 3) return;
+    tunnelMis = 0;
+    console.log(new Date().toLocaleString('nl-BE') + ': de tunnel antwoordt niet meer; nieuwe tunnel.');
+    try { tunnelProces.kill(); } catch (e) { /* al gestopt */ }
+  } finally { wachterBezig = false; }
+}, 30000).unref();
 function stop() {
   stoppen = true;
   if (tunnelProces) { try { tunnelProces.kill(); } catch (e) { /* al gestopt */ } }

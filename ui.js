@@ -508,7 +508,7 @@
   /* Kop en tekst van de melding als er geen server antwoordt: op de pc, op een gekoppeld toestel, of op een toestel zonder koppeling. */
   function geenServer() {
     if (opDePc()) return { kop: 'De lokale server antwoordt niet.', tekst: 'Start start.cmd opnieuw.' };
-    if (koppeling()) return { kop: 'Je pc antwoordt niet.', tekst: 'Staat start.cmd aan op je pc? Na een herstart van de pc open je op dit toestel de nieuwe link uit Instellingen, blok "Op je andere toestellen".' };
+    if (koppeling()) return { kop: 'Je pc antwoordt niet.', tekst: 'Je pc moet aanstaan en wakker zijn. Staat hij aan en zie je deze melding toch, dan heeft je pc een nieuwe link. Je vindt hem op je pc in Instellingen, blok "Op je andere toestellen". Open hem op dit toestel.' };
     return { kop: 'Dit toestel is niet gekoppeld.', tekst: 'Rekenen gebeurt op de pc van de eigenaar. Open op dit toestel de link met sleutel uit Instellingen op de pc, blok "Op je andere toestellen". Zonder koppeling toont deze pagina het voorbeeld.' };
   }
   async function laadInstellingen(vers) {
